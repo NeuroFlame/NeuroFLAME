@@ -2,89 +2,81 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from "react-router-dom";
 import axios from 'axios';
 
+export interface FileInfo {
+  name: string;
+  path: string;
+  size: number;
+  isDirectory: boolean;
+  lastModified: string;
+  url: string; // This is relative: consortiumId/runId/results/...
+}
+
 export function useRunResults() {
-    const { consortiumId, runId } = useParams<{ consortiumId: string, runId: string }>();
-    const [fileList, setFileList] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [frameSrc, setFrameSrc] = useState<string | null>(null)
-    const [edgeClientRunResultsUrl, setEdgeClientRunResultsUrl] = useState<string | null>(null);
-    const [filesPanelWidth, setFilesPanelWidth] = useState<object>({ sm: 3, md: 2 })
-    const [filesPanelShow, setFilesPanelShow] = useState<string>('inline')
-    const [iframePanelWidth, setIframePanelWidth] = useState<object>({ sm: 9, md: 10 })
-    const [iframeExpanded, setIframeExpanded] = useState<boolean>(false)
-    const [arrowForwardShow, setArrowForwardShow] = useState<string>('none')
+  const { consortiumId, runId } = useParams<{ consortiumId: string, runId: string }>();
+  const [fileList, setFileList] = useState<FileInfo[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [frameSrc, setFrameSrc] = useState<string | null>(null);
+  const [edgeClientRunResultsUrl, setEdgeClientRunResultsUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchEdgeClientRunResultsUrl = async () => {
-            const { edgeClientRunResultsUrl } = await window.ElectronAPI.getConfig()
-            setEdgeClientRunResultsUrl(edgeClientRunResultsUrl);
-        };
-        fetchEdgeClientRunResultsUrl();
-    })
+  useEffect(() => {
+    const fetchEdgeClientRunResultsUrl = async () => {
+      const { edgeClientRunResultsUrl } = await window.ElectronAPI.getConfig();
+      setEdgeClientRunResultsUrl(edgeClientRunResultsUrl);
+    };
+    fetchEdgeClientRunResultsUrl();
+  }, []);
 
-    interface FileResult {
-        name: string;
-        url: string;
-    }
-    
-    useEffect(() => {
-        if (!edgeClientRunResultsUrl) return;
-        const fetchResultsFilesList = async () => {
-            const accessToken = localStorage.getItem('accessToken');
-            try {
-                const response = await axios.get<FileResult[]>(`${edgeClientRunResultsUrl}/${consortiumId}/${runId}`, {
-                    headers: {
-                        'x-access-token': accessToken
-                    }
-                });
-                const indexFile = response.data.find((file) => file.name === "index.html");
-                if (indexFile && !frameSrc) {
-                    const initialSrc = `${edgeClientRunResultsUrl}/${indexFile.url}?x-access-token=${accessToken}`;
-                    setFrameSrc(initialSrc);
-                }
-                setFileList(response.data);
-            } catch (err) {
-                setError('Failed to fetch results');
-                console.error('Error fetching results:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchResultsFilesList();
-    }, [consortiumId, runId, edgeClientRunResultsUrl, frameSrc]);
+  useEffect(() => {
+    if (!edgeClientRunResultsUrl || !consortiumId || !runId) return;
 
-    const handleHideFiles = () => {
-        setFilesPanelWidth({ sm: 0, md: 0 });
-        setFilesPanelShow('none');
-        setIframePanelWidth({ sm: 12, md: 12 });
-        setArrowForwardShow('inline');
-        setIframeExpanded(true);
-    }
+    const fetchResultsFilesList = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        setError('Missing access token');
+        return;
+      }
 
-    const handleShowFiles = () => {
-        setFilesPanelWidth({ sm: 3, md: 2 });
-        setFilesPanelShow('inline');
-        setIframePanelWidth({ sm: 9, md: 10 });
-        setArrowForwardShow('none'); 
-        setIframeExpanded(false);        
-    }
-     
-    return {
-        consortiumId, 
-        runId,
-        fileList,
-        loading,
-        error,
-        frameSrc,
-        setFrameSrc,
-        edgeClientRunResultsUrl,
-        filesPanelWidth,
-        filesPanelShow,
-        iframePanelWidth,
-        iframeExpanded,
-        arrowForwardShow,
-        handleHideFiles,
-        handleShowFiles
-    }
+      try {
+        const apiUrl = `${edgeClientRunResultsUrl}/${consortiumId}/${runId}`;
+        const response = await axios.get<FileInfo[]>(apiUrl, {
+          headers: { 'x-access-token': accessToken }
+        });
+
+        const filesWithFullPath = response.data.map((file) => ({
+          ...file,
+          url: file.url  // Important: leave relative
+        }));
+
+        const indexFile = filesWithFullPath.find(file =>
+          file.name === "index.html" &&
+          file.url.endsWith('/index.html')
+        );
+
+        if (indexFile && !frameSrc) {
+          setFrameSrc(`${edgeClientRunResultsUrl}/${indexFile.url}?x-access-token=${accessToken}`);
+        }
+
+        setFileList(filesWithFullPath);
+      } catch (err) {
+        setError('Failed to fetch results');
+        console.error('Error fetching results:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResultsFilesList();
+  }, [edgeClientRunResultsUrl, consortiumId, runId, frameSrc]);
+
+  return {
+    consortiumId,
+    runId,
+    fileList,
+    loading,
+    error,
+    frameSrc,
+    setFrameSrc,
+    edgeClientRunResultsUrl,
+  };
 }

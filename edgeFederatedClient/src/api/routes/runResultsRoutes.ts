@@ -10,6 +10,6 @@ router.use(authenticate);
 
 // Define the routes
 router.get('/:consortiumId/:runId', listRunFiles);
-router.get('/:consortiumId/:runId/:filename', serveRunFile);
+router.get('/:consortiumId/:runId/*', serveRunFile);
 
 export default router;
