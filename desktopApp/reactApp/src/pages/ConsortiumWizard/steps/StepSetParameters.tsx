@@ -14,10 +14,10 @@ export default function StepSetParameters() {
             }}
         >
             <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid item xs={6} md={4}>
                     <ComputationParameters />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={6} md={8}>
                     {/* Wrapping ComputationDisplay with Box to control overflow */}
                     <Box sx={{
                         height: 'calc(100vh - 26rem)',  // Limit height to keep within view

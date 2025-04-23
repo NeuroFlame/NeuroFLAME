@@ -2,6 +2,7 @@ import { Computation } from "../../../apis/centralApi/generated/graphql";
 import { Box, Typography, Card, CardContent } from "@mui/material";
 import { Maybe } from "graphql/jsutils/Maybe";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useConsortiumDetailsContext } from "../ConsortiumDetailsContext";
 
 
@@ -35,8 +36,8 @@ const ComputationDisplay: React.FC<{notesHeading: boolean}> = ({ notesHeading}) 
                 <Typography variant="body2" color="textSecondary">
                     {imageName}
                 </Typography>
-                <Box marginTop="1rem">
-                    <ReactMarkdown>{notes}</ReactMarkdown>
+                <Box className="markdown">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{notes}</ReactMarkdown>
                 </Box>
             </CardContent>
         </Box>

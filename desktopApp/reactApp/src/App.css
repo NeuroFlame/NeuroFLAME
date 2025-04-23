@@ -191,6 +191,10 @@ pre code {
   line-height: 1.4; /* Slightly increased line height */
 }
 
+ol > ul {
+  margin-left: 1rem;
+}
+
 input[type="file"]::-webkit-file-upload-button {
   display: inline-block;
   border: none;
@@ -265,6 +269,51 @@ textarea {
 
 .MuiCardActions-root label span {
   font-size: 11px !important;
+}
+
+.markdown {
+  overflow: hidden;
+  overflow-x: scroll;
+  margin-top: 0.5rem;
+}
+
+.markdown h3 {
+  border-bottom: 1px solid #ccc;
+  margin: 1rem 0;
+}
+
+.markdown h3:first-of-type {
+  margin-top: 0;
+}
+
+.markdown ol,
+.markdown ul {
+  margin-left: 1.25rem;
+}
+
+.markdown code {
+  display: inline;
+  padding: 0.25rem;
+}
+
+.markdown table {
+  margin: 1rem 0;
+}
+
+.markdown table th {
+  background: #efefef;
+}
+
+.markdown table tr:nth-child(even) {
+  background: #efefef;
+}
+
+.markdown table tr:nth-child(even) code {
+  background: #fff;
+}
+
+.markdown table tr td {
+  padding: 0.5rem;
 }
 
 @keyframes fadeIn {
