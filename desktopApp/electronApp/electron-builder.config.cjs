@@ -1,24 +1,6 @@
 const packageJson = require('./package.json');
 debugger
 module.exports = {
-  // appId: 'com.github.trendscenter.coinstac',
-  // productName: 'COINSTAC',
-  // afterSign: './scripts/utils/notarize.js',
-  // files: [
-  //   '**/*',
-  //   'build/render',
-  //   '!config/local-development.json',
-  //   '!config/local-local.json',
-  //   '!config/local-production.json',
-  //   '!CONTRIBUTING.md',
-  //   '!coverage',
-  //   '!scripts',
-  //   '!test',
-  //   '!webpack.config.js',
-  // ],
-  // extraResources: [
-  //   'resources/**',
-  // ],
   appId: 'neuroflame',
   productName: 'NeuroFLAME',
   directories: {
