@@ -4,11 +4,15 @@
   "description": "desktop app",
   "main": "build/main.js",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeuroFlame/NeuroFLAME.git"
+  },
   "scripts": {
     "build": "tsc && cp src/preload.js build/preload.js",
     "start": "npm run build && electron . --",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
+    "dist": "NODE_ENV=production DEPLOY=true node ./scripts/build.cjs",
     "start-configured": "npm run build && electron . --config=../../configs/electronApp1.json",
     "start-configured-2": "npm run build && electron . --config=../../configs/electronApp2.json",
     "start-configured-3": "npm run build && electron . --config=../../configs/electronApp3.json"
@@ -28,43 +32,7 @@
     "ts-loader": "^9.5.1",
     "typescript": "^5.4.5"
   },
-  "build": {
-    "appId": "neuroflame",
-    "productName": "NeuroFLAME",
-    "directories": {
-      "buildResources": "assets",
-      "output": "dist"
-    },
-    "extraResources": [
-      {
-        "from": "../reactApp/build",
-        "to": "app/build",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "asar": true,
-    "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": [
-        {
-          "target": "pkg",
-          "arch": [
-            "universal"
-          ]
-        }
-      ],
-      "type": "development",
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "entitlements": null,
-      "entitlementsInherit": null
-    },
-    "linux": {
-      "target": "AppImage"
-    }
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11"
   }
 }
