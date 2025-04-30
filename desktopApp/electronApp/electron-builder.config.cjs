@@ -15,7 +15,7 @@ module.exports = {
     },
   ],
   mac: {
-    // icon: 'img/icons/coinstac.icns',
+    icon: 'img/icons/icon-osx.icns',
     target: 'dmg',
     category: 'public.app-category.education',
     hardenedRuntime: true,
@@ -33,13 +33,13 @@ module.exports = {
         arch: ['x64']
       }
     ],
-    // icon: 'img/icons/coinstac.ico',
+    icon: 'img/icons/icon-windows.ico',
   },
   nsis: {
     oneClick: true,
     runAfterFinish: true,
-    // installerIcon: 'img/icons/coinstac.ico',
-    // uninstallerIcon: 'img/icons/coinstac.ico',
+    installerIcon: 'img/icons/icon-windows.ico',
+    uninstallerIcon: 'img/icons/icon-windows.ico',
     deleteAppDataOnUninstall: true,
     license: 'LICENSE',
   },
@@ -52,6 +52,6 @@ module.exports = {
     ],
     category: 'Science',
     artifactName: 'NeuroFlame-${version}-linux.${ext}',
-    // icon: 'img/icons/coinstac.png',
+    icon: 'img/icons/icon-linux.png',
   },
 };
