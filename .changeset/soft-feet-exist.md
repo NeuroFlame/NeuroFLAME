@@ -1,0 +1,5 @@
+---
+"neuroflame": patch
+---
+
+Multiplatform builds
