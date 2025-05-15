@@ -28,6 +28,20 @@ async function appOnReady(): Promise<void> {
   }
 
   mainWindow = await createMainWindow()
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const parsedUrl = new URL(url)
+    const openInSelf = parsedUrl.searchParams.get('window') === 'self'
+
+    if (openInSelf) {
+      mainWindow?.loadURL(url) // load in current window
+      return { action: 'deny' }
+    }
+
+    // Default: allow opening new window if you want
+    return { action: 'allow' }
+  })
+
   mainWindow.on('closed', () => {
     logger.info('Main window closed')
     mainWindow = null
