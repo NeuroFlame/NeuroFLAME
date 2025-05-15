@@ -73,6 +73,8 @@ export const serveRunFolder = async (req: Request, res: Response) => {
     const { consortiumId, runId } = req.params
     const directoryPath = path.join(filesDirectory, consortiumId, runId, `results`)
 
+    console.log(directoryPath)
+
     if (!fs.existsSync(directoryPath)) {
       logger.warn(`Directory not found: ${directoryPath}`)
       return res.status(404).json({ error: 'Run directory not found' })

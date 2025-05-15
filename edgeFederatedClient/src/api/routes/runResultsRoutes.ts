@@ -9,8 +9,8 @@ const router = Router();
 router.use(authenticate);
 
 // Define the routes
+router.get('/zip/:consortiumId/:runId', serveRunFolder);
 router.get('/:consortiumId/:runId', listRunFiles);
 router.get('/:consortiumId/:runId/:filename', serveRunFile);
-router.get('/:consortiumId/:runId', serveRunFolder);
 
 export default router;

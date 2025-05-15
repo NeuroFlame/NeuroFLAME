@@ -49,6 +49,14 @@ export default function RunResults() {
                         >
                             View Run Details
                         </Button>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            style={{ margin: '0 0 1rem 1rem' }}
+                            href={`${edgeClientRunResultsUrl}/zip/${consortiumId}/${runId}/?x-access-token=${localStorage.getItem('accessToken')}`}
+                        >
+                            Download Results
+                        </Button>
                     </Box>
                 </Box>
             </Grid>
