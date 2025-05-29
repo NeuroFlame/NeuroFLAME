@@ -20,7 +20,7 @@ export default function RunResults() {
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
-
+  
     const paths = fileList.map(file => file.url);
     const commonPrefix = (() => {
         if (!fileList.length) return '';

@@ -13,14 +13,18 @@ interface FileInfo {
   url: string;
 }
 
-const walkDirectory = (dirPath: string, baseUrl: string): FileInfo[] => {
+const walkDirectory = (
+  dirPath: string,
+  baseUrl: string,
+  rootPath: string
+): FileInfo[] => {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });
   let results: FileInfo[] = [];
 
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
-    const relativePath = path.relative(dirPath, fullPath);
     const stat = fs.statSync(fullPath);
+    const relativePath = path.relative(rootPath, fullPath); // key fix here
 
     const fileInfo: FileInfo = {
       name: entry.name,
@@ -28,13 +32,13 @@ const walkDirectory = (dirPath: string, baseUrl: string): FileInfo[] => {
       size: stat.size,
       isDirectory: entry.isDirectory(),
       lastModified: stat.mtime,
-      url: path.join(baseUrl, entry.name).replace(/\\/g, '/'), // Windows compatibility
+      url: path.join(baseUrl, relativePath).replace(/\\/g, '/'), // consistent relative path
     };
 
     results.push(fileInfo);
 
     if (entry.isDirectory()) {
-      const subResults = walkDirectory(fullPath, fileInfo.url);
+      const subResults = walkDirectory(fullPath, baseUrl, rootPath);
       results = results.concat(subResults);
     }
   }
@@ -54,7 +58,8 @@ export const listRunFiles = async (req: Request, res: Response) => {
     }
 
     const baseUrl = `${consortiumId}/${runId}`;
-    const fileList = walkDirectory(directoryPath, baseUrl);
+    const rootPath = directoryPath;
+    const fileList = walkDirectory(directoryPath, baseUrl, rootPath);
 
     res.json(fileList);
   } catch (error) {
@@ -145,12 +150,44 @@ export const serveRunFile = async (req: Request, res: Response) => {
       return res.send(contents);
     }    
 
-    if (fs.existsSync(resolvedFile) && fs.lstatSync(resolvedFile).isFile()) {
-      res.sendFile(resolvedFile);
-    } else {
+    if (!fs.existsSync(resolvedFile)) {
       logger.warn(`File not found: ${resolvedFile}`);
-      res.status(404).send('File not found');
+      return res.status(404).send('File not found');
     }
+
+    const stat = fs.lstatSync(resolvedFile);
+
+    if (stat.isFile()) {
+      return res.sendFile(resolvedFile);
+    }
+
+    if (stat.isDirectory()) {
+      const entries = fs.readdirSync(resolvedFile, { withFileTypes: true });
+      const directoryContents: FileInfo[] = entries.map((entry) => {
+        const entryPath = path.join(resolvedFile, entry.name);
+        const entryStat = fs.statSync(entryPath);
+        const relativeUrl = path.relative(
+          path.join(filesDirectory, consortiumId, runId, 'results'),
+          entryPath
+        );
+
+        return {
+          name: entry.name,
+          path: entryPath,
+          size: entryStat.size,
+          isDirectory: entry.isDirectory(),
+          lastModified: entryStat.mtime,
+          url: `${consortiumId}/${runId}/${relativeUrl}`.replace(/\\/g, '/'),
+        };
+      });
+
+      return res.json(directoryContents);
+    }
+
+    // If not a file or folder
+    logger.warn(`Unsupported file type at path: ${resolvedFile}`);
+    return res.status(400).send('Unsupported file type');
+
   } catch (error) {
     logger.error(`Error in serveRunFile: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal Server Error' });
