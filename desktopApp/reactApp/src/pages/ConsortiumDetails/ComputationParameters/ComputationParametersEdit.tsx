@@ -49,6 +49,7 @@ export default function ComputationParametersEdit({
                 onChange={handleChange}
                 error={!isValidJson}
                 helperText={!isValidJson ? "Invalid JSON format" : "Enter valid JSON"}
+                data-testid="parameters-textarea"
             />
             <div style={{ marginTop: "16px" }}>
                 <Button
