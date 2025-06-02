@@ -21,6 +21,7 @@ interface ConsortiumDetailsContextType {
     };
     refetch: () => void;
     isLeader: boolean;
+    deleteConsortium: () => Promise<void>;
 }
 
 // Create the context
@@ -41,7 +42,7 @@ interface ConsortiumDetailsProviderProps {
 }
 
 export const ConsortiumDetailsProvider: React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
-    const { getConsortiumDetails, subscriptions: { consortiumDetailsChanged } } = useCentralApi();
+    const { getConsortiumDetails, consortiumDelete, subscriptions: { consortiumDetailsChanged } } = useCentralApi();
     const { consortiumId } = useParams<{ consortiumId: string }>();
     const { userId } = useUserState();
 
@@ -96,6 +97,23 @@ export const ConsortiumDetailsProvider: React.FC<ConsortiumDetailsProviderProps>
         }
     }, [consortiumId]);
 
+    // Handle consortium deletion
+    const deleteConsortium = useCallback(async () => {
+        if (!consortiumId) return;
+        setLoading(true);
+        setError(null);
+
+        try {
+            await consortiumDelete({ consortiumId });
+            // You can navigate away here if needed, e.g., to a list page
+            // navigate('/consortia'); 
+        } catch (err) {
+            setError("Failed to delete consortium.");
+        } finally {
+            setLoading(false);
+        }
+    }, [consortiumId, consortiumDelete]);
+
     // Context value
     const contextValue: ConsortiumDetailsContextType = {
         data: {
@@ -113,6 +131,7 @@ export const ConsortiumDetailsProvider: React.FC<ConsortiumDetailsProviderProps>
         },
         refetch: fetchConsortiumDetails,
         isLeader,
+        deleteConsortium,
     };
 
     return (

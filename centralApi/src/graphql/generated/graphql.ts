@@ -66,6 +66,7 @@ export type Mutation = {
   computationCreate: Scalars['Boolean']['output'];
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
+  consortiumDelete: Scalars['Boolean']['output'];
   consortiumEdit: Scalars['Boolean']['output'];
   consortiumJoin: Scalars['Boolean']['output'];
   consortiumLeave: Scalars['Boolean']['output'];
@@ -120,6 +121,11 @@ export type MutationComputationEditArgs = {
 export type MutationConsortiumCreateArgs = {
   description: Scalars['String']['input'];
   title: Scalars['String']['input'];
+};
+
+
+export type MutationConsortiumDeleteArgs = {
+  consortiumId: Scalars['String']['input'];
 };
 
 
