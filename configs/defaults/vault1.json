@@ -1,0 +1,8 @@
+{
+    "httpUrl": "http://localhost:3001/graphql",
+    "wsUrl": "ws://localhost:3001/graphql",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NjI4OWM3OWFlYmFiNjcwNDBhMjAwNzIiLCJyb2xlcyI6WyJ1c2VyIiwidmF1bHQiXSwiaWF0IjoxNzM0NDU5MTAyfQ.0oyNNYZbG5kbKLDrpWqvPFEyEQreoKUkZubgEs8Ncvg",
+    "fileServerUrl": "http://localhost:3002",
+    "baseDir": "{{REPO_DIR}}/_devTestDirectories/vault1Dir",
+    "datasetDir": "{{REPO_DIR}}/mint-computation-single-round-ridge-regression/test_data/site1"
+}

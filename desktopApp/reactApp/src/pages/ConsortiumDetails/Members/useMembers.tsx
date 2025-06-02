@@ -15,7 +15,7 @@ interface UseMembersProps {
 
 export const useMembers = ({ members, activeMembers, readyMembers, leader }: UseMembersProps) => {
     const { userId } = useUserState();
-    const { consortiumSetMemberActive, consortiumSetMemberReady, consortiumLeave } = useCentralApi();
+    const { consortiumSetMemberActive, consortiumSetMemberReady, consortiumLeave, leaderSetMemberInactive, leaderRemoveMember } = useCentralApi();
     const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string;
     const { refetch } = useConsortiumDetailsContext();
     const navigate = useNavigate();
@@ -45,6 +45,7 @@ export const useMembers = ({ members, activeMembers, readyMembers, leader }: Use
         });
 
     const setMemberActive = async (memberId: string, isActive: boolean) => {
+        console.log(memberId, isActive);
         try {
             await consortiumSetMemberActive({ consortiumId, active: isActive });
             refetch();
@@ -62,6 +63,26 @@ export const useMembers = ({ members, activeMembers, readyMembers, leader }: Use
         }
     }
 
+
+    const leaderSetMemberActive = async (userId: string) => {
+        try {
+            await leaderSetMemberInactive({ consortiumId, userId: userId });
+            refetch();
+        } catch (error) {
+            console.error("Failed to update member status:", error);
+        }
+    };
+
+    const leaderSetRemoveMember = async (userId: string) => {
+        try {
+            await leaderRemoveMember({ consortiumId, userId: userId });
+            refetch();
+        } catch (error) {
+            console.error("Failed to update member status:", error);
+        }
+    };
+
+
     // Handle leaving the consortium
     const handleLeave = async () => {
         try {
@@ -70,10 +91,10 @@ export const useMembers = ({ members, activeMembers, readyMembers, leader }: Use
         } catch (error) {
             console.error("Failed to leave the consortium:", error);
         } finally {
-            navigate('/consortiumList');
+            navigate('/consortium/list');
         }
     };
     
 
-    return { memberList, setMemberActive, setMemberReady, handleLeave };
+    return { memberList, setMemberActive, setMemberReady, handleLeave, leaderSetMemberActive, leaderSetRemoveMember };
 };

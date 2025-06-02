@@ -49,7 +49,7 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({ consortiumList, loading
                     </Typography>
                 </Box>
                 <Box>
-                    <Button variant="outlined" color="primary" onClick={() => navigate('/consortiumCreate/')} sx={{marginRight: '1rem'}}>
+                    <Button variant="outlined" color="primary" onClick={() => navigate('/consortium/create/')} sx={{marginRight: '1rem'}}>
                         Create A New Consortium
                     </Button>
                     <Button variant="contained" color="primary" onClick={onReload} >

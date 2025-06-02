@@ -286,6 +286,14 @@ export default {
         throw new Error('Failed to fetch run details')
       }
     },
+    getVaultUserList: async (): Promise<PublicUser[]> => {
+      const users = await User.find({ roles: 'vault' }).exec()
+      return users.map((user) => ({
+        id: user._id.toString(),
+        username: user.username,
+        vault: user.vault,
+      }))
+    },
   },
   Mutation: {
     login: async (
@@ -1062,6 +1070,110 @@ export default {
         logger.error('Error changing roles:', error)
         throw new Error('Failed to change roles')
       }
+    },
+    leaderSetMemberInactive: async (
+      _: unknown,
+      { consortiumId, userId },
+      context,
+    ): Promise<Boolean> => {
+      // is the user authenticated?
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+      // is this being called by the consortium leader
+      if (consortium.leader.toString() !== context.userId) {
+        throw new Error('User not authorized')
+      }
+      // is the user a member of the consortium
+      if (!consortium.members.includes(userId)) {
+        throw new Error('User not a member of the consortium')
+      }
+      // remove from the active members
+      await consortium.updateOne({
+        $pull: { activeMembers: userId },
+      })
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId: consortiumId,
+      })
+
+      return true
+    },
+    leaderRemoveMember: async (
+      _: unknown,
+      { consortiumId, userId },
+      context,
+    ): Promise<Boolean> => {
+      // is the user authenticated?
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+      // is this being called by the consortium leader
+      if (consortium.leader.toString() !== context.userId) {
+        throw new Error('User not authorized')
+      }
+
+      // remove from the members, active members, and ready members
+      await consortium.updateOne({
+        $pull: { members: userId, activeMembers: userId, readyMembers: userId },
+      })
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId: consortiumId,
+      })
+
+      return true
+    },
+    leaderAddVaultUser: async (
+      _: unknown,
+      { consortiumId, userId },
+      context,
+    ): Promise<Boolean> => {
+      // is the user authenticated?
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+      // is this being called by the consortium leader
+      if (consortium.leader.toString() !== context.userId) {
+        throw new Error('User not authorized')
+      }
+
+      // is the user a vault user
+      const user = await User.findById(userId)
+      // does the user have the role of vault?
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      // add the user to the members, active members, and ready members
+      await consortium.updateOne({
+        $addToSet: {
+          members: userId,
+          activeMembers: userId,
+          readyMembers: userId,
+        },
+      })
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId: consortiumId,
+      })
+
+      return true
     },
   },
 

@@ -30,7 +30,7 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({ consortium, onR
             console.error("Failed to join the consortium:", error);
         } finally {
             setLoading(false);
-            navigate(`/consortium/details/${consortium.id}`);
+            navigate(`/consortium/wizard/${consortium.id}`);
         }
     };
 

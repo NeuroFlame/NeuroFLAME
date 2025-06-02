@@ -1,0 +1,38 @@
+@startuml
+actor User
+participant "Desktop Application" as Desktop
+participant "Central API" as API
+participant "Central Client" as CentralClient
+participant "File Server" as FileServer
+participant "Central Federated Client" as CentralFederated
+participant "Central Federated Client Container" as CentralContainer
+participant "Edge Federated Client" as EdgeClient
+participant "Edge Federated Client Container" as EdgeContainer
+
+User -> Desktop: Configure Run
+User -> Desktop: Click "Start Run"
+Desktop -> API: Send "Start Run Request"
+API -> CentralClient: Send "RUN_START_CENTRAL"
+
+CentralClient -> CentralContainer: Launch Provisioning Container
+CentralContainer -> CentralContainer: Generate Runkits
+CentralClient -> FileServer: Upload Runkits
+CentralClient -> API: Report "RUN_READY"
+
+API -> CentralFederated: Send "RUN_START_CENTRAL"
+API -> EdgeClient: Send "RUN_START_EDGE"
+
+par Parallel Execution
+    CentralFederated -> FileServer: Download Runkit
+    CentralFederated -> CentralContainer: Launch Container
+    CentralContainer -> CentralContainer: Execute Computation
+
+    EdgeClient -> FileServer: Download Runkit
+    EdgeClient -> EdgeContainer: Launch Container
+    EdgeContainer -> EdgeContainer: Execute Computation
+end
+
+CentralFederated -> API: Report "RUN_COMPLETE"
+API -> Desktop: Notify "Run Complete"
+Desktop -> User: Display Results
+@enduml

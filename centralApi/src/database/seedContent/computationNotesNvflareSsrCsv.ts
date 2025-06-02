@@ -20,6 +20,8 @@ COINSTAC/NVFlare Code for Single-Shot Regression (SSR) on CSV Based Data
 }
 \`\`\`
 
+Use data helper to generate parameters based your covariates.csv and data.csv files: [Link Here](https://trendscenter.github.io/nvflare-ssr-csv-helper/build/index.html)
+
 ### Example Data Format
 This application/algorithm requires two files per participating site:
 1. covarariates.csv

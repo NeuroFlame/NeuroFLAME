@@ -4,12 +4,12 @@ import { useParams } from "react-router-dom";
 import { useCentralApi } from "../../../apis/centralApi/centralApi";
 import { useConsortiumDetailsContext } from "../ConsortiumDetailsContext";
 
-export const useComputationParameters = (initialParameters: string) => {
+export const useComputationParameters = () => {
+    const { refetch, isLeader, data: consortiumDetails } = useConsortiumDetailsContext();
+    const computationParameters = consortiumDetails?.studyConfiguration?.computationParameters;
     const [isEditing, setIsEditing] = useState(false);
-    const [computationParameters, setComputationParameters] = useState(initialParameters);
     const { studySetParameters } = useCentralApi();
     const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string;
-    const { refetch, isLeader } = useConsortiumDetailsContext();
     const handleEdit = () => setIsEditing(true);
 
     const handleSave = async (newParameters: string) => {

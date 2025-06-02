@@ -29,6 +29,6 @@ export async function start(
     }
     await start(config)
   } catch (err) {
-    logger.error('Failed:', err)
+    logger.error('Failed to start:', { error: err })
   }
 })()

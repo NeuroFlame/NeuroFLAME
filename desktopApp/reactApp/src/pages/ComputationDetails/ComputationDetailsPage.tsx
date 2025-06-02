@@ -40,7 +40,7 @@ export default function ComputationDetails() {
                         <Box>
                             <Button 
                                 variant="outlined" 
-                                onClick={() => navigate(`/computationList/`)}
+                                onClick={() => navigate(`/computation/list/`)}
                             >
                                 Back To Computation List
                             </Button>

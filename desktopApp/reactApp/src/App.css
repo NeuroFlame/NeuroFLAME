@@ -58,7 +58,6 @@ ol {
 li {
   margin-left: 0;
   padding-left: 0;
-  line-break: anywhere;
 }
 
 /* Buttons */
@@ -80,6 +79,10 @@ button a {
 button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+button.Mui-disabled.MuiStepButton-horizontal {
+  background: none;
 }
 
 .button {
@@ -292,11 +295,16 @@ textarea {
   text-align: right;
 }
 
-.consortium-details-grid-2 .consortium-list-link { 
-  display: block; 
+.consortium-details-grid-2 .consortium-links { 
+  display: flex; 
+  flex-direction: row; 
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
-.consortium-details-grid-3 .consortium-list-link { 
+.consortium-details-grid-3 .consortium-links { 
   display: none; 
 }
 
@@ -316,10 +324,33 @@ textarea {
   .consortium-details-grid-2 { 
     margin-top: 2.1rem;
   }
-  .consortium-details-grid-2 .consortium-list-link { 
+  .consortium-details-grid-2 .consortium-links { 
     display: none; 
   }
-  .consortium-details-grid-3 .consortium-list-link { 
-    display: block; 
+  .consortium-details-grid-3 .consortium-links { 
+    display: flex; 
+    flex-direction: row; 
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: -0.5rem;
+    margin-bottom: 0.6rem;
+  }
+}
+
+@media only screen and (max-width: 900px) {
+  .MuiStepLabel-label {
+    display: none !important;
+  }
+}
+
+@media only screen and (max-width: 814px) {
+  .home-content-header {
+    padding: 0;
+  }
+}
+
+@media only screen and (min-width: 815px) {
+  .home-content-header {
+    padding: 0 1rem;
   }
 }

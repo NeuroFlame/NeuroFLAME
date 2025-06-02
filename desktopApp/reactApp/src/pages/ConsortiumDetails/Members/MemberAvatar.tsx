@@ -20,7 +20,7 @@ const GetUserColor = (index: number, active: boolean): string => {
     const valkeyIndex = index % UserColor.length; 
     return UserColor[valkeyIndex];
   } else {
-    return "#e8e8e8";
+    return "#ddd";
   }
 };
 
@@ -38,12 +38,14 @@ interface MemberAvatarProps {
   isActive: boolean;
   isReady: boolean;
   index: number;
+  direction?: string|null;
+  nameSize?: string
 }
 
 const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {   
 
-  const { username, isLeader, isActive, isReady, index } = props;
-  
+  const { username, isLeader, isActive, isReady, index, direction, nameSize } = props;
+
   return (
     <Box 
       style={{
@@ -52,11 +54,12 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
         marginRight: "0.5rem",
         marginBottom: "0.5rem",
         textAlign: "center",
-        flexDirection: "column",
+        flexDirection: (direction as React.CSSProperties["flexDirection"]) || "column",
         justifyContent: "space-evenly",
         alignItems: "center",
-        animation: "fadeIn 2s"
+        animation: "fadeIn 2s",
       }}>
+      <Box style={{position: 'relative'}}>
       {isReady ? 
         <CheckCircleIcon 
           sx={{ 
@@ -67,7 +70,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
             width: '16px', 
             height: '16px', 
             top: '-2px',
-            marginLeft: '2rem',
+            right: '-0.25rem',
             zIndex: '3',
           }}
         /> : ''}
@@ -111,7 +114,17 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
             }} 
           />}  
       </UserAvatar>
-      <span className='username' style={isActive ? { color: '#000' } : { color: '#ccc' }}>{username}</span>
+      </Box>
+      <span
+        className="username"
+        style={{
+          color: isActive ? '#000' : '#aaa',
+          marginLeft: direction === 'row' ? '0.5rem' : '0',
+          fontSize: nameSize
+        }}
+      >
+        {username}
+      </span>
     </Box>
   );
 }

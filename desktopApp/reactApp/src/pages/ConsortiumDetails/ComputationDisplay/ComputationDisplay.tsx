@@ -2,12 +2,12 @@ import { Computation } from "../../../apis/centralApi/generated/graphql";
 import { Box, Typography, Card, CardContent } from "@mui/material";
 import { Maybe } from "graphql/jsutils/Maybe";
 import ReactMarkdown from 'react-markdown';
+import { useConsortiumDetailsContext } from "../ConsortiumDetailsContext";
 
-interface ComputationDisplayProps {
-    computation: Maybe<Computation> | undefined;
-}
 
-export default function ComputationDisplay({ computation }: ComputationDisplayProps) {
+const ComputationDisplay: React.FC<{notesHeading: boolean}> = ({ notesHeading}) => {
+    const {data: consortiumDetails} = useConsortiumDetailsContext();
+    const computation = consortiumDetails?.studyConfiguration?.computation as Maybe<Computation>;
 
     if (!computation) {
         return (
@@ -30,7 +30,7 @@ export default function ComputationDisplay({ computation }: ComputationDisplayPr
         >
             <div id="compnotes" />{/* For Notes anchor placement at 800px wide */}
             <CardContent>
-                <Typography fontSize="11px">Computation Notes:</Typography>
+                {notesHeading && <Typography fontSize="11px">Computation Notes:</Typography>}
                 <Typography variant="h5" fontWeight="600" color="black">{title}</Typography>
                 <Typography variant="body2" color="textSecondary">
                     {imageName}
@@ -42,3 +42,5 @@ export default function ComputationDisplay({ computation }: ComputationDisplayPr
         </Box>
     );
 }
+
+export default ComputationDisplay;

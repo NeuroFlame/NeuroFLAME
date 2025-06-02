@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react"
-import { Box, Button, Paper, TextField, Typography, IconButton, Alert, Menu, MenuItem, Snackbar } from '@mui/material'
+import { Box, Button, Paper, Typography, IconButton, Alert, Menu, MenuItem, Snackbar } from '@mui/material'
+import TextareaAutosize from 'react-textarea-autosize'
 import EditIcon from '@mui/icons-material/Edit'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import { electronApi } from "../../apis/electronApi/electronApi"
 import { useNavigate } from 'react-router-dom'
+import { useUserState } from '../../contexts/UserStateContext'
 
 export function AppConfig() {
-    const navigate = useNavigate()
-    const { getConfig, getConfigPath, openConfig, applyDefaultConfig, saveConfig, restartApp } = electronApi
+    const navigate = useNavigate();
+    const { getConfig, getConfigPath, openConfig, applyDefaultConfig, saveConfig, restartApp } = electronApi;
+    const { userId } = useUserState();
 
     // State management
     const [config, setConfig] = useState<string>("")
@@ -59,9 +62,9 @@ export function AppConfig() {
         }
     }
 
-    const handleConfigChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setConfig(event.target.value)
-    }
+    const handleConfigChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setConfig(event.target.value);
+    };
 
     const enterEditMode = () => setIsEditing(true)
     const cancelEditMode = () => {
@@ -83,12 +86,17 @@ export function AppConfig() {
                     <Typography variant="h6">Configuration</Typography>
                     <Typography variant="body2" color="textSecondary"><strong>Config Path:</strong> {configPath}</Typography>
                 </Box>
-                <Box>
+                <Box minWidth={'315px'}>
+                    {userId ? 
+                        <Button onClick={() => navigate(`/home`)} variant="outlined" style={{marginRight: '0.5rem'}}>Back to Home</Button> :
+                        <Button onClick={() => navigate(`/`)} variant="outlined" style={{marginRight: '0.5rem'}}>Back to Login</Button>
+                    }
                     <Button
                         startIcon={<EditIcon />}
                         onClick={enterEditMode}
                         color="primary"
                         disabled={isEditing}
+                        variant="contained"
                     >
                         Edit Config
                     </Button>
@@ -134,16 +142,18 @@ export function AppConfig() {
                 />
             )}
 
-            <TextField
-                fullWidth
-                multiline
-                minRows={20}
-                maxRows={20}
+            <TextareaAutosize
                 value={config}
                 onChange={handleConfigChange}
-                disabled={!isEditing}
-                variant="outlined"
-                margin="normal"
+                placeholder="Type here..."
+                minRows={3}
+                style={{
+                    width: 'calc(100% - 1.5rem)',
+                    padding: '8px',
+                    fontSize: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid #ccc',
+                }}
             />
 
             {/* Action Buttons */}
@@ -165,11 +175,6 @@ export function AppConfig() {
                         Restart App
                     </Button>
                 )}
-            </Box>
-
-            {/* Navigation */}
-            <Box display="flex" justifyContent="flex-end" mt={2}>
-                <Button variant="text" onClick={() => navigate(`/home`)}>Back to Home</Button>
             </Box>
         </Paper>
     )

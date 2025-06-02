@@ -5,12 +5,9 @@ import ComputationParametersDisplay from "./ComputationParametersDisplay";
 import ComputationParametersEdit from "./ComputationParametersEdit";
 import { useComputationParameters } from "./useComputationParameters";
 
-interface ComputationParametersProps {
-    computationParameters: string;
-}
 
-const ComputationParameters: React.FC<ComputationParametersProps> = ({ computationParameters }) => {
-    const { isEditing, handleEdit, handleSave, handleCancel, isLeader } = useComputationParameters(computationParameters);
+export function ComputationParameters() {
+    const { isEditing, handleEdit, handleSave, handleCancel, isLeader, computationParameters } = useComputationParameters();
 
     return (
         <Box p={2} borderRadius={2}  marginBottom={0} bgcolor={'white'}>
@@ -19,12 +16,12 @@ const ComputationParameters: React.FC<ComputationParametersProps> = ({ computati
             </Typography>
             {isEditing ? (
                 <ComputationParametersEdit
-                    computationParameters={computationParameters}
+                    computationParameters={computationParameters as string}
                     onSave={handleSave}
                     onCancel={handleCancel}
                 />
             ) : (
-                <ComputationParametersDisplay computationParameters={computationParameters} />
+                <ComputationParametersDisplay computationParameters={computationParameters as string} />
             )}
             <Box display="flex" justifyContent="space-between" alignItems="center">
             {!isEditing && isLeader &&

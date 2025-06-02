@@ -11,7 +11,14 @@ interface MembersProps {
 }
 
 export function Members({ members, activeMembers, readyMembers, leader }: MembersProps) {
-    const { memberList, setMemberActive, setMemberReady, handleLeave } = useMembers({ members, activeMembers, readyMembers, leader });
+    const { memberList, setMemberActive, setMemberReady, leaderSetMemberActive, leaderSetRemoveMember, handleLeave } = useMembers({ members, activeMembers, readyMembers, leader });
 
-    return <MembersDisplay memberList={memberList} setMemberActive={setMemberActive} setMemberReady={setMemberReady} handleLeave={handleLeave} />;
+    return <MembersDisplay 
+            memberList={memberList} 
+            setMemberActive={setMemberActive} 
+            setMemberReady={setMemberReady} 
+            leaderSetMemberActive={leaderSetMemberActive}
+            leaderSetRemoveMember={leaderSetRemoveMember}
+            handleLeave={handleLeave} 
+        />;
 }

@@ -1,50 +1,30 @@
-# COINSTAC-MINT
+# **NeuroFlame**
 
-**COINSTAC-MINT** (**Modular Infrastructure for Next-gen Technologies**) is a decentralized platform for running computations across multiple sites while preserving data privacy. Its modular design, scalability, and ease of use make it a powerful tool for collaborative research in neuroimaging and other fields.
+**NeuroFlame is a platform for collaborative neuroimaging research that keeps sensitive patient data secure. By using federated learning, researchers can train models and perform analyses across multiple institutions while keeping data securely on-site. This approach allows institutions to benefit from shared insights without exposing private datasets.**
 
-## Key Features
+## **Why NeuroFlame?**
 
-- **Modular Architecture**: Built to support a wide range of use cases, COINSTAC-MINT’s modular infrastructure allows for easy expansion and customization.
-- **Flexibility**: Suitable for various research needs, from single-site studies to multi-site collaborations.
-- **Reliability**: A focus on ensuring smooth operation across diverse environments, with clear error handling and logging.
-- **User-Friendly Interface**: Designed for ease of use, allowing researchers to focus on their work without unnecessary complexity.
-- **Reproducibility**: Study configurations are captured and preserved, ensuring results can be easily replicated.
-- **Transparency and Control**: Users have full visibility into their computations, inputs, and results.
+Collaborative neuroimaging research requires institutions to work together, but privacy concerns and technical barriers make data sharing difficult. NeuroFlame simplifies this by using secure federated learning, allowing institutions to generate shared insights **without exposing private datasets**.
 
-## Developer Quick Start
+To make this process seamless, NeuroFlame provides an **easy-to-use desktop application** that allows researchers to:
 
-1. Clone the repository.
-2. Install dependencies at the top level:
-   ```bash
-   npm i
-   ```
-3. Initialize configuration:
-   ```bash
-   cd configs && ./initialize_configs.sh
-   ```
-4. Launch the database container:
-   ```bash
-   cd _devCentralDatabase/ && docker-compose up
-   ```
+- **Create and join consortia** for multi-institutional studies.
+- **Configure studies with selected computation modules.**
+- **Start federated runs with a single action**—execution is fully managed by the platform, handling all underlying infrastructure automatically.
+- **Leverage a growing library of computation modules**—including boilerplate and reference implementations to make it easy for researchers to develop and contribute their own algorithms.
 
-5. Open multiple terminals and run the following commands in each:
-   - Central API:
-     ```bash
-     cd centralApi && npm run start-configured
-     ```
-   - Central Federated Client:
-     ```bash
-     cd centralFederatedClient && npm run start-configured
-     ```
-   - File Server:
-     ```bash
-     cd fileServer && npm run start-configured
-     ```
-   - Desktop App (React):
-     ```bash
-     cd desktopApp/reactApp && npm run start
-     ```
-   - Desktop App (Electron):
-     ```bash
-     cd desktopApp/electronApp && npm run start-configured
-     ```
+## **Core Components**
+
+- **Desktop App** – A streamlined UI for configuring studies, managing consortia, and setting up federated computations.
+- **Central API Server** – Manages authentication, coordination, and secure communication.
+- **Federated Clients** – Deploy and execute computation module containers on local machines while ensuring data remains secure.
+- **Computation Module Images** – Run customized research algorithms securely within each institution.
+
+## **Documentation**
+
+- **[User Guide](./docs/user-guide.md)** – How to configure studies, execute runs, and interpret results.
+- **[Computation Author Guide](./docs/computation-author-guide.md)** – How to create and integrate custom computation modules.
+- **[Hosting and Deployment Guide](./docs/hosting-and-deployment-guide.md)** – How to set up and maintain a NeuroFlame deployment.
+- **[Developer Guide](./docs/developer-guide.md)** – How to contribute to and extend the platform.
+- **[Architecture and Design](./docs/architecture-and-design.md)** – Technical deep dive into system architecture.
+

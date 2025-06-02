@@ -6,9 +6,10 @@ import { useConsortiumLeaderNotes } from "./useConsortiumLeaderNotes";
 
 interface ConsortiumLeaderNotesProps {
     consortiumLeaderNotes: string;
+    showAccordion : boolean;
 }
 
-export default function ConsortiumLeaderNotes({ consortiumLeaderNotes }: ConsortiumLeaderNotesProps) {
+export default function ConsortiumLeaderNotes({ consortiumLeaderNotes, showAccordion }: ConsortiumLeaderNotesProps) {
 
     const { isEditing, handleEdit, handleSave, handleCancel, isLeader } = useConsortiumLeaderNotes(consortiumLeaderNotes);
 
@@ -24,12 +25,12 @@ export default function ConsortiumLeaderNotes({ consortiumLeaderNotes }: Consort
                     ".MuiAccordionSummary-content": { margin: 0 },
                     ".MuiAccordionSummary-expandIconWrapper": { margin: 0 }
                 }} 
-                expandIcon={ <ExpandMoreIcon />}>
+                expandIcon={ <ExpandMoreIcon sx={{display: showAccordion ? 'block' : 'none'}} />}>
                 <Typography variant="h6" gutterBottom>
                     Leader Notes
                 </Typography>
             </AccordionSummary>
-            <AccordionDetails sx={{margin: '0', padding: '0'}}>
+            <AccordionDetails sx={{margin: '0', padding: '0', maxHeight: '350px', overflow: showAccordion ? 'scroll' : 'visible'}}>
                 {isEditing ? (
                     <ConsortiumLeaderNotesEdit
                         consortiumLeaderNotes={consortiumLeaderNotes}

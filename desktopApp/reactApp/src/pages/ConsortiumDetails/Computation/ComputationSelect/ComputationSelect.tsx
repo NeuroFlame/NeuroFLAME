@@ -2,12 +2,10 @@ import React, { useState } from "react";
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import ComputationList from "./ComputationList";
 import { useComputationSelect } from "./useComputationSelect";
-import { useConsortiumDetailsContext } from "../../ConsortiumDetailsContext";
 
-export default function ComputationSelect({ computation }: { computation: any }) {
+export default function ComputationSelect({ computation, refetch }: { computation: any, refetch: ()=>void }) {
     const { computations, loading, error, selectComputation } = useComputationSelect();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { refetch } = useConsortiumDetailsContext();
 
     const handleOpenModal = () => {
         setIsModalOpen(true);

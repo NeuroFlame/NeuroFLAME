@@ -51,8 +51,15 @@ import {
     MutationConsortiumSetMemberReadyArgs,
     MutationStartRunArgs,
     MutationStudySetNotesArgs,
+    MutationLeaderAddVaultUserArgs,
+    MutationLeaderRemoveMemberArgs,
+    MutationLeaderSetMemberInactiveArgs
 
 } from "./generated/graphql";
+import { getVaultUserList } from "./getVaultUserList";
+import { leaderAddVaultUser } from "./leaderAddVaultUser";
+import { leaderRemoveMember } from "./leaderRemoveMember";
+import { leaderSetMemberInactive } from "./leaderSetMemberInactive";
 
 export const useCentralApi = () => {
     const { centralApiApolloClient } = useApolloClients();
@@ -87,6 +94,10 @@ export const useCentralApi = () => {
         userChangePassword: (input: MutationUserChangePasswordArgs) => userChangePassword(centralApiApolloClient, input),
         userCreate: (input: MutationUserCreateArgs) => userCreate(centralApiApolloClient, input),
         getComputationDetails: (input: QueryGetComputationDetailsArgs) => getComputationDetails(centralApiApolloClient, input),
+        getVaultUserList: () => getVaultUserList(centralApiApolloClient),
+        leaderAddVaultUser: (input: MutationLeaderAddVaultUserArgs) => leaderAddVaultUser(centralApiApolloClient, input),
+        leaderRemoveMember: (input: MutationLeaderRemoveMemberArgs) => leaderRemoveMember(centralApiApolloClient, input),
+        leaderSetMemberInactive: (input: MutationLeaderSetMemberInactiveArgs) => leaderSetMemberInactive(centralApiApolloClient, input),
 
         subscriptions: {
             consortiumDetailsChanged: (input: { consortiumId: string }) => consortiumDetailsChanged(centralApiApolloClient, input),

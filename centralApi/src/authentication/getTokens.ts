@@ -1,5 +1,5 @@
 import { generateTokens } from './authentication.js'
-import {logger} from '../logger.js'
+import { logger } from '../logger.js'
 
 const centralToken = generateTokens(
   { userId: '66289c79aebab67040a20067', roles: ['central'] },
@@ -13,4 +13,12 @@ const site2Token = generateTokens(
   { userId: '66289c79aebab67040a20069', roles: ['user'] },
   { shouldExpire: false },
 )
-logger.info({ site1Token, site2Token, centralToken })
+
+const vaultUser1Token = generateTokens(
+  { userId: '66289c79aebab67040a20072', roles: ['user', 'vault'] },
+  { shouldExpire: false },
+)
+
+logger.info('Tokens generated', {
+  context: { centralToken, site1Token, site2Token, vaultUser1Token },
+})

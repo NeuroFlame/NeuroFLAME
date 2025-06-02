@@ -11,7 +11,7 @@ const MemberLeaveButton: React.FC<MemberLeadButtonProps> = ({handleLeave}) => {
         <Button
             variant="outlined"
             onClick={handleLeave}
-            size="small"
+            size='small' 
             fullWidth
         >
             Leave Consortium

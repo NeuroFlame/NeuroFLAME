@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import TextareaAutosize from 'react-textarea-autosize';
-import { Typography, Button, Box, Card, Container } from '@mui/material';
+import { Typography, Button, Box, Container } from '@mui/material';
 import { useCentralApi } from "../../apis/centralApi/centralApi";
 
 export default function ConsortiumCreate() {
@@ -12,27 +12,30 @@ export default function ConsortiumCreate() {
     const [success, setSuccess] = useState(false);
 
     const navigate = useNavigate();
-
     const { consortiumCreate } = useCentralApi();
 
-    const createConsortium = async () => {
-        setLoading(true);
+    const createAndNavigate = async (navPath: string) => {
         try {
-            const result = await consortiumCreate({ 
+            setError(null);
+            setLoading(true);
+            const consortiumId = await consortiumCreate({
                 title: title,
                 description: description
             });
-
-            if (result) {
-                navigate('/consortium/details/'+result)
-            } else {
-                setError("Failed to create consortium");
-            }
-        } catch (error) {
-            console.error("Failed to join the consortium:", error);
-        } finally {
             setLoading(false);
+            navigate(`${navPath}/${consortiumId}`);
+        } catch (error) {
+            setLoading(false);
+            setError("Failed to create consortium");
         }
+    };
+
+    const createAndWizard = async () => {
+        await createAndNavigate('/consortium/wizard');
+    };
+
+    const createAndDetails = async () => {
+        await createAndNavigate('/consortium/details');
     };
 
     return (
@@ -40,30 +43,36 @@ export default function ConsortiumCreate() {
             <Box marginTop={4} marginBottom={2}>
                 <Box display="flex" flexDirection="row" justifyContent="space-between" marginBottom={2}>
                     <Typography variant="h4" align="left">
-                        Create New Consortium 
+                        Create New Consortium
                     </Typography>
-                    <Button variant="outlined" onClick={() => navigate('/consortiumList')}>
+                    <Button variant="outlined" onClick={() => navigate('/consortium/list')}>
                         Back to Consortium List
                     </Button>
                 </Box>
-                <Box style={{background: 'white', padding: '1rem'}}>
+                <Box style={{ background: 'white', padding: '1rem' }}>
                     <input
                         type="text"
                         placeholder="Title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        style={{width: "calc(100% - 2rem)", marginBottom: '1rem'}} 
+                        style={{ width: "calc(100% - 2rem)", marginBottom: '1rem' }}
                     />
-                    <TextareaAutosize 
-                        minRows={3} 
-                        style={{width: "calc(100% - 2rem)", marginBottom: '0.5rem'}}
+                    <TextareaAutosize
+                        minRows={3}
+                        style={{ width: "calc(100% - 2rem)", marginBottom: '0.5rem' }}
                         placeholder="Description"
-                        defaultValue={description} 
+                        defaultValue={description}
                         onChange={(e) => setDescription(e.target.value)}
                     />
-                    <Button variant="contained" onClick={createConsortium} disabled={loading}>
-                        {loading ? 'Creating...' : 'Create'}
-                    </Button>
+                    <Box marginTop={2} display="flex" gap={2} alignItems='center'>
+                        <Button variant="contained" onClick={createAndWizard} disabled={loading} color="success">
+                            {loading ? 'Creating...' : 'Create and Use Wizard'}
+                        </Button>
+                        <Typography>or</Typography>
+                        <Button variant="contained" onClick={createAndDetails} disabled={loading}>
+                            {loading ? 'Creating...' : 'Create and View Detail'}
+                        </Button>
+                    </Box>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     {success && <p style={{ color: 'green' }}>Consortium created successfully!</p>}
                 </Box>
