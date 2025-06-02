@@ -16,11 +16,11 @@ const selectComputation = async ({ name }, page: Page) => {
   await page.getByRole("button", { name: /go to next step/i }).click()
 }
 
-const setDataForSSRFSL = async (page: Page) => {
+const setDataForSRRFreesurfer = async (page: Page) => {
   const currentDirectory = process.cwd()
 
   // Set parameters
-  const parameterFilePath = path.resolve(currentDirectory, 'tests/data/ssr-fsl/server/parameters.json')
+  const parameterFilePath = path.resolve(currentDirectory, 'tests/data/srr-freesurfer/server/parameters.json')
   const jsonData = await fs.readFile(parameterFilePath, "utf8")
   const parameters = JSON.parse(jsonData)
 
@@ -36,7 +36,7 @@ const setDataForSSRFSL = async (page: Page) => {
   // Select data
   const currentDir = process.cwd()
   await page.getByPlaceholder(/enter your data directory path/i).click({ timeout: EXIST_TIMEOUT })
-  await page.getByPlaceholder(/enter your data directory path/i).fill(path.resolve(currentDir, 'tests/data/ssr-fsl/site1'))
+  await page.getByPlaceholder(/enter your data directory path/i).fill(path.resolve(currentDir, 'tests/data/srr-freesurfer/site1'))
   await page.getByRole("button", { name: /save/i }).click()
 }
 
@@ -64,6 +64,6 @@ const runComputation = async (page: Page) => {
 
 export default {
   select: selectComputation,
-  setDataForSSRFSL: setDataForSSRFSL,
+  setDataForSRRFreesurfer: setDataForSRRFreesurfer,
   run: runComputation,
 }

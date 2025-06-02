@@ -14,15 +14,15 @@ const execPromise = promisify(exec);
 
 const DATA = {
   consortium: {
-    name: `e2e-ssr-fsl-${CONSORTIUM_ID}`,
-    description: `e2e-ssr-fsl-${CONSORTIUM_ID}`,
+    name: `e2e-srr-freesurfer-${CONSORTIUM_ID}`,
+    description: `e2e-srr-freesurfer-${CONSORTIUM_ID}`,
   },
   computation: {
     name: 'sbasodi1/test_neuroflame_comp_srr_freesurfer',
   },
 }
 
-test.describe("SSR-FSL computation", () => {
+test.describe("Single-round Ridge Regression for Freesurfer computation", () => {
   let page: Page
 
   test.beforeAll(async () => {
@@ -49,7 +49,7 @@ test.describe("SSR-FSL computation", () => {
   test('run a computation', async () => {
     test.setTimeout(COMPUTATION_TIMEOUT)
     await computation.select(DATA.computation, page)
-    await computation.setDataForSSRFSL(page)
+    await computation.setDataForSRRFreesurfer(page)
     await computation.run(page)
   })
 
