@@ -21,6 +21,7 @@ import { adminChangeUserRoles } from "./adminChangeUserRoles";
 import { computationCreate } from "./computationCreate";
 import { computationEdit } from "./computationEdit";
 import { consortiumCreate } from "./consortiumCreate";
+import { consortiumDelete } from "./consortiumDelete";
 import { consortiumEdit } from "./consortiumEdit";
 import { consortiumJoin } from "./consortiumJoin";
 import { consortiumLeave } from "./consortiumLeave";
@@ -36,6 +37,7 @@ import {
     MutationComputationEditArgs,
     MutationConsortiumCreateArgs,
     MutationConsortiumEditArgs,
+    MutationConsortiumDeleteArgs,
     MutationConsortiumJoinArgs,
     MutationConsortiumLeaveArgs,
     MutationUserChangePasswordArgs,
@@ -89,6 +91,7 @@ export const useCentralApi = () => {
         computationEdit: (input: MutationComputationEditArgs) => computationEdit(centralApiApolloClient, input),
         consortiumCreate: (input: MutationConsortiumCreateArgs) => consortiumCreate(centralApiApolloClient, input),
         consortiumEdit: (input: MutationConsortiumEditArgs) => consortiumEdit(centralApiApolloClient, input),
+        consortiumDelete: (input: MutationConsortiumDeleteArgs) => consortiumDelete(centralApiApolloClient, input),
         consortiumJoin: (input: MutationConsortiumJoinArgs) => consortiumJoin(centralApiApolloClient, input),
         consortiumLeave: (input: MutationConsortiumLeaveArgs) => consortiumLeave(centralApiApolloClient, input),
         userChangePassword: (input: MutationUserChangePasswordArgs) => userChangePassword(centralApiApolloClient, input),

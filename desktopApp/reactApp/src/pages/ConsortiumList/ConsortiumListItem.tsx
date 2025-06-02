@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ListItem, ListItemText, Button, Box, Paper, Typography } from '@mui/material';
+import { Button, Box, Typography } from '@mui/material';
 import { ConsortiumListItem as ConsortiumListItemType } from '../../apis/centralApi/generated/graphql'; // Import the type
 import { useCentralApi } from "../../apis/centralApi/centralApi";
 import { useNavigate } from 'react-router-dom';

@@ -134,6 +134,9 @@ export type MutationConsortiumJoinArgs = {
   consortiumId: Scalars['String']['input'];
 };
 
+export type MutationConsortiumDeleteArgs = {
+  consortiumId: Scalars['String']['input'];
+};
 
 export type MutationConsortiumLeaveArgs = {
   consortiumId: Scalars['String']['input'];
