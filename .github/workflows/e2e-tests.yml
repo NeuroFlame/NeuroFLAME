@@ -1,0 +1,46 @@
+name: e2e tests
+run-name: ${{github.actor}} is running e2e tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: macos-latest
+
+    steps:
+
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.1'
+
+      - name: Initialize Configuration
+        run: cp configs/defaults/*.json configs/
+
+      - name: Install Dependencies
+        run: ./setup/install_dependencies.sh
+
+      - name: Build components
+        run: ./setup/build_components.sh
+
+      - name: Start the Database
+        run: cd _devCentralDatabase && docker compose up -d
+      
+      - name: Seed the Database
+        run: cd centralApi && npm run seed
+
+      - name: Start Centeral API
+        run: cd centralApi && npm run start-configured &
+
+      - name: Start Federated Client
+        run: cd centralFederatedClient && npm run start-configured &
+
+      - name: Start File Server
+        run: cd fileServer && npm run start-configured &
+
+      - name: Start React Desktop App
+        run: cd desktopApp/reactApp && npm run start &
+
+      - name: Run e2e tests
+        run: cd desktopApp/electronApp && npm run test 
