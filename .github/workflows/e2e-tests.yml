@@ -1,12 +1,14 @@
 name: e2e tests
 run-name: ${{github.actor}} is running e2e tests
-on: [push, pull_request]
+on: 
+  push:
+    branches: '**'
+
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: macos-13
 
     steps:
-
       - name: Check out repository code
         uses: actions/checkout@v4
 
@@ -14,6 +16,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18.19.1'
+
+      - name: Install Docker and Docker Compose
+        run: |
+          brew install docker docker-compose colima docker-buildx
+          colima start
+          docker pull sbasodi1/test_neuroflame_comp_srr_freesurfer
 
       - name: Initialize Configuration
         run: cp configs/defaults/*.json configs/
@@ -25,7 +33,7 @@ jobs:
         run: ./setup/build_components.sh
 
       - name: Start the Database
-        run: cd _devCentralDatabase && docker compose up -d
+        run: cd _devCentralDatabase && docker-compose up -d
       
       - name: Seed the Database
         run: cd centralApi && npm run seed

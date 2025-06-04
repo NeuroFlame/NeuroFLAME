@@ -26,6 +26,7 @@ test.describe("Single-round Ridge Regression for Freesurfer computation", () => 
   let page: Page
 
   test.beforeAll(async () => {
+    test.setTimeout(COMPUTATION_TIMEOUT)
     page = (await setup(1)) as Page
     await execPromise(`docker pull ${DATA.computation.name}`)
   })
