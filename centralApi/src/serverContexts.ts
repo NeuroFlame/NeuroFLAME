@@ -26,15 +26,21 @@ interface HttpContext {
 
 const wsServerContext = (ctx: WebSocketContext, msg: any, args: any): ServerContext => {
   try {
-    const { accessToken } = ctx.connectionParams
-    const context = { ...validateAccessToken(accessToken) }
-    return context
+    const { accessToken } = ctx.connectionParams;
+    const payload = validateAccessToken(accessToken);
+
+    const { userId, roles } = payload as { userId?: string; roles?: string[] };
+
+    return {
+      userId,
+      roles,
+    };
   } catch (e) {
     return {
       error: (e as Error).message,
-    }
+    };
   }
-}
+};
 
 const httpServerContext = async ({
   req,
@@ -45,14 +51,20 @@ const httpServerContext = async ({
       (Array.isArray(req.headers['x-access-token'])
         ? req.headers['x-access-token'][0]
         : req.headers['x-access-token']
-      )?.replace(/^null$/, '') || ''
-    const context = { ...validateAccessToken(accessToken) }
-    return context
+      )?.replace(/^null$/, '') || '';
+
+    const payload = validateAccessToken(accessToken);
+    const { userId, roles } = payload as { userId?: string; roles?: string[] };
+
+    return {
+      userId,
+      roles,
+    };
   } catch (e) {
     return {
       error: (e as Error).message,
-    }
+    };
   }
-}
+};
 
 export { wsServerContext, httpServerContext }

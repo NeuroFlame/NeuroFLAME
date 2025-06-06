@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import { hash } from 'bcrypt'
 export { compare } from 'bcrypt'
 import {
@@ -7,6 +7,11 @@ import {
 } from '../config/environmentVariables.js'
 
 const { sign, verify } = jwt
+
+interface AccessTokenPayload extends JwtPayload {
+  userId: string;
+  roles?: string[];
+}
 
 export const generateTokens = (
   payload = {},
@@ -23,9 +28,15 @@ export const generateTokens = (
   return { accessToken }
 }
 
-export const validateAccessToken = (token: string) => {
-    return verify(token, ACCESS_TOKEN_SECRET)
-}
+export const validateAccessToken = (token: string): JwtPayload => {
+  const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
+
+  if (typeof decoded !== 'object' || decoded === null) {
+    throw new Error('Invalid token payload');
+  }
+
+  return decoded;
+};
 
 export const hashPassword = async (password) => {
   const saltRounds = 10
