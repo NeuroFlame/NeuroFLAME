@@ -13,6 +13,7 @@ import { RunList } from './RunList/RunList';
 import RunResults from './RunResults/RunResults';
 import ComputationListPage from './ComputationList/ComputationListPage';
 import ComputationDetailsPage from './ComputationDetails/ComputationDetailsPage';
+import ComputationCreatePage from './ComputationCreate/ComputationCreatePage';
 import AdminPage from './Admin/AdminPage';
 import ConsortiumWizard from './ConsortiumWizard/ConsortiumWizard';
 
@@ -26,6 +27,7 @@ export default function AppRoutes() {
             <Route path="/consortium/list" element={<ConsortiumListPage />} />
             <Route path="/consortium/details/:consortiumId" element={<ConsortiumDetailsPage />} />
             <Route path="/consortium/wizard/:consortiumId/*" element={<ConsortiumWizard />} />
+            <Route path="/computation/create" element={<ComputationCreatePage />} />
             <Route path="/computation/list" element={<ComputationListPage></ComputationListPage>} />
             <Route path="/computation/details/:computationId" element={<ComputationDetailsPage />} />
             <Route path="/run/list" element={<RunList />} />
