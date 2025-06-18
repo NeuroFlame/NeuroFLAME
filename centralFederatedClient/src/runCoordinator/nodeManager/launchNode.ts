@@ -1,4 +1,6 @@
 import Docker from 'dockerode'
+import path from 'path'
+import fs from 'fs'
 import { logger } from '../../logger.js'
 const docker = new Docker()
 
@@ -87,6 +89,7 @@ const launchDockerNode = async ({
       HostConfig: {
         Binds: binds,
         PortBindings: portBindingsFormatted,
+        NetworkMode: process.env.CI_DOCKER_NETWORK,
       },
     })
 
@@ -128,6 +131,8 @@ const attachDockerEventHandlers = async ({
       logger.error(
         `Container ${containerId} exited with error code ${StatusCode}`,
       )
+      const logs = await container.logs({ stdout: true, stderr: true });
+      logger.error(`Logs from container ${containerId}: ${logs}`);
       onContainerExitError &&
         onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
     } else {

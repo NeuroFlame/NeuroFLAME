@@ -37,3 +37,22 @@ export const testConfig: Config = {
     logPath: '',
   },
 }
+
+export const testConfigCI: Config = {
+  centralServerQueryUrl: 'http://api:3001/graphql',
+  centralServerSubscriptionUrl: 'ws://api:3001/graphql',
+  edgeClientQueryUrl: 'http://localhost:3003/graphql',
+  edgeClientSubscriptionUrl: 'ws://localhost:3003/graphql',
+  edgeClientRunResultsUrl: 'http://localhost:3003/run-results',
+  startEdgeClientOnLaunch: true,
+  logPath: '',
+  edgeClientConfig: {
+    httpUrl: 'http://api:3001/graphql',
+    wsUrl: 'ws://api:3001/graphql',
+    path_base_directory:
+      '',
+    authenticationEndpoint: 'http://api:3001/authenticateToken',
+    hostingPort: 3003,
+    logPath: '',
+  },
+}

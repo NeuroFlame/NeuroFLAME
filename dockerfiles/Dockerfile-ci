@@ -1,0 +1,59 @@
+FROM node:lts
+ARG BRANCH=master
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Docker's official GPG key:
+RUN apt-get update
+RUN apt-get install --no-install-recommends -y ca-certificates curl
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+RUN echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt-get update
+
+RUN apt-get install --no-install-recommends -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+COPY . .
+
+WORKDIR /edgeFederatedClient
+RUN npm install
+
+WORKDIR /centralApi
+RUN npm install
+RUN npm rebuild bcrypt
+
+WORKDIR /centralFederatedClient
+RUN npm install
+
+WORKDIR /fileServer
+RUN npm install
+
+WORKDIR /desktopApp/reactApp
+RUN npm install
+
+WORKDIR /desktopApp/electronApp
+RUN npm install
+
+WORKDIR /configs
+RUN ./initialize_configs_ci.sh
+
+WORKDIR /edgeFederatedClient
+RUN npm run build
+
+WORKDIR /desktopApp/reactApp
+RUN npm run build
+
+WORKDIR /desktopApp/electronApp
+RUN npm run build
+
+WORKDIR /centralApi
+RUN npm run build

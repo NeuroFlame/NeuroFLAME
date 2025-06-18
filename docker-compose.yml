@@ -1,0 +1,77 @@
+services:
+  mongo:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: centralDatabase
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data/:/data/db
+    networks:
+      - ci_network
+    command: --quiet
+
+  api:
+    depends_on:
+      - 'mongo'
+    image: neuroflame/api
+    stdin_open: true
+    tty: true
+    privileged: true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3001:3001"
+    networks:
+      - ci_network
+
+  centralFederatedClient:
+    depends_on:
+      - 'api'
+    image: neuroflame/centralfederatedclient
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /_devTestDirectories:/_devTestDirectories
+    networks:
+      - ci_network
+    environment:
+      - CI_DOCKER_NETWORK=ci-network
+
+  fileServer:
+    depends_on:
+      - 'api'
+    image: neuroflame/fileserver
+    ports:
+      - "3002:3002"
+    networks:
+      - ci_network
+
+  react:
+    depends_on:
+      - 'api'
+    image: neuroflame/react
+    ports:
+      - "3000:3000"
+    networks:
+      - ci_network
+
+  ui:
+    depends_on:
+      - 'api'
+      - 'centralFederatedClient'
+      - 'fileServer'
+      - 'react'
+    image: neuroflame/ui
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ci_network
+    environment:
+      - CI=true
+
+networks:
+  ci_network:
+    name: ci-network
+    driver: bridge

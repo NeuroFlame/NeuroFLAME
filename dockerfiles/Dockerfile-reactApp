@@ -1,0 +1,7 @@
+FROM neuroflame/ci
+
+EXPOSE 3000
+
+WORKDIR /desktopApp/reactApp
+
+CMD npm run start
