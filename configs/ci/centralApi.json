@@ -1,8 +1,8 @@
 {
-    "fileServerUrl": "http://localhost:3002",
+    "fileServerUrl": "http://fileServer:3002",
     "apolloPort": 3001,
     "databaseDetails": {
-        "url": "mongodb://localhost:27017/centralDatabase",
+        "url": "mongodb://mongo:27017/centralDatabase",
         "user": "admin",
         "pass": "secret"
     },

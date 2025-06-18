@@ -1,0 +1,16 @@
+{
+    "centralServerQueryUrl": "http://api:3001/graphql",
+    "centralServerSubscriptionUrl": "ws://api:3001/graphql",
+    "edgeClientQueryUrl": "http://localhost:3004/graphql",
+    "edgeClientSubscriptionUrl": "ws://localhost:3004/graphql",
+    "edgeClientRunResultsUrl": "http://localhost:3004/run-results",
+    "startEdgeClientOnLaunch": true,
+    "logPath": "",
+    "edgeClientConfig": {
+        "httpUrl": "http://api:3001/graphql",
+        "wsUrl": "ws://api:3001/graphql",
+        "path_base_directory": "{{REPO_DIR}}/_devTestDirectories/edgeSite2",
+        "authenticationEndpoint": "http://api:3001/authenticateToken",
+        "hostingPort": 3004
+    }
+}

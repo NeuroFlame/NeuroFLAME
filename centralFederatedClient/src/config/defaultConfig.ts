@@ -6,7 +6,7 @@ export default {
   userId: 'central',
   fileServerUrl: 'http://localhost:4002',
   baseDir:
-    'C:/development/effective-palm-tree/_devTestDirectories/centralFederatedClientDir',
+    '/tmp/neuroflame/_devTestDirectories/centralFederatedClientDir',
   FQDN: 'host.docker.internal',
   hostingPortRange: {
     start: 3000,

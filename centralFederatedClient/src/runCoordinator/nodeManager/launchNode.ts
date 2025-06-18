@@ -1,4 +1,6 @@
 import Docker from 'dockerode'
+import path from 'path'
+import fs from 'fs'
 import { logger } from '../../logger.js'
 const docker = new Docker()
 
@@ -62,6 +64,15 @@ const launchDockerNode = async ({
     `Attempting to launch Docker container from imageName: ${imageName}`,
   )
 
+  console.log('++++mounts: ', directoriesToMount, fs.readdirSync(directoriesToMount[0].hostDirectory))
+
+  try {
+    fs.chmodSync(directoriesToMount[0].hostDirectory, 777)
+    console.log('+++ success')
+  } catch {
+    console.log('+++ fail')
+  }
+
   const binds = directoriesToMount.map(
     (mount) => `${mount.hostDirectory}:${mount.containerDirectory}`,
   )
@@ -84,9 +95,12 @@ const launchDockerNode = async ({
       Image: imageName,
       Cmd: commandsToRun,
       ExposedPorts: exposedPorts,
+      User: 'root',
       HostConfig: {
+        CapAdd: ["NET_ADMIN"],
         Binds: binds,
         PortBindings: portBindingsFormatted,
+        NetworkMode: process.env.CI_DOCKER_NETWORK,
       },
     })
 
@@ -128,6 +142,8 @@ const attachDockerEventHandlers = async ({
       logger.error(
         `Container ${containerId} exited with error code ${StatusCode}`,
       )
+      const logs = await container.logs({ stdout: true, stderr: true });
+      logger.error(`Logs from container ${containerId}: ${logs}`);
       onContainerExitError &&
         onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
     } else {

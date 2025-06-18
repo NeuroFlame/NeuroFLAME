@@ -50,10 +50,10 @@ export async function provisionRun({
       containerService: 'docker',
       imageName: image_name,
       directoriesToMount: [
-        { hostDirectory: path_run, containerDirectory: '/provisioning/' },
+        { hostDirectory: `${path_run}/`, containerDirectory: '/provisioning/' },
       ],
       portBindings: [],
-      commandsToRun: [`python`, `/workspace/system/entry_provision.py`],
+      commandsToRun: ['sh', '-c', 'echo "here" && ls -l / && echo "here" && ls -l /provisioning && echo "here" && ls -ld /provisioning && python /workspace/system/entry_provision.py'],
       onContainerExitSuccess: async (containerId) => {
         return resolve(void 0)
       },
