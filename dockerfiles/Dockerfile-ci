@@ -30,8 +30,6 @@ RUN npm install
 WORKDIR /centralApi
 RUN npm install
 
-RUN npm rebuild bcrypt
-
 WORKDIR /centralFederatedClient
 RUN npm install
 

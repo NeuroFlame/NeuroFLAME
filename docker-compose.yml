@@ -36,8 +36,6 @@ services:
       - /_devTestDirectories:/_devTestDirectories
     networks:
       - ci_network
-    environment:
-      - CI_DOCKER_NETWORK=ci-network
 
   fileServer:
     depends_on:

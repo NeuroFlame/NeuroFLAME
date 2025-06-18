@@ -64,15 +64,6 @@ const launchDockerNode = async ({
     `Attempting to launch Docker container from imageName: ${imageName}`,
   )
 
-  console.log('++++mounts: ', directoriesToMount, fs.readdirSync(directoriesToMount[0].hostDirectory))
-
-  try {
-    fs.chmodSync(directoriesToMount[0].hostDirectory, 777)
-    console.log('+++ success')
-  } catch {
-    console.log('+++ fail')
-  }
-
   const binds = directoriesToMount.map(
     (mount) => `${mount.hostDirectory}:${mount.containerDirectory}`,
   )
@@ -95,12 +86,9 @@ const launchDockerNode = async ({
       Image: imageName,
       Cmd: commandsToRun,
       ExposedPorts: exposedPorts,
-      User: 'root',
       HostConfig: {
-        CapAdd: ["NET_ADMIN"],
         Binds: binds,
         PortBindings: portBindingsFormatted,
-        NetworkMode: process.env.CI_DOCKER_NETWORK,
       },
     })
 

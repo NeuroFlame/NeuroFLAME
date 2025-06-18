@@ -45,16 +45,15 @@ export async function provisionRun({
 
   // launch the container and await its completion
   // throw errors appropriately here
-  
   await new Promise((resolve, reject) => {
     launchNode({
       containerService: 'docker',
       imageName: image_name,
       directoriesToMount: [
-        { hostDirectory: `${path_run}/`, containerDirectory: '/provisioning/' },
+        { hostDirectory: path_run, containerDirectory: '/provisioning/' },
       ],
       portBindings: [],
-      commandsToRun: ['sh', '-c', 'echo "here" && ls -l / && echo "here" && ls -l /provisioning && echo "here" && ls -ld /provisioning && python /workspace/system/entry_provision.py'],
+      commandsToRun: [`python`, `/workspace/system/entry_provision.py`],
       onContainerExitSuccess: async (containerId) => {
         return resolve(void 0)
       },
