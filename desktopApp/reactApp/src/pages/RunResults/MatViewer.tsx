@@ -187,7 +187,7 @@ const decodeTypedArray = (val: any): any => {
 
   const renderTree = (nodes: TreeNode[], depth = 0) => {
     return (
-      <ul style={{ paddingLeft: `${depth * 1.25}rem`, listStyle: 'none' }}>
+      <ul style={{ paddingLeft: `${depth * 0.5}rem`, listStyle: 'none', marginBottom: 0 }}>
         {nodes.map((node) => (
           <li key={node.path}>
             <div
