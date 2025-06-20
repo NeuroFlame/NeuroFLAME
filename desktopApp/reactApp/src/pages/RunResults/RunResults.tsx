@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { Box, Button, Typography } from "@mui/material";
 import Grid from '@mui/material/Grid2';
 import { useNavigate } from 'react-router-dom';
 import { useRunResults } from "./useRunResults";
+import CSVViewer from './CSVViewer';
+import MatViewer from './MatViewer';
+import NiiVueViewer from './NiiVueViewer';
+import TextViewer from './TextViewer';
 
 export default function RunResults() {
     const navigate = useNavigate();
@@ -23,6 +28,8 @@ export default function RunResults() {
         handleHideFiles,
         handleShowFiles
     } = useRunResults();
+
+    const [currentFile, setCurrentFile] = useState<string>('');
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>{error}</div>;
@@ -60,7 +67,11 @@ export default function RunResults() {
                             <li key={index}>
                                 <button
                                     style={{ background: 'none', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer', padding: '0' }}
-                                    onClick={() => setFrameSrc(`${edgeClientRunResultsUrl}/${file.url}?x-access-token=${localStorage.getItem('accessToken')}`)}
+                                    onClick={() => {
+                                            setFrameSrc(`${edgeClientRunResultsUrl}/${file.url}?x-access-token=${localStorage.getItem('accessToken')}`);
+                                            setCurrentFile(file.url);
+                                        }
+                                    }
                                 >
                                     {file.name}
                                 </button>
@@ -76,20 +87,33 @@ export default function RunResults() {
                 <Button variant='text' size="small" onClick={handleHideFiles} style={{ display: filesPanelShow, background: 'white' }}>
                     Expand Results Panel
                 </Button>
-                <Box>
-                    {frameSrc ? <iframe
-                        // put the token in the URL to authenticate the request
-                        src={frameSrc}
-                        title={`Run Result`}
-                        width="100%"
-                        height="100%"
-                        sandbox="allow-same-origin"
-                        style={{ border: 'none', background: 'white', height: 'calc(100vh - 170px)' }}
-                    /> :
-                        <div style={{ background: 'white', height: 'calc(100vh - 225px)', padding: '1rem' }}>
-                            <h2>No index.html file in the output folder.</h2>
-                            <p>You're welcome to view the files on the left.</p>
-                        </div>}
+                <Box style={{background: '#fff', minHeight: 'calc(100vh)', padding: '0.25rem 1rem 1rem'}}>
+                  {currentFile && <h3 style={{padding: '1rem 0 0'}}><span style={{color: 'black'}}>Viewing:</span> {currentFile}</h3>}
+                  {frameSrc ? (
+                    frameSrc.includes('.csv') ? (
+                        <CSVViewer fileUrl={frameSrc} />
+                    ) : frameSrc.includes('.nii') ? (
+                        <NiiVueViewer fileUrl={frameSrc} />
+                    ) : frameSrc.includes('.mat') ? (
+                        <MatViewer fileUrl={frameSrc} />
+                    ) : frameSrc.includes('.m') ? (
+                        <TextViewer fileUrl={frameSrc} />
+                    ) : (
+                        <iframe
+                            src={frameSrc}
+                            title="Run Result"
+                            width="100%"
+                            height="100%"
+                            sandbox="allow-same-origin"
+                            style={{ border: 'none', background: 'white', height: 'calc(100vh - 170px)' }}
+                        />
+                    )
+                  ) : (
+                    <div style={{ background: 'white', height: 'calc(100vh - 225px)', padding: '1rem' }}>
+                      <h2>No index.html file in the output folder.</h2>
+                      <p>You're welcome to view the files on the left.</p>
+                    </div>
+                  )}
                 </Box>
             </Grid>
         </Grid>
