@@ -22,53 +22,72 @@ git clone https://github.com/NeuroFlame/NeuroFLAME.git
 cd NeuroFLAME
 ```
 
-### **3. Initialize Configuration**
-Run the configuration initialization script:
+### **2. Install Dependencies**
+From the repository root, run these commands:
+
 ```bash
-cd configs && ./initialize_configs.sh
+cd edgeFederatedClient && npm install && cd ..
+cd centralApi && npm install && cd ..
+cd centralFederatedClient && npm install && cd ..
+cd fileServer && npm install && cd ..
+cd desktopApp/reactApp && npm install && cd ../..
+cd desktopApp/electronApp && npm install && cd ../..
+```
+
+### **3. Initialize Configuration**
+Initialize the configuration files:
+```bash
+cd configs
+./initialize_configs.sh
+cd ..
 ```
 
 ### **4. Start the Database**
-Launch the database container using Docker Compose:
+Start the database container using Docker Compose:
 ```bash
-cd _devCentralDatabase && docker compose up -d
+cd _devCentralDatabase
+docker compose up -d
+cd ..
 ```
 
-### **5. Build the Edge Federated Client Package**
+### **5. Build Components**
+From the repository root, build the components individually:
+
 ```bash
-cd edgeFederatedClient && npm i && npm run build
+cd edgeFederatedClient && npm run build && cd ..
+cd desktopApp/reactApp && npm run build && cd ../..
+cd desktopApp/electronApp && npm run build && cd ../..
 ```
 
-### **6. Seed the Database**
-Run the seeding script to populate the database with test data:
+Seed the database:
 ```bash
-cd centralApi && npm i && npm run seed
+cd centralApi && npm run seed && cd ..
 ```
 
-### **7. Start the Services**
+### **6. Start the Services**
 Open multiple terminal windows and run the following commands in each:
 
-#### **Central API**
+**Central API:**
 ```bash
-cd centralApi && npm i && npm run start-configured
+cd centralApi && npm run start-configured
 ```
 
-#### **Central Federated Client**
+**Central Federated Client:**
 ```bash
-cd centralFederatedClient && npm i && npm run start-configured
+cd centralFederatedClient && npm run start-configured
 ```
 
-#### **File Server**
+**File Server:**
 ```bash
-cd fileServer && npm i && npm run start-configured
+cd fileServer && npm run start-configured
 ```
 
-#### **Desktop App (React)**
+**Desktop App (React):**
 ```bash
-cd desktopApp/reactApp && npm i && npm run start
+cd desktopApp/reactApp && npm run start
 ```
 
-#### **Desktop App (Electron)**
+**Desktop App (Electron):**
 ```bash
-cd desktopApp/electronApp && npm i && npm run start-configured
+cd desktopApp/electronApp && npm run start-configured
 ```

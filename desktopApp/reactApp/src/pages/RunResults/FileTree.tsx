@@ -31,6 +31,7 @@ type FileLeaf = {
 type FileTreeProps = {
   fileList: FileItem[];
   setFrameSrc: (src: string) => void;
+  setCurrentFile: (src: string) => void;
   edgeClientRunResultsUrl: string;
 };
 
@@ -69,6 +70,7 @@ function buildFileTree(files: FileItem[]): TreeNode {
 type RenderTreeProps = {
   tree: TreeNode;
   setFrameSrc: (src: string) => void;
+  setCurrentFile: (src: string) => void;
   edgeClientRunResultsUrl: string;
   accessToken: string | null;
   depth?: number;
@@ -121,6 +123,7 @@ function formatBytes(bytes: number): string {
 function RenderTree({
   tree,
   setFrameSrc,
+  setCurrentFile,
   edgeClientRunResultsUrl,
   accessToken,
   depth = 0
@@ -146,38 +149,40 @@ function RenderTree({
               key={key}
               style={{
                 display: 'flex',
-                alignItems: 'center',
-                marginBottom: '0.25rem'
+                alignItems: 'center'
               }}
             >
               {getFileIcon(file.name)}
-              <button
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'black',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  padding: '0.5rem 0.25rem',
-                  fontSize: '0.85rem',
-                  textAlign: 'left'
-                }}
-                onClick={() => {
-                  if (!accessToken) {
-                    console.error('Missing access token');
-                    return;
-                  }
+              <div>
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0066FF',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: '0 0.25rem',
+                    fontSize: '0.85rem',
+                    textAlign: 'left'
+                  }}
+                  onClick={() => {
+                    if (!accessToken) {
+                      console.error('Missing access token');
+                      return;
+                    }
 
-                  const fullUrl = `${edgeClientRunResultsUrl}/${file.url}?x-access-token=${accessToken}`;
-                  console.log(fullUrl);
-                  setFrameSrc(fullUrl);
-                }}
-              >
-                {file.name}
-              </button>
-              <span style={{ padding: 0, margin: 0, fontSize: '0.75rem', color: '#666' }}>
-                ({formatBytes(file.size)}, {new Date(file.lastModified).toLocaleDateString()})
-              </span>
+                    const fullUrl = `${edgeClientRunResultsUrl}/${file.url}?x-access-token=${accessToken}`;
+                    console.log(fullUrl);
+                    setFrameSrc(fullUrl);
+                    setCurrentFile(file.name);
+                  }}
+                >
+                  {file.name}
+                </button>
+                <div style={{ width: '100%', padding: '0 0 0 2px', margin: 0, fontSize: '0.6rem', color: '#666' }}>
+                  ({formatBytes(file.size)}, {new Date(file.lastModified).toLocaleDateString()})
+                </div>
+              </div>
             </li>
           );
         } else {
@@ -186,6 +191,7 @@ function RenderTree({
               <RenderTree
                 tree={value as TreeNode}
                 setFrameSrc={setFrameSrc}
+                setCurrentFile={setCurrentFile}
                 edgeClientRunResultsUrl={edgeClientRunResultsUrl}
                 accessToken={accessToken}
                 depth={depth + 1}
@@ -201,6 +207,7 @@ function RenderTree({
 export default function FileTree({
   fileList,
   setFrameSrc,
+  setCurrentFile,
   edgeClientRunResultsUrl
 }: FileTreeProps) {
   const accessToken = localStorage.getItem('accessToken');
@@ -210,6 +217,7 @@ export default function FileTree({
     <RenderTree
       tree={tree}
       setFrameSrc={setFrameSrc}
+      setCurrentFile={setCurrentFile}
       edgeClientRunResultsUrl={edgeClientRunResultsUrl}
       accessToken={accessToken}
       depth={0}
