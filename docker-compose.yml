@@ -42,7 +42,7 @@ services:
     image: neuroflame/centralfederatedclient
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /Users/ross/coins/NeuroFLAME/_devTestDirectories:/_devTestDirectories
+      - ${HOST_PROJECT_DIR}/_devTestDirectories:/_devTestDirectories
     networks:
       - ci_network
 
