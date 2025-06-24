@@ -25,25 +25,28 @@ RUN apt-get install --no-install-recommends -y docker-ce docker-ce-cli container
 COPY . .
 
 WORKDIR /edgeFederatedClient
+RUN rm -rf node_modules
 RUN npm install
 
 WORKDIR /centralApi
+RUN rm -rf node_modules
 RUN npm install
 
 WORKDIR /centralFederatedClient
+RUN rm -rf node_modules
 RUN npm install
 
 WORKDIR /fileServer
+RUN rm -rf node_modules
 RUN npm install
 
 WORKDIR /desktopApp/reactApp
+RUN rm -rf node_modules
 RUN npm install
 
 WORKDIR /desktopApp/electronApp
+RUN rm -rf node_modules
 RUN npm install
-
-WORKDIR /configs
-RUN ./initialize_configs_ci.sh
 
 WORKDIR /edgeFederatedClient
 RUN npm run build

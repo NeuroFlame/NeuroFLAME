@@ -17,6 +17,14 @@ services:
     depends_on:
       - 'mongo'
     image: neuroflame/api
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "curl -s -X POST http://localhost:3001/graphql -H 'Content-Type: application/json' --data '{\"query\":\"{ __typename }\"}' > /dev/null"
+      ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     stdin_open: true
     tty: true
     privileged: true
@@ -29,17 +37,19 @@ services:
 
   centralFederatedClient:
     depends_on:
-      - 'api'
+      api:
+        condition: service_healthy
     image: neuroflame/centralfederatedclient
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /_devTestDirectories:/_devTestDirectories
+      - /Users/ross/coins/NeuroFLAME/_devTestDirectories:/_devTestDirectories
     networks:
       - ci_network
 
   fileServer:
     depends_on:
-      - 'api'
+      api:
+        condition: service_healthy
     image: neuroflame/fileserver
     ports:
       - "3002:3002"
@@ -48,7 +58,8 @@ services:
 
   react:
     depends_on:
-      - 'api'
+      api:
+        condition: service_healthy
     image: neuroflame/react
     ports:
       - "3000:3000"
