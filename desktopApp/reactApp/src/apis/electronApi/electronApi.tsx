@@ -5,6 +5,10 @@ import { openConfig } from "./openConfig";
 import { useDirectoryDialog } from "./useDirectoryDialog";
 import { saveConfig } from "./saveConfig";
 import { restartApp } from "./restartApp";
+import { spawnTerminal } from "./spawnTerminal";
+import { terminalInput } from "./terminalInput";
+import { terminalOutput } from "./terminalOutput";
+import { removeTerminalOutputListener } from "./removeTerminalOutputListener";
 
 export interface Config {
   centralServerQueryUrl: string;
@@ -30,6 +34,10 @@ interface ElectronAPI {
   applyDefaultConfig: () => Promise<void>;
   useDirectoryDialog: (pathString?: string) => Promise<{ directoryPath: undefined | string, canceled: boolean, error: string | null }>;
   restartApp: () => void;
+  spawnTerminal: () => void;
+  terminalOutput: (output: any) => Promise<{ output: any }>;
+  terminalInput: (input: any) => Promise<{ input: any }>;
+  removeTerminalOutputListener: () => void;
 }
 
 declare global {
@@ -45,7 +53,11 @@ export const electronApi = {
   saveConfig,
   applyDefaultConfig,
   useDirectoryDialog,
-  restartApp
+  restartApp,
+  terminalOutput,
+  terminalInput,
+  spawnTerminal,
+  removeTerminalOutputListener
 }
 
 

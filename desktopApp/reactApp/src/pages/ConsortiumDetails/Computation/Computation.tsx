@@ -6,6 +6,8 @@ import ComputationSelect from "./ComputationSelect/ComputationSelect";
 import { useConsortiumDetailsContext } from "../ConsortiumDetailsContext";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useState } from "react";
+import { Terminal } from "xterm";
+import TerminalWindow from "./TerminalWindow";
 
 interface ComputationDisplayProps {
     computation: Maybe<Computation> | undefined;
@@ -41,7 +43,7 @@ export default function Computation({ computation }: ComputationDisplayProps) {
     };
 
     return (
-        <Box p={2} borderRadius={2} marginBottom={2} bgcolor={'white'}>
+        <Box p={2} borderRadius={2} marginBottom={2} bgcolor={'white'} position='relative'>
             <Box display="flex" justifyContent="space-between">
                 <Box>
                     <Typography variant="h6" gutterBottom>
@@ -56,7 +58,7 @@ export default function Computation({ computation }: ComputationDisplayProps) {
                 )}
             </Box>
             <Box>
-                <Box marginTop={2} display="flex" flexDirection="column" alignItems="flex-start">
+                <Box marginTop={2} marginBottom={1} display="flex" flexDirection="column" alignItems="flex-start">
                     <Typography>
                         Image Download:
                     </Typography>
@@ -88,6 +90,13 @@ export default function Computation({ computation }: ComputationDisplayProps) {
                                 Copied!
                             </Typography>
                         )}
+                    </Box>
+                    <Box 
+                        sx={{
+                            width: '100%',
+                        }}
+                    >
+                        <TerminalWindow command={imageDownloadUrl} />
                     </Box>
                 </Box>
                 <HashLink id="compnotes-anchor" style={{ fontSize: '0.9rem' }} to="#compnotes">
