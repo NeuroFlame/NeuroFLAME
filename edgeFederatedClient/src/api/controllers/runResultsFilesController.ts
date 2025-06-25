@@ -1,8 +1,9 @@
 import { Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
+import archiver from 'archiver'
 import { getConfig } from '../../config/config.js'
-import { logger } from '../../logger.js' 
+import { logger } from '../../logger.js'
 
 export const listRunFiles = async (req: Request, res: Response) => {
   try {
@@ -62,6 +63,39 @@ export const serveRunFile = async (req: Request, res: Response) => {
     }
   } catch (error) {
     logger.error(`Error in serveRunFile: ${(error as Error).message}`)
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+export const serveRunFolder = async (req: Request, res: Response) => {
+  try {
+    const { path_base_directory: filesDirectory } = await getConfig()
+    const { consortiumId, runId } = req.params
+    const directoryPath = path.join(filesDirectory, consortiumId, runId, `results`)
+
+    console.log(directoryPath)
+
+    if (!fs.existsSync(directoryPath)) {
+      logger.warn(`Directory not found: ${directoryPath}`)
+      return res.status(404).json({ error: 'Run directory not found' })
+    }
+    res.setHeader('Content-Type', 'application/zip')
+    res.setHeader('Content-Disposition', `attachment; filename=${runId}_results.zip`)
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    })
+
+    archive.on('error', (err) => {
+      logger.error(`Archive error: ${err.message}`)
+      res.status(500).end()
+    })
+
+    archive.pipe(res)
+    archive.directory(directoryPath, false)
+    archive.finalize()
+  } catch (error) {
+    logger.error(`Error in serveRunFolder: ${(error as Error).message}`)
     res.status(500).json({ error: 'Internal Server Error' })
   }
 }

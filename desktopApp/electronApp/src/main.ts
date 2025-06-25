@@ -102,6 +102,19 @@ async function appOnReady(): Promise<void> {
 
   mainWindow = await createMainWindow()
 
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const parsedUrl = new URL(url)
+    const openInSelf = parsedUrl.searchParams.get('window') === 'self'
+
+    if (openInSelf) {
+      mainWindow?.loadURL(url) // load in current window
+      return { action: 'deny' }
+    }
+
+    // Default: allow opening new window if you want
+    return { action: 'allow' }
+  })
+
   // Handle terminal creation request from renderer process (React)
   ipcMain.handle('spawnTerminal', (): string => {
     const shell: string = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
