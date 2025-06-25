@@ -169,10 +169,27 @@ pre, code, .pre {
   width: calc(100% - 2rem);
 }
 
-pre.settings {
+pre.settings,
+.terminal {
+  font-family: monospace;
   background-color: #1A2948; /* Light grey background */   
   color: #ffffff !important;
   padding: 1rem;
+  border-radius: 8px; /* Rounded corners */
+}
+
+.terminalWindow {
+  font-family: monospace;
+  background-color: #1A2948; /* Light grey background */   
+  color: #ffffff !important;
+  padding: 1rem;
+  border-radius: 8px; /* Rounded corners */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0 0 1rem 0;
+  height: 70px;
+  font-size: 0.75rem;
+  overflow-x: scroll;
 }
 
 pre {
