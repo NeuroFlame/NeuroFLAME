@@ -25,28 +25,34 @@ export function useRunResults() {
   const [arrowForwardShow, setArrowForwardShow] = useState<string>('none');
 
   const fetchRecursive = async (relativePath: string, token: string): Promise<FileInfo[]> => {
-    const fullUrl = `${edgeClientRunResultsUrl}/${relativePath}`.replace(/\/+$/, ''); // ensure no trailing slash
-    const response = await axios.get<FileInfo[]>(fullUrl, {
-      headers: { 'x-access-token': token },
-    });
+    const normalizedPath = relativePath.replace(/^\/+/, ''); // remove leading slashes
+    const fullUrl = `${edgeClientRunResultsUrl}/${normalizedPath}${normalizedPath.endsWith('/') ? '' : '/'}`;
 
-    const files: FileInfo[] = [];
+    try {
+      const response = await axios.get<FileInfo[]>(fullUrl, {
+        headers: { 'x-access-token': token },
+      });
 
-    for (const file of response.data) {
-      const fullFile: FileInfo = {
-        ...file,
-        url: file.url, // keep relative
-      };
+      const files: FileInfo[] = [];
 
-      files.push(fullFile);
+      for (const file of response.data) {
+        files.push(file);
 
-      if (file.isDirectory) {
-        const nested = await fetchRecursive(file.url, token);
-        files.push(...nested);
+        if (file.isDirectory) {
+          try {
+            const nested = await fetchRecursive(file.url, token);
+            files.push(...nested);
+          } catch (err) {
+            console.warn(`Skipping inaccessible directory: ${file.url}`, err);
+          }
+        }
       }
-    }
 
-    return files;
+      return files;
+    } catch (err) {
+      console.error(`Failed to fetch path: ${fullUrl}`, err);
+      throw err;
+    }
   };
 
   useEffect(() => {

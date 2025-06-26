@@ -10,7 +10,7 @@ router.use(authenticate);
 
 // Define the routes
 router.get('/zip/:consortiumId/:runId', serveRunFolder);
-router.get('/:consortiumId/:runId', listRunFiles);
 router.get('/:consortiumId/:runId/*', serveRunFile);
+router.get('/:consortiumId/:runId', listRunFiles);
 
 export default router;

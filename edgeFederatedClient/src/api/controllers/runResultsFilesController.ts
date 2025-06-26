@@ -73,84 +73,20 @@ export const serveRunFile = async (req: Request, res: Response) => {
   try {
     const { path_base_directory: filesDirectory } = await getConfig();
     const { consortiumId, runId } = req.params;
-    const filePathParam = req.params[0]; // captures the wildcard route
+    const filePathParam = req.params[0]; // catch-all route segment
 
     const baseDirectory = path.join(filesDirectory, consortiumId, runId, 'results');
-    const filePath = path.join(baseDirectory, filePathParam);
     const resolvedBase = path.resolve(baseDirectory);
-    const resolvedFile = path.resolve(filePath);
-    const currentFileName = path.basename(resolvedFile); // e.g., "some_report.html"
+    let resolvedFile = path.resolve(baseDirectory, filePathParam);
+    const currentFileName = path.basename(resolvedFile);
 
-    // Prevent directory traversal attacks
+    // Ensure path is within allowed directory
     if (!resolvedFile.startsWith(resolvedBase)) {
-      logger.warn(`Attempt to access unauthorized path: ${resolvedFile}`);
+      logger.warn(`Unauthorized path access attempt: ${resolvedFile}`);
       return res.status(403).json({ error: 'Unauthorized access' });
     }
 
-    if (resolvedFile.endsWith('.html')) {
-      let contents = fs.readFileSync(resolvedFile, 'utf8');
-    
-      // Inject <base href="./"> if not present
-      if (!contents.includes('<base')) {
-        contents = contents.replace('<head>', `<head><base href="./">`);
-      }
-
-      // Append x-access-token to all img src attributes
-      const token = req.query['x-access-token'];
-
-      if (token) {
-        contents = contents.replace(
-          /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*?>/gi,
-          (match, src) => {
-            // Don't double-append token
-            const hasToken = src.includes('x-access-token=');
-            const connector = src.includes('?') ? '&' : '?';
-            const newSrc = hasToken ? src : `${src}${connector}x-access-token=${token}`;
-            return match.replace(src, newSrc);
-          }
-        );
-
-        contents = contents.replace(
-          /<a\s+[^>]*?href\s*=\s*["']#([^"']+)["']/gi,
-          (match, anchor) => {
-            const hasToken = currentFileName.includes('x-access-token=');
-            const connector = currentFileName.includes('?') ? '&' : '?';
-            const tokenizedHref = hasToken || !token
-              ? `${currentFileName}#${anchor}`
-              : `${currentFileName}${connector}x-access-token=${token}#${anchor}`;
-        
-            return match.replace(`#${anchor}`, tokenizedHref);
-          }
-        );
-
-        // Optional: Append token to other assets like CSS/JS
-        contents = contents.replace(
-          /<a\b[^>]*?\bhref\s*=\s*["']([^"']+)["'][^>]*?>/gi,
-          (match, href) => {
-            if (
-              href.startsWith('mailto:') ||
-              href.startsWith('tel:')
-            ) {
-              return match; // Leave anchors, mailto, tel alone
-            }
-        
-            if (!href.endsWith('.html')) {
-              return match; // Only rewrite .html links
-            }
-        
-            const hasToken = href.includes('x-access-token=');
-            const connector = href.includes('?') ? '&' : '?';
-            const newHref = hasToken ? href : `${href}${connector}x-access-token=${token}`;
-        
-            return match.replace(href, newHref);
-          }
-        );
-      }
-    
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(contents);
-    }    
-
+    // Fail fast if it doesn't exist
     if (!fs.existsSync(resolvedFile)) {
       logger.warn(`File not found: ${resolvedFile}`);
       return res.status(404).send('File not found');
@@ -158,12 +94,10 @@ export const serveRunFile = async (req: Request, res: Response) => {
 
     const stat = fs.lstatSync(resolvedFile);
 
-    if (stat.isFile()) {
-      return res.sendFile(resolvedFile);
-    }
-
+    // ✅ Handle directories
     if (stat.isDirectory()) {
       const entries = fs.readdirSync(resolvedFile, { withFileTypes: true });
+
       const directoryContents: FileInfo[] = entries.map((entry) => {
         const entryPath = path.join(resolvedFile, entry.name);
         const entryStat = fs.statSync(entryPath);
@@ -185,23 +119,65 @@ export const serveRunFile = async (req: Request, res: Response) => {
       return res.json(directoryContents);
     }
 
-    // If not a file or folder
+    // ✅ Handle .html files
+    if (stat.isFile() && resolvedFile.endsWith('.html')) {
+      let contents = fs.readFileSync(resolvedFile, 'utf8');
+
+      if (!contents.includes('<base')) {
+        contents = contents.replace('<head>', `<head><base href="./">`);
+      }
+
+      const token = req.query['x-access-token'];
+      if (token) {
+        contents = contents.replace(
+          /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*?>/gi,
+          (match, src) => {
+            const hasToken = src.includes('x-access-token=');
+            const connector = src.includes('?') ? '&' : '?';
+            return match.replace(src, hasToken ? src : `${src}${connector}x-access-token=${token}`);
+          }
+        );
+
+        contents = contents.replace(
+          /<a\s+[^>]*?href\s*=\s*["']#([^"']+)["']/gi,
+          (match, anchor) => {
+            const connector = currentFileName.includes('?') ? '&' : '?';
+            return match.replace(`#${anchor}`, `${currentFileName}${connector}x-access-token=${token}#${anchor}`);
+          }
+        );
+
+        contents = contents.replace(
+          /<a\b[^>]*?\bhref\s*=\s*["']([^"']+\.html)["'][^>]*?>/gi,
+          (match, href) => {
+            if (href.startsWith('mailto:') || href.startsWith('tel:')) return match;
+            const connector = href.includes('?') ? '&' : '?';
+            return match.replace(href, `${href}${connector}x-access-token=${token}`);
+          }
+        );
+      }
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(contents);
+    }
+
+    // ✅ Serve other files
+    if (stat.isFile()) {
+      return res.sendFile(resolvedFile);
+    }
+
     logger.warn(`Unsupported file type at path: ${resolvedFile}`);
     return res.status(400).send('Unsupported file type');
-
   } catch (error) {
     logger.error(`Error in serveRunFile: ${(error as Error).message}`);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
-}
+};
 
 export const serveRunFolder = async (req: Request, res: Response) => {
   try {
     const { path_base_directory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
     const directoryPath = path.join(filesDirectory, consortiumId, runId, `results`)
-
-    console.log(directoryPath)
 
     if (!fs.existsSync(directoryPath)) {
       logger.warn(`Directory not found: ${directoryPath}`)
