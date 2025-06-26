@@ -3,6 +3,8 @@ import { Paper, List, Typography, Button, Box, CircularProgress, Container } fro
 import ReplayIcon from '@mui/icons-material/Replay';
 import { ComputationListItem as ComputationListItemType } from '../../apis/centralApi/generated/graphql'; // Import the type
 import ComputationListItem from './ComputationListItem'; // Import the new presentation component
+import { useNavigate } from 'react-router-dom';
+import { useUserState } from '../../contexts/UserStateContext';
 
 interface ComputationListProps {
     computationList: ComputationListItemType[];
@@ -12,6 +14,13 @@ interface ComputationListProps {
 }
 
 const ComputationList: React.FC<ComputationListProps> = ({ computationList, loading, error, onReload }) => {
+    const navigate = useNavigate();
+    
+    const { roles } = useUserState();
+
+    console.log(roles);
+    
+    const isAdmin = roles.includes('admin');
     // Loading state
     if (loading) {
         return (
@@ -47,6 +56,9 @@ const ComputationList: React.FC<ComputationListProps> = ({ computationList, load
                     </Typography>
                 </Box>
                 <Box>
+                    {isAdmin && <Button variant="outlined" color="primary" onClick={() => navigate('/computation/create/')}  sx={{ marginBottom: 2, marginRight: 1 }}>
+                        Add Computation
+                    </Button>}
                     <Button variant="contained" color="primary" onClick={onReload} sx={{ marginBottom: 2 }}>
                         Reload
                         <ReplayIcon sx={{fontSize: '1rem'}} />
