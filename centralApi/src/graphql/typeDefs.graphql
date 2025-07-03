@@ -139,6 +139,7 @@ type Mutation {
   consortiumCreate(title: String!, description: String!): String!
   consortiumEdit(consortiumId: String!, title: String!, description: String!): Boolean!
   consortiumJoin(consortiumId: String!): Boolean!
+  consortiumDelete(consortiumId: String!): Boolean!
   consortiumLeave(consortiumId: String!): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
