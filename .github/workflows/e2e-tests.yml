@@ -1,0 +1,21 @@
+name: Build and test
+
+on:
+  push:
+    branches-ignore:
+      - 'master'
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build docker
+        run: ./scripts/dockerbuild-for-ci.sh
+
+      - name: Finish job
+        run: docker compose up --exit-code-from ui
