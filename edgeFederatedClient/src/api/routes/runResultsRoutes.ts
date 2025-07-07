@@ -1,7 +1,7 @@
 // src/routes/runFilesRoutes.ts
 import { Router } from 'express';
 import { authenticate } from '../middlewares/authMiddleware.js'; // Ensure this middleware is implemented
-import { listRunFiles, serveRunFile } from '../controllers/runResultsFilesController.js';
+import { listRunFiles, serveRunFile, serveRunFolder } from '../controllers/runResultsFilesController.js';
 
 const router = Router();
 
@@ -9,7 +9,8 @@ const router = Router();
 router.use(authenticate);
 
 // Define the routes
+router.get('/zip/:consortiumId/:runId', serveRunFolder);
+router.get('/:consortiumId/:runId/*', serveRunFile);
 router.get('/:consortiumId/:runId', listRunFiles);
-router.get('/:consortiumId/:runId/:filename', serveRunFile);
 
 export default router;

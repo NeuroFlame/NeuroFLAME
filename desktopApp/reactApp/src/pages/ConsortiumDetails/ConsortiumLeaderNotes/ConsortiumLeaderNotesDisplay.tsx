@@ -9,8 +9,8 @@ interface ConsortiumLeaderNotesDisplayProps {
 export default function ConsortiumLeaderNotesDisplay({ consortiumLeaderNotes }: ConsortiumLeaderNotesDisplayProps) {
     return (
         <Box sx={{
-            height: 'calc(100vh - 36rem)',
-            overflow: 'scroll'
+            height: 'auto',
+            overflow: 'scroll',
             }}>
             {consortiumLeaderNotes && <div>
                 <ReactMarkdown children={consortiumLeaderNotes} remarkPlugins={[remarkGfm]} />

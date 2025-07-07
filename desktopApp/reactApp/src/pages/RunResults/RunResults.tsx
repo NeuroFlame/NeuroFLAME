@@ -1,31 +1,63 @@
+import { useState } from 'react';
 import { Box, Button, Typography } from "@mui/material";
 import Grid from '@mui/material/Grid2';
 import { useNavigate } from 'react-router-dom';
 import { useRunResults } from "./useRunResults";
+import FileTree from './FileTree';
+import CSVViewer from './CSVViewer';
+import MatViewer from './MatViewer';
+import NiiVueViewer from './NiiVueViewer';
+import TextViewer from './TextViewer';
 
 export default function RunResults() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const {
-        consortiumId,
-        runId,
-        fileList,
-        loading,
-        error,
-        frameSrc,
-        setFrameSrc,
-        edgeClientRunResultsUrl,
-        filesPanelWidth,
-        filesPanelShow,
-        iframePanelWidth,
-        iframeExpanded,
-        arrowForwardShow,
-        handleHideFiles,
-        handleShowFiles
-    } = useRunResults();
+  const {
+    consortiumId,
+    runId,
+    fileList,
+    loading,
+    error,
+    frameSrc,
+    setFrameSrc,
+    edgeClientRunResultsUrl,
+    filesPanelWidth,
+    filesPanelShow,
+    iframePanelWidth,
+    iframeExpanded,
+    arrowForwardShow,
+    handleHideFiles,
+    handleShowFiles
+  } = useRunResults();
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>{error}</div>;
+  const [currentFile, setCurrentFile] = useState<string>('');
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+  
+    const paths = fileList.map(file => file.url);
+    const commonPrefix = (() => {
+        if (!fileList.length) return '';
+        const paths = fileList.map(file => file.url.split('/'));
+        const first = paths[0];
+      
+        let prefix: string[] = [];
+        for (let i = 0; i < first.length; i++) {
+          const segment = first[i];
+          if (paths.every(p => p[i] === segment)) {
+            prefix.push(segment);
+          } else {
+            break;
+          }
+        }
+      
+        return prefix.join('/') + (prefix.length ? '/' : '');
+      })();
+
+    const fileListForTree = fileList.map(file => ({
+    ...file,
+    displayUrl: file.url.replace(commonPrefix, '') // ← for display only
+    }));
 
     return (
         <Grid container spacing={2} padding={2}>
@@ -49,6 +81,14 @@ export default function RunResults() {
                         >
                             View Run Details
                         </Button>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            style={{ margin: '0 0 1rem 1rem' }}
+                            href={`${edgeClientRunResultsUrl}/zip/${consortiumId}/${runId}/?x-access-token=${localStorage.getItem('accessToken')}&window=self`}
+                        >
+                            Download Results
+                        </Button>
                     </Box>
                 </Box>
             </Grid>
@@ -56,16 +96,12 @@ export default function RunResults() {
                 <Box display={filesPanelShow}>
                     <Typography variant='h6' style={{ marginTop: '2rem' }}>Files:</Typography>
                     <ul style={{ listStyle: 'none', margin: '0', padding: '0' }}>
-                        {fileList.map((file, index) => (
-                            <li key={index}>
-                                <button
-                                    style={{ background: 'none', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer', padding: '0' }}
-                                    onClick={() => setFrameSrc(`${edgeClientRunResultsUrl}/${file.url}?x-access-token=${localStorage.getItem('accessToken')}`)}
-                                >
-                                    {file.name}
-                                </button>
-                            </li>
-                        ))}
+                        <FileTree
+                            fileList={fileListForTree}
+                            setFrameSrc={setFrameSrc}
+                            setCurrentFile={setCurrentFile}
+                            edgeClientRunResultsUrl={edgeClientRunResultsUrl ?? ''}
+                        />
                     </ul>
                 </Box>
             </Grid>
@@ -76,20 +112,33 @@ export default function RunResults() {
                 <Button variant='text' size="small" onClick={handleHideFiles} style={{ display: filesPanelShow, background: 'white' }}>
                     Expand Results Panel
                 </Button>
-                <Box>
-                    {frameSrc ? <iframe
-                        // put the token in the URL to authenticate the request
-                        src={frameSrc}
-                        title={`Run Result`}
-                        width="100%"
-                        height="100%"
-                        sandbox="allow-same-origin"
-                        style={{ border: 'none', background: 'white', height: 'calc(100vh - 170px)' }}
-                    /> :
-                        <div style={{ background: 'white', height: 'calc(100vh - 225px)', padding: '1rem' }}>
-                            <h2>No index.html file in the output folder.</h2>
-                            <p>You're welcome to view the files on the left.</p>
-                        </div>}
+                <Box style={{background: '#fff', minHeight: 'calc(100vh)', padding: '0.25rem 1rem 1rem'}}>
+                  {currentFile && <h3 style={{padding: '1rem 0 0'}}><span style={{color: 'black'}}>Viewing:</span> {currentFile}</h3>}
+                  {frameSrc ? (
+                    frameSrc.includes('.csv') ? (
+                        <CSVViewer fileUrl={frameSrc} />
+                    ) : frameSrc.includes('.nii') ? (
+                        <NiiVueViewer fileUrl={frameSrc} />
+                    ) : frameSrc.includes('.mat') ? (
+                        <MatViewer fileUrl={frameSrc} />
+                    ) : frameSrc.includes('.m') ? (
+                        <TextViewer fileUrl={frameSrc} />
+                    ) : (
+                        <iframe
+                            src={frameSrc}
+                            title="Run Result"
+                            width="100%"
+                            height="100%"
+                            sandbox="allow-same-origin"
+                            style={{ border: 'none', background: 'white', height: 'calc(100vh - 170px)' }}
+                        />
+                    )
+                  ) : (
+                    <div style={{ background: 'white', height: 'calc(100vh - 225px)', padding: '1rem' }}>
+                      <h2>No index.html file in the output folder.</h2>
+                      <p>You're welcome to view the files on the left.</p>
+                    </div>
+                  )}
                 </Box>
             </Grid>
         </Grid>
