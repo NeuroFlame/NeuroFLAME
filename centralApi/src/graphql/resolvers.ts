@@ -865,6 +865,33 @@ export default {
 
       return true
     },
+    consortiumDelete: async (
+      _: unknown,
+      { consortiumId }: { consortiumId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      const { userId } = context;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const consortium = await Consortium.findById(consortiumId);
+      if (!consortium) {
+        throw new Error('Consortium not found');
+      }
+
+      if (consortium.leader?.toString() !== userId) {
+        throw new Error('You do not have permission to delete this consortium');
+      }
+
+      await Consortium.findByIdAndDelete(consortiumId);
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId,
+      });
+
+      return true;
+    },
     consortiumLeave: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
