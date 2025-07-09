@@ -24,6 +24,14 @@ export default function ConsortiumLeaderNotesEdit({
 
     return (
         <Box>
+            <Box style={{position: "absolute", top: '1rem', right: '1rem'}}>
+                <Button variant="outlined" color="secondary" size="small" onClick={onCancel} sx={{ mr: 1 }}>
+                    Cancel
+                </Button>
+                <Button variant="contained" color="primary" size="small" onClick={handleSave}>
+                    Save
+                </Button>
+            </Box>
             <MDXEditor
                 markdown={notes}
                 onChange={(e) => setNotes(e)}
@@ -48,14 +56,6 @@ export default function ConsortiumLeaderNotesEdit({
                     markdownShortcutPlugin(),
                 ]}
             />
-            <Box mt={2}>
-                <Button variant="contained" color="primary" onClick={handleSave} sx={{ mr: 1 }}>
-                    Save
-                </Button>
-                <Button variant="outlined" color="secondary" onClick={onCancel}>
-                    Cancel
-                </Button>
-            </Box>
         </Box>
     );
 }
