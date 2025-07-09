@@ -20,6 +20,7 @@ const ComputationList: React.FC<ComputationListProps> = ({ computations, onSelec
                     <Button
                         variant="contained"
                         color="primary"
+                        data-testid={computation.imageName}
                         onClick={() => onSelect(computation.id)}
                     >
                         Select
