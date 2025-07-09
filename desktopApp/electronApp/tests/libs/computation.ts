@@ -17,10 +17,8 @@ const selectComputation = async ({ name }, page: Page) => {
 }
 
 const setDataForSRRFreesurfer = async (page: Page) => {
-  const currentDirectory = process.cwd()
-
   // Set parameters
-  const parameterFilePath = path.resolve(currentDirectory, 'tests/data/srr-freesurfer/server/parameters.json')
+  const parameterFilePath = path.resolve('tests/data/srr-freesurfer/server/parameters.json')
   const jsonData = await fs.readFile(parameterFilePath, "utf8")
   const parameters = JSON.parse(jsonData)
 
@@ -34,9 +32,8 @@ const setDataForSRRFreesurfer = async (page: Page) => {
   await page.getByRole("button", { name: /go to next step/i }).click({ timeout: EXIST_TIMEOUT })
 
   // Select data
-  const currentDir = process.cwd()
   await page.getByPlaceholder(/enter your data directory path/i).click({ timeout: EXIST_TIMEOUT })
-  await page.getByPlaceholder(/enter your data directory path/i).fill(path.resolve(currentDir, 'tests/data/srr-freesurfer/site1'))
+  await page.getByPlaceholder(/enter your data directory path/i).fill('/desktopApp/electronApp/tests/data/srr-freesurfer/site1')
   await page.getByRole("button", { name: /save/i }).click()
 }
 
