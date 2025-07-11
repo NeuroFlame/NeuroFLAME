@@ -1,6 +1,6 @@
 // LoginPage.tsx
 import React, { useState } from 'react';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, Alert } from '@mui/material';
 import { CreateUser } from './CreateUser/CreateUser';
 import { Login } from './Login/Login';
 import { ChangePassword } from './ChangePassword/ChangePassword';
@@ -12,7 +12,13 @@ const LoginPage: React.FC = () => {
   const { isLoggedIn, logout } = useLoginPage(); // Assuming logout is provided by useLoginPage
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [userCreated, setUserCreated] = useState(false);
   const navigate = useNavigate();
+
+  const handleUserCreated = () => {
+    setShowCreateUser(false);
+    setUserCreated(true);
+  }
 
   return (
     <Box sx={{
@@ -48,10 +54,11 @@ const LoginPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 'xs' }}>
+         {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
         {!isLoggedIn ? (
           <>
             {showCreateUser ? (
-              <CreateUser />
+              <CreateUser userCreated={handleUserCreated} />
             ) : (
               <Login />
             )}
