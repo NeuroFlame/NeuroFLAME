@@ -24,7 +24,7 @@ import {
   RunListItem,
   RunDetails,
 } from './generated/graphql.js'
-import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
 
@@ -34,8 +34,7 @@ interface Context {
   error: string
 }
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
+const resend = new Resend(process.env.RESEND_API_KEY)
 export default {
   Query: {
     getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
@@ -358,7 +357,7 @@ export default {
       }
 
       try {
-        await sgMail.send(msg)
+        await resend.emails.send(msg)
       } catch (error: any) {
         throw new Error(`Failed to send email: ${error.message}`)
       }
