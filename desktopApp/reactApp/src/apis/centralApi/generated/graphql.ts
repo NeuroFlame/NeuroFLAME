@@ -201,6 +201,17 @@ export type MutationReportRunStatusArgs = {
 };
 
 
+export type MutationRequestPasswordResetArgs = {
+  username: Scalars['String']['input'];
+};
+
+
+export type MutationResetPasswordArgs = {
+  newPassword: Scalars['String']['input'];
+  token: Scalars['String']['input'];
+};
+
+
 export type MutationStartRunArgs = {
   input: StartRunInput;
 };

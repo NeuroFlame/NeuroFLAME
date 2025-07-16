@@ -28,6 +28,8 @@ import { consortiumLeave } from "./consortiumLeave";
 import { userChangePassword } from "./userChangePassword";
 import { userCreate } from "./userCreate";
 import { getComputationDetails } from "./getComputationDetails";
+import { requestPasswordReset } from "./requestPasswordReset";
+import { resetPassword } from "./resetPassword";
 
 // Import generated types
 import { 
@@ -55,8 +57,9 @@ import {
     MutationStudySetNotesArgs,
     MutationLeaderAddVaultUserArgs,
     MutationLeaderRemoveMemberArgs,
-    MutationLeaderSetMemberInactiveArgs
-
+    MutationLeaderSetMemberInactiveArgs,
+    MutationRequestPasswordResetArgs,
+    MutationResetPasswordArgs,
 } from "./generated/graphql";
 import { getVaultUserList } from "./getVaultUserList";
 import { leaderAddVaultUser } from "./leaderAddVaultUser";
@@ -101,6 +104,8 @@ export const useCentralApi = () => {
         leaderAddVaultUser: (input: MutationLeaderAddVaultUserArgs) => leaderAddVaultUser(centralApiApolloClient, input),
         leaderRemoveMember: (input: MutationLeaderRemoveMemberArgs) => leaderRemoveMember(centralApiApolloClient, input),
         leaderSetMemberInactive: (input: MutationLeaderSetMemberInactiveArgs) => leaderSetMemberInactive(centralApiApolloClient, input),
+        requestPasswordReset: (input: MutationRequestPasswordResetArgs) => requestPasswordReset(centralApiApolloClient, input),
+        resetPassword: (input: MutationResetPasswordArgs) => resetPassword(centralApiApolloClient, input),
 
         subscriptions: {
             consortiumDetailsChanged: (input: { consortiumId: string }) => consortiumDetailsChanged(centralApiApolloClient, input),

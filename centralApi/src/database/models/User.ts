@@ -12,6 +12,8 @@ export interface IUser extends Document {
   hash: string // Typically used to store the hashed password
   roles: string[] // An array of roles
   vault?: IVault // Optional embedded Vault object
+  resetToken?: string
+  resetTokenExpiry?: number
 }
 
 // Define the Vault sub-schema
@@ -26,6 +28,8 @@ const userSchema: Schema = new Schema({
   hash: { type: String, required: true }, // Storing password hashes, not plain passwords
   roles: { type: [String], required: true, default: ['user'] }, // Default role is 'user'
   vault: { type: vaultSchema, required: false }, // Optional embedded Vault
+  resetToken: { type: String, required: false },
+  resetTokenExpiry: { type: Date, required: false },
 })
 
 // Create the model

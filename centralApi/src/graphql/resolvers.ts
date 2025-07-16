@@ -24,7 +24,9 @@ import {
   RunListItem,
   RunDetails,
 } from './generated/graphql.js'
+import { Resend } from 'resend'
 import { logger } from '../logger.js'
+import { randomBytes } from 'crypto'
 
 interface Context {
   userId: string
@@ -32,6 +34,7 @@ interface Context {
   error: string
 }
 
+const resend = new Resend(process.env.RESEND_API_KEY)
 export default {
   Query: {
     getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
@@ -115,12 +118,12 @@ export default {
             computationParameters,
             computation: computation
               ? {
-                  title: computation.title,
-                  imageName: computation.imageName,
-                  imageDownloadUrl: computation.imageDownloadUrl,
-                  notes: computation.notes,
-                  owner: computation.owner,
-                }
+                title: computation.title,
+                imageName: computation.imageName,
+                imageDownloadUrl: computation.imageDownloadUrl,
+                notes: computation.notes,
+                owner: computation.owner,
+              }
               : null,
           },
         }
@@ -326,6 +329,78 @@ export default {
         userId: user._id.toString(),
         username: user.username,
         roles: user.roles,
+      }
+    },
+    requestPasswordReset: async (
+      _: unknown,
+      { username }: { username: string }
+    ): Promise<boolean> => {
+      const user = await User.findOne({ username })
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      const resetToken = randomBytes(32).toString('hex')
+      user.resetToken = resetToken
+      user.resetTokenExpiry = Date.now() + 1000 * 60 * 60 * 24 // 24 hours
+      await user.save()
+
+      const email = user.username // assuming username is the email
+      const msg = {
+        to: email,
+        from: 'no-reply@coinstac.org',
+        subject: 'Password Reset Request',
+        html: `We received your password reset request. <br/>
+            Please use this token for password reset. <br/>
+            Username: <strong>${username}</strong> <br/>
+            Token: <strong>${resetToken}</strong>`,
+      }
+
+      try {
+        await resend.emails.send(msg)
+      } catch (error: any) {
+        throw new Error(`Failed to send email: ${error.message}`)
+      }
+
+      return true
+    },
+    resetPassword: async (
+      _: unknown,
+      { token, newPassword }: { token: string; newPassword: string }
+    ): Promise<{
+      accessToken: string
+      userId: string
+      username: string
+      roles: string[]
+    }> => {
+      try {
+        const user = await User.findOne({
+          resetToken: token,
+          resetTokenExpiry: { $gt: Date.now() },
+        })
+
+        if (!user) {
+          throw new Error('Invalid or expired token')
+        }
+
+        const hashedPassword = await hashPassword(newPassword)
+        user.hash = hashedPassword
+        user.resetToken = undefined
+        user.resetTokenExpiry = undefined
+        await user.save()
+
+        const tokens = generateTokens({ userId: user._id })
+        const { accessToken } = tokens as { accessToken: string }
+
+        return {
+          accessToken,
+          userId: user._id.toString(),
+          username: user.username,
+          roles: user.roles,
+        }
+      } catch (error: any) {
+        logger.error('Error resetting password:', error.message)
+        throw new Error(error.message)
       }
     },
     startRun: async (

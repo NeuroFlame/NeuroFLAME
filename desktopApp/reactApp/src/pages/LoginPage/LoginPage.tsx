@@ -1,16 +1,17 @@
 // LoginPage.tsx
 import React, { useState } from 'react';
 import { Box, Button, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { CreateUser } from './CreateUser/CreateUser';
 import { Login } from './Login/Login';
 import { ChangePassword } from './ChangePassword/ChangePassword';
+import { ResetPasswordFlow } from './ResetPasswordFlow/ResetPasswordFlow';
 import { useLoginPage } from './useLoginPage';
 import logo from '../../assets/neuroflame-logo.png';
-import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
   const { isLoggedIn, logout } = useLoginPage(); // Assuming logout is provided by useLoginPage
-  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [formType, setFormType] = useState<'login' | 'createUser' | 'resetPassword'>('login');
   const [showChangePassword, setShowChangePassword] = useState(false);
   const navigate = useNavigate();
 
@@ -50,19 +51,27 @@ const LoginPage: React.FC = () => {
       <Box sx={{ maxWidth: 'xs' }}>
         {!isLoggedIn ? (
           <>
-            {showCreateUser ? (
-              <CreateUser />
-            ) : (
-              <Login />
-            )}
+            {formType === 'login' && <Login />}
+            {formType === 'createUser' && <CreateUser />}
+            {formType === 'resetPassword' && <ResetPasswordFlow />}
+            
             <Button
               variant="text"
               color="primary"
               fullWidth
-              onClick={() => setShowCreateUser(!showCreateUser)}
+              onClick={() => setFormType(formType === 'createUser' ? 'login' : 'createUser')}
               sx={{ mt: 2 }}
             >
-              {showCreateUser ? 'Back to Login' : 'Create User'}
+              {formType === 'createUser' ? 'Back to Login' : 'Create User'}
+            </Button>
+
+            <Button
+              variant="text"
+              color="primary"
+              fullWidth
+              onClick={() => setFormType(formType === 'resetPassword' ? 'login' : 'resetPassword')}
+            >
+              {formType === 'resetPassword' ? 'Back to Login' : 'Reset Password'}
             </Button>
           </>
         ) : (
@@ -102,7 +111,6 @@ const LoginPage: React.FC = () => {
         App Configuration
       </Button>
       </Box>
-
     </Box>
   );
 };

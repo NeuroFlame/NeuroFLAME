@@ -80,6 +80,8 @@ export type Mutation = {
   reportRunError: Scalars['Boolean']['output'];
   reportRunReady: Scalars['Boolean']['output'];
   reportRunStatus: Scalars['Boolean']['output'];
+  requestPasswordReset: Scalars['Boolean']['output'];
+  resetPassword: LoginOutput;
   startRun: StartRunOutput;
   studySetComputation: Scalars['Boolean']['output'];
   studySetNotes: Scalars['Boolean']['output'];
@@ -201,6 +203,17 @@ export type MutationReportRunReadyArgs = {
 export type MutationReportRunStatusArgs = {
   runId: Scalars['String']['input'];
   status: Scalars['String']['input'];
+};
+
+
+export type MutationRequestPasswordResetArgs = {
+  username: Scalars['String']['input'];
+};
+
+
+export type MutationResetPasswordArgs = {
+  newPassword: Scalars['String']['input'];
+  token: Scalars['String']['input'];
 };
 
 
