@@ -1,0 +1,7 @@
+FROM neuroflame/api
+
+EXPOSE 3010-3099
+
+WORKDIR /centralFederatedClient
+
+CMD npm run start-configured

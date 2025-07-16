@@ -1,0 +1,12 @@
+{
+    "Dependents": {
+        "4th-Ventricle":"float",
+        "5th-Ventricle":"float"
+    },
+    "Covariates": {
+        "sex":"str",
+        "isControl":"bool",
+        "age":"float"
+    },
+    "Lambda": 1
+}

@@ -1,0 +1,19 @@
+FROM neuroflame/ci
+
+RUN apt-get update && \
+    apt-get install -y xvfb \
+    x11-apps \
+    ffmpeg \
+    imagemagick \
+    libgbm1 \
+    libxss1 \
+    libnss3 \
+    libgtk-3-dev \
+    libasound2-dev \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /desktopApp/electronApp
+
+CMD sleep 30 \
+    && xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24' npm run test
