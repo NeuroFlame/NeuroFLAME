@@ -46,12 +46,12 @@ export default function RunResults() {
     return (
       <Grid container spacing={2} padding={2}>
         <Grid size={{ sm: 12 }}>
-          <Button variant="contained" color="primary" onClick={() => navigate(-1)}>
-            Go Back
-          </Button>
           <Typography variant="h6" color="error" style={{ marginTop: '1rem' }}>
             {error}
           </Typography>
+          <Button variant="contained" color="primary" onClick={() => navigate(-1)}>
+            Go Back
+          </Button>
         </Grid>
       </Grid>
     );
