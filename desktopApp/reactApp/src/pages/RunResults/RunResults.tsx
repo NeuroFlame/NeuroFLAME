@@ -116,6 +116,7 @@ export default function RunResults() {
       <Grid size={filesPanelWidth} style={{ transition: 'width 0.5s' }}>
         <Box display={filesPanelShow}>
           <Typography variant='h6' style={{ marginTop: '2rem' }}>Files:</Typography>
+          <div style={{height: '75vh', overflowY: 'scroll'}}>
           <ul style={{ listStyle: 'none', margin: '0', padding: '0' }}>
             <FileTree
               fileList={fileListForTree}
@@ -124,6 +125,7 @@ export default function RunResults() {
               edgeClientRunResultsUrl={edgeClientRunResultsUrl ?? ''}
             />
           </ul>
+          </div>
         </Box>
       </Grid>
       <Grid
@@ -146,7 +148,7 @@ export default function RunResults() {
         >
           Expand Results Panel
         </Button>
-        <Box style={{background: '#fff', minHeight: 'calc(100vh)', padding: '0.25rem 1rem 1rem'}}>
+        <Box style={{background: '#fff', minHeight: 'calc(50vh)', padding: '0.25rem 1rem 1rem'}}>
           {currentFile && (
             <h3 style={{padding: '1rem 0 0'}}>
               <span style={{color: 'black'}}>Viewing:</span> {currentFile}
