@@ -46,7 +46,7 @@ export default function RunResults() {
     return (
       <Grid container spacing={2} padding={2}>
         <Grid size={{ sm: 12 }}>
-          <Typography variant="h6" color="error" style={{ marginTop: '1rem' }}>
+          <Typography variant="h6" color="error" style={{ marginBottom: '1rem' }}>
             {error}
           </Typography>
           <Button variant="contained" color="primary" onClick={() => navigate(-1)}>
