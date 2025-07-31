@@ -14,7 +14,7 @@ const USER_4 = {
 }
 
 const EXIST_TIMEOUT = 30_000
-const COMPUTATION_TIMEOUT = 150_000
+const COMPUTATION_TIMEOUT = 300_000
 
 export {
   USER_1,

@@ -50,9 +50,9 @@ export const testConfigCI: Config = {
     httpUrl: 'http://api:3001/graphql',
     wsUrl: 'ws://api:3001/graphql',
     path_base_directory:
-      '/Users/administrator/Workspaces/NeuroFLAME/_devTestDirectories/centralFederatedClient',
+      '/tmp/_devTestDirectories/_devTestDirectories/edgeSite1',
     authenticationEndpoint: 'http://api:3001/authenticateToken',
     hostingPort: 3003,
-    logPath: '',
+    logPath: '/tmp/_devTestDirectories/neuroflame/logs/edgeClient',
   },
 }

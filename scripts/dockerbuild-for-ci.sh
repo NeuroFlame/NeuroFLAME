@@ -15,4 +15,7 @@ docker build -f dockerfiles/Dockerfile-api -t neuroflame/api .
 docker build -f dockerfiles/Dockerfile-centralFederatedClient -t neuroflame/centralfederatedclient .
 docker build -f dockerfiles/Dockerfile-fileServer -t neuroflame/fileserver .
 docker build -f dockerfiles/Dockerfile-reactApp -t neuroflame/react .
-docker build -f dockerfiles/Dockerfile-ui -t neuroflame/ui .
+docker build \
+  --build-arg DOCKER_GID=$(ls -ln "$(readlink /var/run/docker.sock || echo /var/run/docker.sock)" | awk '{print $4}') \
+  -f dockerfiles/Dockerfile-ui \
+  -t neuroflame/ui .

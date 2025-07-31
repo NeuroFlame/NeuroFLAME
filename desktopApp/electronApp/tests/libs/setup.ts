@@ -1,11 +1,18 @@
 import { _electron as electron, ElectronApplication, Page } from "@playwright/test"
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-let instances: Array<{app: ElectronApplication, appPage: Page}> = []
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+debugger
+let instances: Array<{ app: ElectronApplication, appPage: Page }> = []
 
 async function createInstance(appId: string | number) {
   const instanceId = `test-${appId}`
+
+  const configPath = path.resolve(__dirname, '../../../../configs/electronApp1.json')
+
   const app = await electron.launch({
-    args: ["build/main.js", instanceId],
+    args: ['build/main.js', `--config=${configPath}`],
     env: Object.assign({}, process.env, {
       TEST_INSTANCE: instanceId,
       NODE_ENV: 'test',

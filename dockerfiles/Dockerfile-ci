@@ -1,5 +1,5 @@
 FROM node:lts
-ARG BRANCH=master
+ARG BRANCH=main
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -22,40 +22,46 @@ RUN apt-get update
 
 RUN apt-get install --no-install-recommends -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+RUN mkdir -p /nf
+
+WORKDIR /nf
+
 COPY . .
-
-WORKDIR /edgeFederatedClient
 RUN rm -rf node_modules
 RUN npm install
 
-WORKDIR /centralApi
+WORKDIR /nf/edgeFederatedClient
 RUN rm -rf node_modules
 RUN npm install
 
-WORKDIR /centralFederatedClient
+WORKDIR /nf/centralApi
 RUN rm -rf node_modules
 RUN npm install
 
-WORKDIR /fileServer
+WORKDIR /nf/centralFederatedClient
 RUN rm -rf node_modules
 RUN npm install
 
-WORKDIR /desktopApp/reactApp
+WORKDIR /nf/fileServer
 RUN rm -rf node_modules
 RUN npm install
 
-WORKDIR /desktopApp/electronApp
+WORKDIR /nf/desktopApp/reactApp
 RUN rm -rf node_modules
 RUN npm install
 
-WORKDIR /edgeFederatedClient
+WORKDIR /nf/desktopApp/electronApp
+RUN rm -rf node_modules
+RUN npm install
+
+# WORKDIR /nf/edgeFederatedClient
+# RUN npm run build
+
+WORKDIR /nf/desktopApp/reactApp
 RUN npm run build
 
-WORKDIR /desktopApp/reactApp
+WORKDIR /nf/desktopApp/electronApp
 RUN npm run build
 
-WORKDIR /desktopApp/electronApp
-RUN npm run build
-
-WORKDIR /centralApi
+WORKDIR /nf/centralApi
 RUN npm run build
