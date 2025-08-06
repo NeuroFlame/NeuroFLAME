@@ -31,6 +31,4 @@ jobs:
         with:
           name: ui-artifacts
           path: |
-            /tmp/screencap
-            playwright-report
-            **/*.log
+            _devTestDirectories/screencap
