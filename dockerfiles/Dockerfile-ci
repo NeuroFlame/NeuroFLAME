@@ -54,8 +54,8 @@ WORKDIR /nf/desktopApp/electronApp
 RUN rm -rf node_modules
 RUN npm install
 
-# WORKDIR /nf/edgeFederatedClient
-# RUN npm run build
+WORKDIR /nf/edgeFederatedClient
+RUN npm run build
 
 WORKDIR /nf/desktopApp/reactApp
 RUN npm run build
