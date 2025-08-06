@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: make artifact dir
+        run: mkdir -p /tmp/screencap
+        
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -19,3 +22,13 @@ jobs:
 
       - name: Finish job
         run: ./docker-compose-ci.sh
+
+      - name: Upload test artifacts
+        if: always()  # ensures it runs even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-artifacts
+          path: |
+            /tmp/screencap
+            playwright-report
+            **/*.log
