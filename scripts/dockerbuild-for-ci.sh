@@ -16,6 +16,7 @@ docker build -f dockerfiles/Dockerfile-centralFederatedClient -t neuroflame/cent
 docker build -f dockerfiles/Dockerfile-fileServer -t neuroflame/fileserver .
 docker build -f dockerfiles/Dockerfile-reactApp -t neuroflame/react .
 docker build \
-  --build-arg DOCKER_GID=$(ls -ln "$(readlink /var/run/docker.sock || echo /var/run/docker.sock)" | awk '{print $4}') \
+  --build-arg HOST_UID=$(id -u) \
+  --build-arg HOST_GID=$(id -g) \
   -f dockerfiles/Dockerfile-ui \
   -t neuroflame/ui .

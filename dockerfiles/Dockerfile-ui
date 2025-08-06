@@ -1,5 +1,7 @@
 FROM neuroflame/ci
 ARG DOCKER_GID
+ARG HOST_UID
+ARG HOST_GID
 
 RUN apt-get update && \
     apt-get install -y xvfb \
@@ -17,7 +19,20 @@ RUN apt-get update && \
 
 WORKDIR /nf/desktopApp/electronApp
 
-RUN useradd --create-home --shell /bin/bash electronuser
+# Remove existing user/group if they conflict (safe for rebuilds)
+RUN if getent group $HOST_GID >/dev/null; then \
+      existing_group=$(getent group $HOST_GID | cut -d: -f1); \
+      echo "Deleting existing group $existing_group with GID $HOST_GID"; \
+      groupdel "$existing_group"; \
+    fi && \
+    if getent passwd $HOST_UID >/dev/null; then \
+      existing_user=$(getent passwd $HOST_UID | cut -d: -f1); \
+      echo "Deleting existing user $existing_user with UID $HOST_UID"; \
+      userdel -r "$existing_user" || true; \
+    fi && \
+    groupadd -g $HOST_GID electronuser && \
+    useradd --create-home --shell /bin/bash -u $HOST_UID -g $HOST_GID electronuser
+
 RUN chown -R electronuser:electronuser /nf
 USER electronuser
 
