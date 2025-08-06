@@ -1,6 +1,6 @@
 // LoginPage.tsx
 import React, { useState } from 'react';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { CreateUser } from './CreateUser/CreateUser';
 import { Login } from './Login/Login';
@@ -13,7 +13,13 @@ const LoginPage: React.FC = () => {
   const { isLoggedIn, logout } = useLoginPage(); // Assuming logout is provided by useLoginPage
   const [formType, setFormType] = useState<'login' | 'createUser' | 'resetPassword'>('login');
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [userCreated, setUserCreated] = useState(false);
   const navigate = useNavigate();
+
+  const handleUserCreated = () => {
+    setShowCreateUser(false);
+    setUserCreated(true);
+  }
 
   return (
     <Box sx={{
@@ -49,12 +55,14 @@ const LoginPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 'xs' }}>
+         {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
         {!isLoggedIn ? (
           <>
             {formType === 'login' && <Login />}
-            {formType === 'createUser' && <CreateUser />}
+            {formType === 'createUser' && <CreateUser userCreated={handleUserCreated} />}
             {formType === 'resetPassword' && <ResetPasswordFlow />}
-            
+          </>
+        ) : null}
             <Button
               variant="text"
               color="primary"
