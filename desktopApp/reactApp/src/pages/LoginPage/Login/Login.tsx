@@ -28,7 +28,7 @@ export function Login() {
 
     return (
 
-        <Box maxWidth="xs">
+        <Box width={'400px'}>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
                 placeholder="Username"
