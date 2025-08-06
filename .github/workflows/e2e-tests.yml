@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: make artifact dir
-        run: mkdir -p 777 /tmp/screencap
+      - name: Prepare screencap dir
+        run: |
+          mkdir -p _devTestDirectories/screencap
+          chmod 777 _devTestDirectories/screencap
         
       - name: Checkout repository
         uses: actions/checkout@v4
