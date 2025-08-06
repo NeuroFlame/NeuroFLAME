@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: make artifact dir
-        run: mkdir -p /tmp/screencap
+        run: mkdir -p 777 /tmp/screencap
         
       - name: Checkout repository
         uses: actions/checkout@v4
