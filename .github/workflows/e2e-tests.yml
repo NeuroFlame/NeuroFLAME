@@ -15,6 +15,10 @@ jobs:
         run: |
           mkdir -p _devTestDirectories/screencap
           chmod 777 _devTestDirectories/screencap
+          HOST_UID=$(id -u)
+          HOST_GID=$(id -g)
+          echo "Host UID: $HOST_UID, GID: $HOST_GID"
+          sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
         
       - name: Checkout repository
         uses: actions/checkout@v4
