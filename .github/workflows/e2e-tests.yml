@@ -20,6 +20,7 @@ jobs:
           echo "Host UID: $HOST_UID, GID: $HOST_GID"
           pwd
           sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
+          ls -lah  _devTestDirectories/screencap
         
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,7 +30,9 @@ jobs:
 
       - name: Finish job
         run: ./docker-compose-ci.sh
+        
       - name: Show screencap mount source
+        if: always()  # ensures it runs even if tests fail
         run: |
           CONTAINER_ID=$(docker ps --format '{{.ID}} {{.Names}}' | grep ui | awk '{print $1}')
           echo "Container ID: $CONTAINER_ID"
