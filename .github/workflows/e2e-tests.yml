@@ -35,4 +35,4 @@ jobs:
         with:
           name: ui-artifacts
           path: |
-            _devTestDirectories/
+            _devTestDirectories
