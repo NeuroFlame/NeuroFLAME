@@ -12,7 +12,12 @@ async function createInstance(appId: string | number) {
   const configPath = path.resolve(__dirname, '../../../../configs/electronApp1.json')
 
   const app = await electron.launch({
-    args: ['build/main.js', `--config=${configPath}`],
+    args: [
+      'build/main.js',
+       `--config=${configPath}`,
+       '--enable-logging',
+       '--log-level=0',
+    ],
     env: Object.assign({}, process.env, {
       TEST_INSTANCE: instanceId,
       NODE_ENV: 'test',
