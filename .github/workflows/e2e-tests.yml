@@ -18,6 +18,7 @@ jobs:
           HOST_UID=$(id -u)
           HOST_GID=$(id -g)
           echo "Host UID: $HOST_UID, GID: $HOST_GID"
+          pwd
           sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
         
       - name: Checkout repository
