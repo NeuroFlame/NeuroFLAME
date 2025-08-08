@@ -36,20 +36,14 @@ RUN if getent group $HOST_GID >/dev/null; then \
 RUN chown -R electronuser:electronuser /nf
 USER electronuser
 
-CMD ["/bin/bash", "-c", "\
-  echo '== Container UID/GID =='; id; \
-  echo '== screencap permissions =='; ls -ld /tmp/screencap || echo 'Missing /tmp/screencap'; \
-  echo '== trying to write =='; touch /tmp/screencap/testfile && echo '✅ Success' || echo '❌ Failed'; \
-  sleep 3600 \
-"]
-  # CMD bash -c '\
-  # xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
-  #   ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
-  #     -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
-  #     /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
-  #   FFMPEG_PID=\$! && \
-  #   npm run test; \
-  #   UI_EXIT=\$?; \
-  #   kill -INT \$FFMPEG_PID; \
-  #   wait \$FFMPEG_PID; \
-  #   exit \$UI_EXIT"'
+  CMD bash -c '\
+  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
+    ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
+      -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+      /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
+    FFMPEG_PID=\$! && \
+    npm run test; \
+    UI_EXIT=\$?; \
+    kill -INT \$FFMPEG_PID; \
+    wait \$FFMPEG_PID; \
+    exit \$UI_EXIT"'
