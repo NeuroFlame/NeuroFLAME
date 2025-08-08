@@ -21,24 +21,14 @@ jobs:
           HOST_UID=$(id -u)
           HOST_GID=$(id -g)
           echo "Host UID: $HOST_UID, GID: $HOST_GID"
-          pwd
           sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
-          ls -lah  _devTestDirectories/screencap
 
       - name: Build docker
         run: ./scripts/dockerbuild-for-ci.sh
 
-      - name: Finish job
+      - name: Run tests
         run: ./docker-compose-ci.sh
         
-      - name: Show screencap mount source
-        if: always()  # ensures it runs even if tests fail
-        run: |
-          CONTAINER_ID=$(docker ps --format '{{.ID}} {{.Names}}' | grep ui | awk '{print $1}')
-          echo "Container ID: $CONTAINER_ID"
-          docker inspect "$CONTAINER_ID" \
-          --format '{{ range .Mounts }}{{ if eq .Destination "/tmp/screencap" }}Host path: {{ .Source }}\nRW: {{ .RW }}{{ end }}{{ end }}'
-
       - name: Upload test artifacts
         if: always()  # ensures it runs even if tests fail
         uses: actions/upload-artifact@v4
