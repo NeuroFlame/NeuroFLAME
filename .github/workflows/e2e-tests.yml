@@ -9,8 +9,11 @@ jobs:
   build-and-test:
     name: Build and test
     runs-on: ubuntu-latest
+    
+    steps:   
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    steps:
       - name: Prepare screencap dir
         run: |
           mkdir -p _devTestDirectories/screencap
@@ -21,9 +24,6 @@ jobs:
           pwd
           sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
           ls -lah  _devTestDirectories/screencap
-        
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Build docker
         run: ./scripts/dockerbuild-for-ci.sh
