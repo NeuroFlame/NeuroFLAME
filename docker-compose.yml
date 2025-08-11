@@ -75,6 +75,11 @@ services:
       - ${HOST_PROJECT_DIR}/_devTestDirectories:${HOST_PROJECT_DIR}/_devTestDirectories
     networks:
       - ci_network
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
     environment:
       - CI=true
       - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/srr-freesurfer/site1
