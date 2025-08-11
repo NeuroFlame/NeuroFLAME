@@ -49,6 +49,11 @@ RUN if getent group $HOST_GID >/dev/null; then \
   #   exit \$UI_EXIT"'
 
 
+
+
+# Now change ownership and switch to non-root user
+RUN chown -R electronuser:electronuser /nf
+
 # Fix Electron sandbox permissions BEFORE switching users
 RUN if [ -f /nf/node_modules/electron/dist/chrome-sandbox ]; then \
       chown root:root /nf/node_modules/electron/dist/chrome-sandbox && \
@@ -60,9 +65,7 @@ RUN if [ -f /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox
       chown root:root /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox && \
       chmod 4755 /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox; \
     fi
-
-# Now change ownership and switch to non-root user
-RUN chown -R electronuser:electronuser /nf
+    
 USER electronuser
 
 CMD bash -c '\
