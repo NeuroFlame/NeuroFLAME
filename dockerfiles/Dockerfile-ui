@@ -36,14 +36,43 @@ RUN if getent group $HOST_GID >/dev/null; then \
 RUN chown -R electronuser:electronuser /nf
 USER electronuser
 
+  # CMD bash -c '\
+  # xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
+  #   ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
+  #     -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+  #     /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
+  #   FFMPEG_PID=\$! && \
+  #   npm run test; \
+  #   UI_EXIT=\$?; \
+  #   kill -INT \$FFMPEG_PID; \
+  #   wait \$FFMPEG_PID; \
+  #   exit \$UI_EXIT"'
+
+
   CMD bash -c '\
-  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
+  echo "=== Environment Debug Info ==="; \
+  echo "DISPLAY: $DISPLAY"; \
+  echo "USER: $(whoami)"; \
+  echo "PWD: $(pwd)"; \
+  echo "Node version: $(node --version)"; \
+  echo "NPM version: $(npm --version)"; \
+  ls -la; \
+  echo "=== Starting Xvfb ==="; \
+  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24 -ac" bash -c "\
+    echo \"DISPLAY inside xvfb: \$DISPLAY\"; \
+    echo \"Testing X11 connection...\"; \
+    xdpyinfo || echo \"xdpyinfo failed\"; \
+    echo \"=== Starting screen capture ===\"; \
     ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
       -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
       /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
     FFMPEG_PID=\$! && \
-    npm run test; \
+    echo \"=== Running tests with full debug ===\"; \
+    DEBUG=pw:api,pw:browser* ELECTRON_ENABLE_LOGGING=1 ELECTRON_LOG_LEVEL=verbose npm run test 2>&1; \
     UI_EXIT=\$?; \
-    kill -INT \$FFMPEG_PID; \
-    wait \$FFMPEG_PID; \
+    echo \"=== Test completed with exit code: \$UI_EXIT ===\"; \
+    kill -INT \$FFMPEG_PID 2>/dev/null || true; \
+    wait \$FFMPEG_PID 2>/dev/null || true; \
+    echo \"=== Logs from ffmpeg ===\"; \
+    cat /tmp/screencap/ffmpeg.log 2>/dev/null || echo \"No ffmpeg log\"; \
     exit \$UI_EXIT"'
