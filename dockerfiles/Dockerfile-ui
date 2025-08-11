@@ -33,8 +33,8 @@ RUN if getent group $HOST_GID >/dev/null; then \
     groupadd -g $HOST_GID electronuser && \
     useradd --create-home --shell /bin/bash -u $HOST_UID -g $HOST_GID electronuser
 
-RUN chown -R electronuser:electronuser /nf
-USER electronuser
+# RUN chown -R electronuser:electronuser /nf
+# USER electronuser
 
   # CMD bash -c '\
   # xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
@@ -49,30 +49,34 @@ USER electronuser
   #   exit \$UI_EXIT"'
 
 
-  CMD bash -c '\
+# Fix Electron sandbox permissions BEFORE switching users
+RUN if [ -f /nf/node_modules/electron/dist/chrome-sandbox ]; then \
+      chown root:root /nf/node_modules/electron/dist/chrome-sandbox && \
+      chmod 4755 /nf/node_modules/electron/dist/chrome-sandbox; \
+    fi
+
+# Also check for chrome-sandbox in desktopApp/electronApp/node_modules
+RUN if [ -f /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox ]; then \
+      chown root:root /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox && \
+      chmod 4755 /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox; \
+    fi
+
+# Now change ownership and switch to non-root user
+RUN chown -R electronuser:electronuser /nf
+USER electronuser
+
+CMD bash -c '\
   echo "=== Environment Debug Info ==="; \
   echo "DISPLAY: $DISPLAY"; \
   echo "USER: $(whoami)"; \
   echo "PWD: $(pwd)"; \
-  echo "Node version: $(node --version)"; \
-  echo "NPM version: $(npm --version)"; \
-  ls -la; \
+  echo "=== Checking chrome-sandbox permissions ==="; \
+  find /nf -name "chrome-sandbox" -exec ls -la {} \; 2>/dev/null || echo "No chrome-sandbox found"; \
   echo "=== Starting Xvfb ==="; \
   xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24 -ac" bash -c "\
     echo \"DISPLAY inside xvfb: \$DISPLAY\"; \
-    echo \"Testing X11 connection...\"; \
-    xdpyinfo || echo \"xdpyinfo failed\"; \
-    echo \"=== Starting screen capture ===\"; \
-    ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
-      -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
-      /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
-    FFMPEG_PID=\$! && \
-    echo \"=== Running tests with full debug ===\"; \
-    DEBUG=pw:api,pw:browser* ELECTRON_ENABLE_LOGGING=1 ELECTRON_LOG_LEVEL=verbose npm run test 2>&1; \
+    echo \"=== Running tests with no-sandbox flags ===\"; \
+    DEBUG=pw:api,pw:browser* ELECTRON_ENABLE_LOGGING=1 npm run test 2>&1; \
     UI_EXIT=\$?; \
     echo \"=== Test completed with exit code: \$UI_EXIT ===\"; \
-    kill -INT \$FFMPEG_PID 2>/dev/null || true; \
-    wait \$FFMPEG_PID 2>/dev/null || true; \
-    echo \"=== Logs from ffmpeg ===\"; \
-    cat /tmp/screencap/ffmpeg.log 2>/dev/null || echo \"No ffmpeg log\"; \
     exit \$UI_EXIT"'
