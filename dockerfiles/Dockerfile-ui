@@ -33,24 +33,6 @@ RUN if getent group $HOST_GID >/dev/null; then \
     groupadd -g $HOST_GID electronuser && \
     useradd --create-home --shell /bin/bash -u $HOST_UID -g $HOST_GID electronuser
 
-# RUN chown -R electronuser:electronuser /nf
-# USER electronuser
-
-  # CMD bash -c '\
-  # xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
-  #   ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
-  #     -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
-  #     /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
-  #   FFMPEG_PID=\$! && \
-  #   npm run test; \
-  #   UI_EXIT=\$?; \
-  #   kill -INT \$FFMPEG_PID; \
-  #   wait \$FFMPEG_PID; \
-  #   exit \$UI_EXIT"'
-
-
-
-
 # Now change ownership and switch to non-root user
 RUN chown -R electronuser:electronuser /nf
 
@@ -68,18 +50,31 @@ RUN if [ -f /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox
 
 USER electronuser
 
-CMD bash -c '\
-  echo "=== Environment Debug Info ==="; \
-  echo "DISPLAY: $DISPLAY"; \
-  echo "USER: $(whoami)"; \
-  echo "PWD: $(pwd)"; \
-  echo "=== Checking chrome-sandbox permissions ==="; \
-  find /nf -name "chrome-sandbox" -exec ls -la {} \; 2>/dev/null || echo "No chrome-sandbox found"; \
-  echo "=== Starting Xvfb ==="; \
-  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24 -ac" bash -c "\
-    echo \"DISPLAY inside xvfb: \$DISPLAY\"; \
-    echo \"=== Running tests with no-sandbox flags ===\"; \
-    DEBUG=pw:api,pw:browser* ELECTRON_ENABLE_LOGGING=1 && \
+# CMD bash -c '\
+#   echo "=== Environment Debug Info ==="; \
+#   echo "DISPLAY: $DISPLAY"; \
+#   echo "USER: $(whoami)"; \
+#   echo "PWD: $(pwd)"; \
+#   echo "=== Checking chrome-sandbox permissions ==="; \
+#   find /nf -name "chrome-sandbox" -exec ls -la {} \; 2>/dev/null || echo "No chrome-sandbox found"; \
+#   echo "=== Starting Xvfb ==="; \
+#   xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24 -ac" bash -c "\
+#     echo \"DISPLAY inside xvfb: \$DISPLAY\"; \
+#     echo \"=== Running tests with no-sandbox flags ===\"; \
+#     DEBUG=pw:api,pw:browser* ELECTRON_ENABLE_LOGGING=1 && \
+#     ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
+#       -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+#       /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
+#     FFMPEG_PID=\$! && \
+#     npm run test; \
+#     UI_EXIT=\$?; \
+#     kill -INT \$FFMPEG_PID; \
+#     wait \$FFMPEG_PID; \
+#     exit \$UI_EXIT"'
+
+
+  CMD bash -c '\
+  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
     ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
       -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
       /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
