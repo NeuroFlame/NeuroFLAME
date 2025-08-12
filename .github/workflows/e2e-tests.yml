@@ -28,6 +28,16 @@ jobs:
 
       - name: Run tests
         run: ./docker-compose-ci.sh
+
+      - name: Dump Docker logs for debugging
+        if: failure()  # Only on failure (or remove this line to always run)
+        run: |
+         mkdir -p docker_logs
+         for c in $(docker ps -a --format '{{.Names}}'); do
+          echo "=== Logs for $c ===" > docker_logs/$c.log
+          docker logs --timestamps "$c" >> docker_logs/$c.log 2>&1
+         done
+
         
       - name: Upload test artifacts
         if: always()  # ensures it runs even if tests fail
@@ -36,3 +46,4 @@ jobs:
           name: ui-artifacts
           path: |
             _devTestDirectories
+            docker_logs
