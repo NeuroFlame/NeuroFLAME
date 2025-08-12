@@ -55,8 +55,12 @@ const runComputation = async (page: Page) => {
   await page.getByRole("button", { name: /start run/i }).click()
 
   // Go to results page
+try {
   await page.getByRole("button", { name: /results/i }).click({ timeout: COMPUTATION_TIMEOUT })
-
+} catch (error) {
+  // Click the Details button when the results button fails
+  await page.getByRole("button", { name: /details/i }).click()
+}
   // Check results
   await expect(page.getByText('global_regression_result.html')).toBeVisible()
 }
