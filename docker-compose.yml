@@ -42,7 +42,7 @@ services:
       - ${HOST_PROJECT_DIR}/_devTestDirectories:${HOST_PROJECT_DIR}/_devTestDirectories
     networks:
       - ci_network
-    env:
+    environment:
       - CI=true
 
   fileServer:
