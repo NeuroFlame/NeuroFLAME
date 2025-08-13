@@ -14,11 +14,11 @@ const logger = createLogger({
         output += ` ${message}`
       }
 
-      const errorStack = stack || meta.stack || meta.error?.stack
+      const errorStack = stack || meta.stack || (meta.error instanceof Error ? meta.error.stack : undefined)
       if (errorStack) {
         output += `\nStack: ${errorStack}`
       }
-      
+
       if (meta.error && !(meta.error instanceof Error)) {
         const errorDetails = safeSerialize(meta.error)
         output += `\nError Details: ${errorDetails}`

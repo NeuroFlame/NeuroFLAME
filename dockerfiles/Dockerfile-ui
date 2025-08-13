@@ -1,0 +1,86 @@
+FROM neuroflame/ci
+ARG DOCKER_GID
+ARG HOST_UID
+ARG HOST_GID
+
+RUN apt-get update && \
+    apt-get install -y xvfb \
+    x11-apps \
+    ffmpeg \
+    imagemagick \
+    libgbm1 \
+    libxss1 \
+    libnss3 \
+    libgtk-3-dev \
+    libasound2-dev \
+    unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /tmp/screencap/
+
+WORKDIR /nf/desktopApp/electronApp
+
+# Remove existing user/group if they conflict (safe for rebuilds)
+RUN if getent group $HOST_GID >/dev/null; then \
+      existing_group=$(getent group $HOST_GID | cut -d: -f1); \
+      echo "Deleting existing group $existing_group with GID $HOST_GID"; \
+      groupdel "$existing_group"; \
+    fi && \
+    if getent passwd $HOST_UID >/dev/null; then \
+      existing_user=$(getent passwd $HOST_UID | cut -d: -f1); \
+      echo "Deleting existing user $existing_user with UID $HOST_UID"; \
+      userdel -r "$existing_user" || true; \
+    fi && \
+    groupadd -g $HOST_GID electronuser && \
+    useradd --create-home --shell /bin/bash -u $HOST_UID -g $HOST_GID electronuser
+
+# Now change ownership and switch to non-root user
+RUN chown -R electronuser:electronuser /nf
+
+# Fix Electron sandbox permissions BEFORE switching users
+RUN if [ -f /nf/node_modules/electron/dist/chrome-sandbox ]; then \
+      chown root:root /nf/node_modules/electron/dist/chrome-sandbox && \
+      chmod 4755 /nf/node_modules/electron/dist/chrome-sandbox; \
+    fi
+
+# Also check for chrome-sandbox in desktopApp/electronApp/node_modules
+RUN if [ -f /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox ]; then \
+      chown root:root /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox && \
+      chmod 4755 /nf/desktopApp/electronApp/node_modules/electron/dist/chrome-sandbox; \
+    fi
+
+USER electronuser
+
+# CMD bash -c '\
+#   echo "=== Environment Debug Info ==="; \
+#   echo "DISPLAY: $DISPLAY"; \
+#   echo "USER: $(whoami)"; \
+#   echo "PWD: $(pwd)"; \
+#   echo "=== Checking chrome-sandbox permissions ==="; \
+#   find /nf -name "chrome-sandbox" -exec ls -la {} \; 2>/dev/null || echo "No chrome-sandbox found"; \
+#   echo "=== Starting Xvfb ==="; \
+#   xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24 -ac" bash -c "\
+#     echo \"DISPLAY inside xvfb: \$DISPLAY\"; \
+#     echo \"=== Running tests with no-sandbox flags ===\"; \
+#     DEBUG=pw:api,pw:browser* ELECTRON_ENABLE_LOGGING=1 && \
+#     ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
+#       -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+#       /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
+#     FFMPEG_PID=\$! && \
+#     npm run test; \
+#     UI_EXIT=\$?; \
+#     kill -INT \$FFMPEG_PID; \
+#     wait \$FFMPEG_PID; \
+#     exit \$UI_EXIT"'
+
+
+  CMD bash -c '\
+  xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" bash -c "\
+    ffmpeg -y -video_size 1280x960 -framerate 25 -f x11grab -i \$DISPLAY \
+      -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+      /tmp/screencap/output.mp4 > /tmp/screencap/ffmpeg.log 2>&1 & \
+    FFMPEG_PID=\$! && \
+    npm run test; \
+    UI_EXIT=\$?; \
+    kill -INT \$FFMPEG_PID; \
+    wait \$FFMPEG_PID; \
+    exit \$UI_EXIT"'

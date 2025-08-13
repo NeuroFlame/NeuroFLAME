@@ -1,0 +1,7 @@
+FROM neuroflame/api
+
+EXPOSE 3002
+
+WORKDIR /nf/fileServer
+
+CMD npm run start-configured

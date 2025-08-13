@@ -1,0 +1,6 @@
+{
+    "authenticationUrl": "http://api:3001/authenticateToken",
+    "baseDir": "{{REPO_DIR}}/_devTestDirectories/fileHostDir",
+    "port": 3002,
+    "logPath": ""
+}
