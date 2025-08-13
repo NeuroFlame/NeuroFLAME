@@ -87,6 +87,7 @@ const launchDockerNode = async ({
       HostConfig: {
         Binds: binds,
         PortBindings: portBindingsFormatted,
+        NetworkMode: process.env.CI === 'true' ? 'ci-network' : 'bridge',
       },
     })
 
