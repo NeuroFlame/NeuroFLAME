@@ -88,6 +88,7 @@ const launchDockerNode = async ({
         Binds: binds,
         PortBindings: portBindingsFormatted,
         NetworkMode: process.env.CI === 'true' ? 'ci-network' : 'bridge',
+        ExtraHosts: process.env.CI === 'true' ? ['host.docker.internal:host-gateway'] : [],
       },
     })
 
@@ -164,8 +165,7 @@ const doesImageExist = async (imageName: string) => {
     }
   } catch (error) {
     throw new Error(
-      `Failed to check existence of image "${imageName}": ${
-        (error as Error).message
+      `Failed to check existence of image "${imageName}": ${(error as Error).message
       }`,
     )
   }
