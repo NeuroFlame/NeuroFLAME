@@ -1,0 +1,103 @@
+services:
+  mongo:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: centralDatabase
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data/:/data/db
+    networks:
+      - ci_network
+    command: --quiet
+
+  api:
+    depends_on:
+      - 'mongo'
+    image: neuroflame/api
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s -X POST http://localhost:3001/graphql -H 'Content-Type: application/json' --data '{\"query\":\"{ __typename }\"}' > /dev/null" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    stdin_open: true
+    tty: true
+    privileged: true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3001:3001"
+    networks:
+      - ci_network
+
+  centralFederatedClient:
+    depends_on:
+      api:
+        condition: service_healthy
+    image: neuroflame/centralfederatedclient
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOST_PROJECT_DIR}/_devTestDirectories:${HOST_PROJECT_DIR}/_devTestDirectories
+    networks:
+      - ci_network
+    environment:
+      - CI=true
+
+  fileServer:
+    depends_on:
+      api:
+        condition: service_healthy
+    image: neuroflame/fileserver
+    ports:
+      - "3002:3002"
+    networks:
+      - ci_network
+
+  react:
+    depends_on:
+      api:
+        condition: service_healthy
+    image: neuroflame/react
+    ports:
+      - "3000:3000"
+    networks:
+      - ci_network
+
+  ui:
+    depends_on:
+      - 'api'
+      - 'centralFederatedClient'
+      - 'fileServer'
+      - 'react'
+    image: neuroflame/ui
+    volumes:
+      - ${HOST_PROJECT_DIR}/_devTestDirectories/screencap:/tmp/screencap
+      - ${HOST_PROJECT_DIR}/_devTestDirectories:${HOST_PROJECT_DIR}/_devTestDirectories
+    networks:
+      - ci_network
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - CI=true
+      - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/srr-freesurfer/site1
+      - DOCKER_HOST=tcp://docker-proxy:2375
+      - NODE_ENV=test
+      - DISPLAY=:99
+
+
+  docker-proxy:
+    image: alpine/socat
+    command: TCP-LISTEN:2375,reuseaddr,fork UNIX-CONNECT:/var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ci_network
+networks:
+  ci_network:
+    name: ci-network
+    driver: bridge

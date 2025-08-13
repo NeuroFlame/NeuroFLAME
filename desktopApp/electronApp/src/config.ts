@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import { app, shell } from 'electron'
-import { defaultConfig } from './defaultConfig.js'
+import { defaultConfig, testConfig, testConfigCI } from './defaultConfig.js'
 import { Config } from './types.js'
 import { logger } from './logger.js'
 
@@ -16,6 +16,10 @@ export function getConfigPath(): string {
 }
 
 export async function getConfig(): Promise<Config> {
+  if (process.env.NODE_ENV === "test" && process.env.CI !== "true") {
+    return testConfig;
+  }
+
   const configPath = getConfigPath()
   logger.info(`Reading configuration from: ${configPath}`)
   try {
@@ -51,7 +55,8 @@ export async function saveConfig(configString: string): Promise<void> {
   } catch (error) {
     logger.error(`Failed to save configuration: ${(error as Error).message}`)
     throw new Error(
-      'Failed to save configuration. Please ensure it is valid JSON.',
+      `Failed to save configuration. Please ensure it is valid JSON:
+      ${(error as Error).message}`,
     )
   }
 }

@@ -52,7 +52,7 @@ async function ensurePathsExist(paths: string[]): Promise<void> {
         error instanceof Error ? error.message : error
       }`,
     )
-    throw error // Re-throw to propagate the error outward
+    throw new Error(paths.toString()) // Re-throw to propagate the error outward
   }
 }
 

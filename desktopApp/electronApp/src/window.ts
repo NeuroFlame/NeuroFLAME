@@ -25,7 +25,10 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     protocol: 'file:',
     slashes: true,
   })
-  const developmentUrl = 'http://localhost:3000'
+  const developmentUrl =
+    process.env.NODE_ENV === 'test' && process.env.CI === "true"
+      ? 'http://react:3000'
+      : 'http://localhost:3000'
   
   // Choose the appropriate start URL
   const startUrl = app.isPackaged ? productionUrl : developmentUrl

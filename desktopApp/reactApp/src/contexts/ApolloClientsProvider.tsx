@@ -49,8 +49,6 @@ const ApolloClientsProvider: React.FC<Props> = ({ children, config }) => {
     })
     setCentralApiApolloClient(central)
 
-
-    console.log("creating edgeClientApolloClient", config.edgeClientQueryUrl)
     const edge = createApolloClient({
       httpUrl: config.edgeClientQueryUrl,
       wsUrl: config.edgeClientSubscriptionUrl,

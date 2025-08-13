@@ -1,0 +1,54 @@
+name: Build and test
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare screencap dir
+        run: |
+          mkdir -p _devTestDirectories/screencap
+          chmod 777 _devTestDirectories/screencap
+          HOST_UID=$(id -u)
+          HOST_GID=$(id -g)
+          echo "Host UID: $HOST_UID, GID: $HOST_GID"
+          sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
+
+      - name: Build docker
+        run: ./scripts/dockerbuild-for-ci.sh
+
+      - name: Run tests
+        run: ./docker-compose-ci.sh
+
+      - name: Dump Docker logs & inspect for debugging
+        if: failure() # Remove if you want it to always run
+        run: |
+          mkdir -p docker_logs docker_inspect
+          for c in $(docker ps -a --format '{{.Names}}'); do
+          echo "=== Logs for $c ===" > docker_logs/$c.log
+          docker logs --timestamps "$c" >> docker_logs/$c.log 2>&1
+
+          echo "=== Inspect for $c ===" > docker_inspect/$c.json
+          docker inspect "$c" >> docker_inspect/$c.json 2>&1
+          done
+
+
+        
+      - name: Upload test artifacts
+        if: always()  # ensures it runs even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-artifacts
+          path: |
+            _devTestDirectories
+            docker_logs
+            docker_inspect

@@ -17,8 +17,8 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleUserCreated = () => {
-    setShowCreateUser(false);
     setUserCreated(true);
+    setFormType('login'); // Switch back to login form after user creation
   }
 
   return (
@@ -55,14 +55,14 @@ const LoginPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 'xs' }}>
-         {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
+        {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
+        
         {!isLoggedIn ? (
           <>
             {formType === 'login' && <Login />}
             {formType === 'createUser' && <CreateUser userCreated={handleUserCreated} />}
             {formType === 'resetPassword' && <ResetPasswordFlow />}
-          </>
-        ) : null}
+            
             <Button
               variant="text"
               color="primary"
@@ -109,15 +109,16 @@ const LoginPage: React.FC = () => {
           </>
         )}
       </Box>
+      
       <Box sx={{ maxWidth: 'xs' }}>
-      <Button
-        variant="text"
-        color="primary"
-        fullWidth
-        onClick={() => navigate(`/appConfig`)}
-      >
-        App Configuration
-      </Button>
+        <Button
+          variant="text"
+          color="primary"
+          fullWidth
+          onClick={() => navigate('/appConfig')}
+        >
+          App Configuration
+        </Button>
       </Box>
     </Box>
   );
