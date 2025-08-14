@@ -6,6 +6,11 @@
         "edgeFederatedClient"
     ],
     "devDependencies": {
-        "@changesets/cli": "^2.29.2"
+        "@changesets/cli": "^2.29.2",
+        "eslint": "^9.33.0",
+        "neostandard": "^0.12.2"
+    },
+    "scripts": {
+        "lint": "eslint ."
     }
 }
