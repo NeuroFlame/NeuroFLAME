@@ -224,7 +224,7 @@ input[type="file"]::-webkit-file-upload-button:hover {
   background-color: #0066cc; /* Slightly darker blue for hover effect */
 }
 
-.markdown-wrapper h1, 
+/* .markdown-wrapper h1, 
 .markdown-wrapper h2,
 .markdown-wrapper h3,
 .markdown-wrapper strong,
@@ -235,6 +235,50 @@ input[type="file"]::-webkit-file-upload-button:hover {
 .markdown-wrapper h2 {
   line-height: 1.2;
   margin-bottom: 0.5rem;
+} */
+
+.markdown-wrapper code {
+  width: auto;
+  padding: 0.2rem 0.4rem;
+  display: inline;
+  border-radius: 0;
+  font-family: monospace;
+}
+
+.markdown-wrapper .table-wrapper {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.markdown-wrapper table {
+  background-color: transparent;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.markdown-wrapper table thead tr th {
+  white-space: nowrap;
+}
+
+.markdown-wrapper table td {
+    border-top: 1px solid #dcdcdc;
+}
+
+.markdown-wrapper table td, 
+.markdown-wrapper table th {
+    border-right: 1px solid #dcdcdc;
+    padding: 8px 12px;
+}
+
+.markdown-wrapper table td:last-child, 
+.markdown-wrapper table th:last-child {
+    border-right: 0;
+}
+
+/* Style all body cells in the same column */
+td[data-col="description"] {
+  min-width: 250px;
+  text-align: left;
 }
 
 .toast-container > div {
