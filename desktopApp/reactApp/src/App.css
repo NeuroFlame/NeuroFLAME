@@ -275,6 +275,11 @@ input[type="file"]::-webkit-file-upload-button:hover {
     border-right: 0;
 }
 
+.markdown-wrapper ul, 
+.markdown-wrapper ol {
+  margin-left: 1.25rem;
+}
+
 /* Style all body cells in the same column */
 td[data-col="description"] {
   min-width: 250px;
