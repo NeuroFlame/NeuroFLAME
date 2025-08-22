@@ -83,8 +83,8 @@ const consortia = [
     title: 'Single Round Ridge Regression Consortium',
     description: 'Test consortium for single round ridge regression',
     leader: predefinedIds.user1Id,
-    members: [predefinedIds.user1Id, predefinedIds.user5IdVault],
-    activeMembers: [predefinedIds.user1Id, predefinedIds.user5IdVault],
+    members: [predefinedIds.user1Id, predefinedIds.user2Id],
+    activeMembers: [predefinedIds.user1Id, predefinedIds.user2Id],
     studyConfiguration: {
       consortiumLeaderNotes: 'Leader notes for single round ridge regression',
       computationParameters: JSON.stringify({
