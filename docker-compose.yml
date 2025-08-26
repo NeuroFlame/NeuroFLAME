@@ -31,6 +31,8 @@ services:
       - "3001:3001"
     networks:
       - ci_network
+    environment:
+      - RESEND_API_KEY=${RESEND_API_KEY}
 
   centralFederatedClient:
     depends_on:
