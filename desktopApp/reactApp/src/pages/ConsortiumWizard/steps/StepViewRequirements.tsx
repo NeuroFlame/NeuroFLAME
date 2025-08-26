@@ -28,14 +28,21 @@ export default function StepViewRequirements(){
                     <Box sx={{
                         height: 'calc(100vh - 26rem)',  // Limit height to keep within view
                         overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
-                        padding: '0 1rem 1rem',
+                        padding: '0 1rem 6rem',
                         boxSizing: 'border-box',
                     }}>
                         <ComputationDisplay notesHeading={false} />
                     </Box>
                 </Grid>
                 {consortiumLeaderNotes && <Grid item xs={6}>
-                    <ConsortiumLeaderNotes consortiumLeaderNotes={consortiumLeaderNotes} showAccordion={false} />
+                    <Box sx={{
+                        height: 'calc(100vh - 26rem)',  // Limit height to keep within view
+                        overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
+                        padding: '0 1rem 6rem',
+                        boxSizing: 'border-box',
+                    }}>
+                        <ConsortiumLeaderNotes consortiumLeaderNotes={consortiumLeaderNotes} showAccordion={false} />
+                    </Box>
                 </Grid>}
             </Grid>
         </Box>
