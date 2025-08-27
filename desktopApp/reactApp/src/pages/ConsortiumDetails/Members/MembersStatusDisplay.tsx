@@ -19,7 +19,7 @@ export function MembersStatusDisplay({ memberList, setMemberReady }: MembersStat
   return (
     <>
       {/* Ready/Not Ready Switch */}
-      {itsMe &&
+      {itsMe && (
         <Box display='flex' flexDirection='row' justifyContent='flex-start' alignItems='center'>
           <Button
             color='success'
@@ -30,16 +30,20 @@ export function MembersStatusDisplay({ memberList, setMemberReady }: MembersStat
           >
             {itsMe.isReady ? "You\'re Ready!" : 'Set Yourself as "Ready"'}
           </Button>
-          {itsMe.isReady && <CheckCircleIcon
-            sx={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              color: '#2FA84F',
-              width: '32px',
-              height: '32px',
-              top: '-2px',
-            }}
-                            />}
-        </Box>}
-    </>)
+          {itsMe.isReady && (
+            <CheckCircleIcon
+              sx={{
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                color: '#2FA84F',
+                width: '32px',
+                height: '32px',
+                top: '-2px',
+              }}
+            />
+          )}
+        </Box>
+      )}
+    </>
+  )
 }

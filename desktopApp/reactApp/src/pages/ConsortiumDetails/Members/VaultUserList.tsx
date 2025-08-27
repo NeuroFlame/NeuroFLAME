@@ -48,24 +48,24 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
                 <ListItem
                   secondaryAction={
                     <Box sx={{ display: 'flex', flexDirection: 'row', gap: '0.5rem' }}>
-                        <Button
-                            variant='outlined'
-                            color='primary'
-                            size='small'
-                            onClick={() => setSelectedVaultInfo(index)}
-                          >
-                                          Info
-                          </Button>
-                        <Button
-                            variant='contained'
-                            color='primary'
-                            size='small'
-                            onClick={() => handleAdd(id)}
-                          >
-                                          Add
-                          </Button>
-                      </Box>
-                                    }
+                      <Button
+                        variant='outlined'
+                        color='primary'
+                        size='small'
+                        onClick={() => setSelectedVaultInfo(index)}
+                      >
+                        Info
+                      </Button>
+                      <Button
+                        variant='contained'
+                        color='primary'
+                        size='small'
+                        onClick={() => handleAdd(id)}
+                      >
+                        Add
+                      </Button>
+                    </Box>
+                  }
                 >
                   <ListItemText
                     primary={username}

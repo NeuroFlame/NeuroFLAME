@@ -3,11 +3,13 @@ import DirectorySelect from '../../ConsortiumDetails/DirectorySelect/DirectorySe
 
 export default function StepSelectData() {
   return (
-    <Box style={{
-      maxWidth: '400px',
-      border: '1px solid #eee',
-    }}
+    <Box
+      style={{
+        maxWidth: '400px',
+        border: '1px solid #eee',
+      }}
     >
       <DirectorySelect />
-    </Box>)
+    </Box>
+  )
 }
