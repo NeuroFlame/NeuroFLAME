@@ -77,7 +77,6 @@ const launchDockerNode = async ({
   })
 
   try {
-
     await isDockerRunning()
     await doesImageExist(imageName)
 
@@ -132,8 +131,8 @@ const attachDockerEventHandlers = async ({
       logger.error(
         `Container ${containerId} exited with error code ${StatusCode}`,
       )
-      const logs = await container.logs({ stdout: true, stderr: true });
-      logger.error(`Logs from container ${containerId}: ${logs}`);
+      const logs = await container.logs({ stdout: true, stderr: true })
+      logger.error(`Logs from container ${containerId}: ${logs}`)
       onContainerExitError &&
         onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
     } else {

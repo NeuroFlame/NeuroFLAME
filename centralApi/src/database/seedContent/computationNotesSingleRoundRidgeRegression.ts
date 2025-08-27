@@ -1,4 +1,4 @@
-export default`
+export default `
 ### Computation Description for \`single_round_ridge_regression\`
 
 #### Overview

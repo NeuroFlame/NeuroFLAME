@@ -167,4 +167,4 @@ type Subscription {
   consortiumDetailsChanged(consortiumId: String!): String!
   runDetailsChanged(runId: String!): String!
 }
-`;
+`

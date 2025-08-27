@@ -5,7 +5,7 @@ type StoreData = {
 
 // Create a function that initializes the store and exposes methods to interact with it
 function createStore() {
-  let store: StoreData = { accessToken: '' }
+  const store: StoreData = { accessToken: '' }
 
   return {
     get<K extends keyof StoreData>(key: K): StoreData[K] {

@@ -16,8 +16,8 @@ export function getConfigPath(): string {
 }
 
 export async function getConfig(): Promise<Config> {
-  if (process.env.NODE_ENV === "test" && process.env.CI !== "true") {
-    return testConfig;
+  if (process.env.NODE_ENV === 'test' && process.env.CI !== 'true') {
+    return testConfig
   }
 
   const configPath = getConfigPath()

@@ -1,27 +1,27 @@
 // CSVViewer.tsx
-import { useEffect, useState } from 'react';
-import Papa from 'papaparse';
+import { useEffect, useState } from 'react'
+import Papa from 'papaparse'
 
 interface CSVViewerProps {
   fileUrl: string;
 }
 
 export default function CSVViewer({ fileUrl }: CSVViewerProps) {
-  const [data, setData] = useState<string[][] | null>(null);
+  const [data, setData] = useState<string[][] | null>(null)
 
   useEffect(() => {
     fetch(fileUrl)
       .then((res) => res.text())
       .then((text) => {
-        const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true });
-        setData(parsed.data);
-      });
-  }, [fileUrl]);
+        const parsed = Papa.parse<string[]>(text, { skipEmptyLines: true })
+        setData(parsed.data)
+      })
+  }, [fileUrl])
 
-  if (!data) return <div style={{ padding: '1rem' }}>Loading CSV...</div>;
+  if (!data) return <div style={{ padding: '1rem' }}>Loading CSV...</div>
 
   return (
-    <div style={{ overflowX: 'auto', background: 'white', height: 'calc(100vh - 170px)'}}>
+    <div style={{ overflowX: 'auto', background: 'white', height: 'calc(100vh - 170px)' }}>
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
           <tr>
@@ -41,5 +41,5 @@ export default function CSVViewer({ fileUrl }: CSVViewerProps) {
         </tbody>
       </table>
     </div>
-  );
+  )
 }

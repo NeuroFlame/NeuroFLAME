@@ -1,31 +1,31 @@
-import React, { useState } from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemText } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import { Link, useLocation } from 'react-router-dom';
-import NavDrawer from './NavDrawer';
-import UserAvatar from './UserAvatar';
-import logoSM from '../assets/neuroflame-logo.png';
+import React, { useState } from 'react'
+import { AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemText } from '@mui/material'
+import MenuIcon from '@mui/icons-material/Menu'
+import { Link, useLocation } from 'react-router-dom'
+import NavDrawer from './NavDrawer'
+import UserAvatar from './UserAvatar'
+import logoSM from '../assets/neuroflame-logo.png'
 
 interface HeaderProps {
   appUsername: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ appUsername }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const location = useLocation()
 
   const toggleDrawer = (open: boolean) => {
-    setDrawerOpen(open);
-  };
+    setDrawerOpen(open)
+  }
 
   return (
     <>
-      <AppBar position="sticky">
+      <AppBar position='sticky'>
 
         <Toolbar
           sx={{
             pr: '24px', // keep right padding when drawer closed
-            backgroundColor: '#001f70'
+            backgroundColor: '#001f70',
           }}
         >
           <Typography
@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
           </Typography>
           <img
             src={logoSM}
-            alt="Logo"
+            alt='Logo'
             style={{
               marginRight: '5px',
               width: '50px',
@@ -43,22 +43,22 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
             }}
           />
           <Typography
-            color="inherit"
+            color='inherit'
             sx={{
               fontFamily: 'Lato',
-              fontSize: '1.5rem'
+              fontSize: '1.5rem',
             }}
             noWrap
           >
             Neuro<b>FLAME</b>
           </Typography>
-          <Link to="/home" style={{ textDecoration: 'none' }}>
+          <Link to='/home' style={{ textDecoration: 'none' }}>
             <UserAvatar username={appUsername} />
           </Link>
           <IconButton
-            edge="end"
-            color="inherit"
-            aria-label="menu"
+            edge='end'
+            color='inherit'
+            aria-label='menu'
             onClick={() => toggleDrawer(true)}
           >
             <MenuIcon />
@@ -67,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
       </AppBar>
       <NavDrawer open={drawerOpen} onClose={() => toggleDrawer(false)} navSetDrawerOpen={setDrawerOpen} />
     </>
-  );
-};
+  )
+}
 
-export default Header;
+export default Header

@@ -1,16 +1,16 @@
-import { expect, Page, test } from "@playwright/test"
-import { v4 as uuidv4 } from "uuid"
-import { exec } from "child_process"
-import { promisify } from "util"
-import { COMPUTATION_TIMEOUT, USER_1 } from "../libs/constants"
-import { destroyAllInstances, setup } from "../libs/setup"
-import user from "../libs/user"
-import computation from "../libs/computation"
-import consortia from "../libs/consortia"
+import { expect, Page, test } from '@playwright/test'
+import { v4 as uuidv4 } from 'uuid'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import { COMPUTATION_TIMEOUT, USER_1 } from '../libs/constants'
+import { destroyAllInstances, setup } from '../libs/setup'
+import user from '../libs/user'
+import computation from '../libs/computation'
+import consortia from '../libs/consortia'
 
 const CONSORTIUM_ID = uuidv4()
 
-const execPromise = promisify(exec);
+const execPromise = promisify(exec)
 
 const DATA = {
   consortium: {
@@ -22,7 +22,7 @@ const DATA = {
   },
 }
 
-test.describe("Single-round Ridge Regression for Freesurfer computation", () => {
+test.describe('Single-round Ridge Regression for Freesurfer computation', () => {
   let page: Page
 
   test.beforeAll(async () => {
@@ -36,7 +36,7 @@ test.describe("Single-round Ridge Regression for Freesurfer computation", () => 
   })
 
   test('displays the correct title', async () => {
-    expect(await page.title()).toEqual("NeuroFLAME")
+    expect(await page.title()).toEqual('NeuroFLAME')
   })
 
   test('authenticates user', async () => {

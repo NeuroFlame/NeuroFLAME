@@ -118,12 +118,12 @@ export default {
             computationParameters,
             computation: computation
               ? {
-                title: computation.title,
-                imageName: computation.imageName,
-                imageDownloadUrl: computation.imageDownloadUrl,
-                notes: computation.notes,
-                owner: computation.owner,
-              }
+                  title: computation.title,
+                  imageName: computation.imageName,
+                  imageDownloadUrl: computation.imageDownloadUrl,
+                  notes: computation.notes,
+                  owner: computation.owner,
+                }
               : null,
           },
         }
@@ -333,7 +333,7 @@ export default {
     },
     requestPasswordReset: async (
       _: unknown,
-      { username }: { username: string }
+      { username }: { username: string },
     ): Promise<boolean> => {
       const user = await User.findOne({ username })
       if (!user) {
@@ -366,7 +366,7 @@ export default {
     },
     resetPassword: async (
       _: unknown,
-      { token, newPassword }: { token: string; newPassword: string }
+      { token, newPassword }: { token: string; newPassword: string },
     ): Promise<{
       accessToken: string
       userId: string
@@ -495,8 +495,8 @@ export default {
 
       pubsub.publish('RUN_START_EDGE', {
         runId,
-        imageName: imageName,
-        consortiumId: consortiumId,
+        imageName,
+        consortiumId,
       })
 
       pubsub.publish('RUN_EVENT', {
@@ -547,7 +547,7 @@ export default {
       const result = await Run.updateOne(
         { _id: runId },
         {
-          status: `Error`,
+          status: 'Error',
           lastUpdated: Date.now().toString(), // Store as a string
           $push: {
             runErrors: {
@@ -630,9 +630,7 @@ export default {
     reportRunStatus: async (
       _: unknown,
       { runId, statusMessage }: { runId: string; statusMessage: string },
-    ): Promise<boolean> => {
-      return true
-    },
+    ): Promise<boolean> => true,
     studySetComputation: async (
       _: unknown,
       {
@@ -664,7 +662,7 @@ export default {
         await consortium.save()
 
         pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-          consortiumId: consortiumId,
+          consortiumId,
         })
 
         return true
@@ -705,7 +703,7 @@ export default {
         await consortium.save()
 
         pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-          consortiumId: consortiumId,
+          consortiumId,
         })
 
         return true
@@ -736,7 +734,7 @@ export default {
         await consortium.save()
 
         pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-          consortiumId: consortiumId,
+          consortiumId,
         })
 
         return true
@@ -935,7 +933,7 @@ export default {
       })
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId: consortiumId,
+        consortiumId,
       })
 
       return true
@@ -945,27 +943,27 @@ export default {
       { consortiumId }: { consortiumId: string },
       context: Context,
     ): Promise<boolean> => {
-      const { userId } = context;
+      const { userId } = context
       if (!userId) {
-        throw new Error('User not authenticated');
+        throw new Error('User not authenticated')
       }
 
-      const consortium = await Consortium.findById(consortiumId);
+      const consortium = await Consortium.findById(consortiumId)
       if (!consortium) {
-        throw new Error('Consortium not found');
+        throw new Error('Consortium not found')
       }
 
       if (consortium.leader?.toString() !== userId) {
-        throw new Error('You do not have permission to delete this consortium');
+        throw new Error('You do not have permission to delete this consortium')
       }
 
-      await Consortium.findByIdAndDelete(consortiumId);
+      await Consortium.findByIdAndDelete(consortiumId)
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
-      });
+      })
 
-      return true;
+      return true
     },
     consortiumLeave: async (
       _: unknown,
@@ -982,7 +980,7 @@ export default {
       })
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId: consortiumId,
+        consortiumId,
       })
 
       return true
@@ -1020,7 +1018,7 @@ export default {
         }
 
         pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-          consortiumId: consortiumId,
+          consortiumId,
         })
 
         return true
@@ -1067,7 +1065,7 @@ export default {
 
         // Publish an event indicating the consortium details have changed
         pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-          consortiumId: consortiumId,
+          consortiumId,
         })
 
         return true
@@ -1201,7 +1199,7 @@ export default {
       })
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId: consortiumId,
+        consortiumId,
       })
 
       return true
@@ -1231,7 +1229,7 @@ export default {
       })
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId: consortiumId,
+        consortiumId,
       })
 
       return true
@@ -1272,7 +1270,7 @@ export default {
       })
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId: consortiumId,
+        consortiumId,
       })
 
       return true
@@ -1360,9 +1358,7 @@ export default {
           }
 
           const isActiveMember = consortium.activeMembers.some(
-            (memberObjectId: any) => {
-              return memberObjectId.toString() === userId
-            },
+            (memberObjectId: any) => memberObjectId.toString() === userId,
           )
 
           return isActiveMember
@@ -1370,9 +1366,7 @@ export default {
       ),
     },
     runEvent: {
-      resolve: (payload: RunEventPayload): RunEventPayload => {
-        return payload
-      },
+      resolve: (payload: RunEventPayload): RunEventPayload => payload,
       subscribe: withFilter(
         () => pubsub.asyncIterator(['RUN_EVENT']),
         async (
@@ -1380,7 +1374,7 @@ export default {
           variables: unknown,
           context: Context,
         ) => {
-          logger.info(`Run event emitted`, { payload, context })
+          logger.info('Run event emitted', { payload, context })
 
           if (context.error) {
             logger.error(`Error subscribing to runEvent: ${context.error}`)
@@ -1398,9 +1392,7 @@ export default {
           }
 
           const activeMemberIds = consortium.activeMembers.map(
-            (memberObjectId: any) => {
-              return memberObjectId.toString()
-            },
+            (memberObjectId: any) => memberObjectId.toString(),
           )
           const isActiveMember = activeMemberIds.includes(userId)
 
@@ -1410,9 +1402,7 @@ export default {
       ),
     },
     consortiumLatestRunChanged: {
-      resolve: (payload: { consortiumId: string }): string => {
-        return 'Consortium latest run changed'
-      },
+      resolve: (payload: { consortiumId: string }): string => 'Consortium latest run changed',
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
         async (
@@ -1440,9 +1430,7 @@ export default {
     },
 
     consortiumDetailsChanged: {
-      resolve: (payload: { consortiumId: string }): string => {
-        return 'Consortium details changed'
-      },
+      resolve: (payload: { consortiumId: string }): string => 'Consortium details changed',
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
         async (
@@ -1470,9 +1458,7 @@ export default {
     },
 
     runDetailsChanged: {
-      resolve: (payload: { runId: string }): string => {
-        return 'Run details changed'
-      },
+      resolve: (payload: { runId: string }): string => 'Run details changed',
       subscribe: withFilter(
         () => pubsub.asyncIterator(['RUN_DETAILS_CHANGED']),
         async (

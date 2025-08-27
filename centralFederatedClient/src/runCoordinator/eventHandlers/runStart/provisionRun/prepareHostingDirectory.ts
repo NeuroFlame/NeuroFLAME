@@ -13,7 +13,6 @@ export async function prepareHostingDirectory({
   targetDir,
   exclude,
 }: prepareHostingDirectoryArgs): Promise<void> {
-    
   // Ensure targetDir exists
   await fs.promises.mkdir(targetDir, { recursive: true })
 

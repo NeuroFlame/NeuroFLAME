@@ -127,7 +127,7 @@ const computations = [
     title: 'flare_file_transfer',
     imageName: 'dylanrmartin/computations:flare_file_transfer',
     imageDownloadUrl: 'docker pull dylanrmartin/computations:flare_file_transfer',
-    notes: "---",
+    notes: '---',
     owner: predefinedIds.user2Id.toString(),
   },
 ]

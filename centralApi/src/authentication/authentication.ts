@@ -1,10 +1,10 @@
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { hash } from 'bcrypt'
-export { compare } from 'bcrypt'
 import {
   ACCESS_TOKEN_DURATION,
   ACCESS_TOKEN_SECRET,
 } from '../config/environmentVariables.js'
+export { compare } from 'bcrypt'
 
 const { sign, verify } = jwt
 
@@ -29,14 +29,14 @@ export const generateTokens = (
 }
 
 export const validateAccessToken = (token: string): AccessTokenPayload => {
-  const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
+  const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET)
 
   if (typeof decoded !== 'object' || decoded === null || !('userId' in decoded)) {
-    throw new Error('Invalid token payload');
+    throw new Error('Invalid token payload')
   }
 
-  return decoded as AccessTokenPayload;
-};
+  return decoded as AccessTokenPayload
+}
 
 export const hashPassword = async (password) => {
   const saltRounds = 10

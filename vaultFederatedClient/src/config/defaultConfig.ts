@@ -6,5 +6,5 @@ export default {
   fileServerUrl: 'http://localhost:4002',
   baseDir:
     'C:/development/effective-palm-tree/_devTestDirectories/vault1Dir',
-  datasetDir: 'C:/development/effective-palm-tree/_devTestDirectories/vault1Dir/data'
+  datasetDir: 'C:/development/effective-palm-tree/_devTestDirectories/vault1Dir/data',
 }

@@ -1,6 +1,6 @@
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepButton from '@mui/material/StepButton';
+import Stepper from '@mui/material/Stepper'
+import Step from '@mui/material/Step'
+import StepButton from '@mui/material/StepButton'
 
 export default function ConsortiumWizardNavBar({
   steps,
@@ -18,10 +18,10 @@ export default function ConsortiumWizardNavBar({
           <StepButton
             onClick={() => handleStepNav(step.path)}
             sx={{
-                '& .MuiSvgIcon-root': { fontSize: '2rem' },
-                '& .Mui-active.MuiStepLabel-label': {fontWeight: 'bold' },
-                '& .Mui-completed .MuiSvgIcon-root': { color: '#2FA84F' },
-                '& .MuiStepButton-root.Mui-disabled': { background: 'none' }, 
+              '& .MuiSvgIcon-root': { fontSize: '2rem' },
+              '& .Mui-active.MuiStepLabel-label': { fontWeight: 'bold' },
+              '& .Mui-completed .MuiSvgIcon-root': { color: '#2FA84F' },
+              '& .MuiStepButton-root.Mui-disabled': { background: 'none' },
             }}
           >
             {step.label}
@@ -29,5 +29,5 @@ export default function ConsortiumWizardNavBar({
         </Step>
       ))}
     </Stepper>
-  );
+  )
 }

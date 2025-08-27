@@ -29,26 +29,24 @@ export const createApolloClient = ({
   const wsLink = new GraphQLWsLink(
     createClient({
       url: wsUrl,
-      connectionParams: () => {
-        return { accessToken: getAccessToken() }
-      },
+      connectionParams: () => ({ accessToken: getAccessToken() }),
     }),
   )
 
   const errorLink = onError(({ graphQLErrors, networkError }) => {
-    if (graphQLErrors)
+    if (graphQLErrors) {
       graphQLErrors.forEach((err) =>
         console.error(
           '[GraphQL error]:',
-          JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
-        )
+          JSON.stringify(err, Object.getOwnPropertyNames(err), 2),
+        ),
       )
+    }
     if (networkError) console.error(`[Network error]: ${networkError}`)
   })
 
   // Authentication Link
   const authLink = new ApolloLink((operation, forward) => {
-
     operation.setContext(({ headers = {} }) => ({
       headers: {
         ...headers,
@@ -83,4 +81,3 @@ export const createApolloClient = ({
     },
   })
 }
-

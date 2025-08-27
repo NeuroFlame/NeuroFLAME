@@ -1,4 +1,4 @@
-import { _electron as electron, ElectronApplication, Page } from "@playwright/test"
+import { _electron as electron, ElectronApplication, Page } from '@playwright/test'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -21,11 +21,11 @@ async function createInstance(appId: string | number) {
     env: Object.assign({}, process.env, {
       TEST_INSTANCE: instanceId,
       NODE_ENV: 'test',
-    }) as { [key: string]: string }
+    }) as { [key: string]: string },
   })
   const appPage = await app.firstWindow()
 
-  appPage.on('console', msg => console.log(`INSTANCE ${appId} -> ${msg.text()}`))
+  appPage.on('console', (msg) => console.log(`INSTANCE ${appId} -> ${msg.text()}`))
   appPage.on('pageerror', (err) => {
     console.log(`******** Window Error Instance ${appId}: ${err.message}`)
   })
@@ -45,11 +45,11 @@ async function setup(instanceCount = 1) {
     return instances[0].appPage
   }
 
-  return instances.map(instance => instance.appPage)
+  return instances.map((instance) => instance.appPage)
 }
 
 async function destroyAllInstances() {
-  await Promise.all(instances.map(instance => instance.app.close()))
+  await Promise.all(instances.map((instance) => instance.app.close()))
 }
 
 export { createInstance, destroyAllInstances, setup }

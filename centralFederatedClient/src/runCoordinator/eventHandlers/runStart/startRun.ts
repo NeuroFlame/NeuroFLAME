@@ -88,7 +88,7 @@ export default async function startRun({
         reportRunError({ runId, errorMessage: error }),
     })
   } catch (error) {
-    logger.error(`Start Run Failed`, { error: error })
+    logger.error('Start Run Failed', { error })
     await reportRunError({ runId, errorMessage: (error as Error).message })
   }
 }

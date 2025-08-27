@@ -3,7 +3,6 @@ import { ApolloClient, NormalizedCacheObject } from '@apollo/client'
 import { createApolloClient } from '../utils/createApolloClient'
 import { ApolloClientsContext } from './ApolloClientsContext' // Ensure this path is correct
 
-
 interface Props {
   config: {
     centralServerQueryUrl: string;
@@ -23,38 +22,34 @@ const ApolloClientsProvider: React.FC<Props> = ({ children, config }) => {
   >()
 
   useEffect(() => {
-    startClients();
+    startClients()
   },
-    [config]
+  [config],
   )
 
   const startClients = async () => {
     if (centralApiApolloClient) {
-      console.log("stopping centralApiApolloClient")
-      centralApiApolloClient.stop();
+      console.log('stopping centralApiApolloClient')
+      centralApiApolloClient.stop()
     }
 
     if (edgeClientApolloClient) {
-      console.log("stopping edgeClientApolloClient")
-      edgeClientApolloClient.stop();
+      console.log('stopping edgeClientApolloClient')
+      edgeClientApolloClient.stop()
     }
 
-    console.log("creating centralApiApolloClient", config.centralServerQueryUrl)
+    console.log('creating centralApiApolloClient', config.centralServerQueryUrl)
     const central = createApolloClient({
       httpUrl: config.centralServerQueryUrl,
       wsUrl: config.centralServerSubscriptionUrl,
-      getAccessToken: () => {
-        return localStorage.getItem('accessToken') || ''
-      }
+      getAccessToken: () => localStorage.getItem('accessToken') || '',
     })
     setCentralApiApolloClient(central)
 
     const edge = createApolloClient({
       httpUrl: config.edgeClientQueryUrl,
       wsUrl: config.edgeClientSubscriptionUrl,
-      getAccessToken: () => {
-        return localStorage.getItem('accessToken') || ''
-      }
+      getAccessToken: () => localStorage.getItem('accessToken') || '',
     })
 
     setEdgeClientApolloClient(edge)
@@ -68,7 +63,7 @@ const ApolloClientsProvider: React.FC<Props> = ({ children, config }) => {
     <ApolloClientsContext.Provider value={{ centralApiApolloClient, edgeClientApolloClient }}>
       {children}
     </ApolloClientsContext.Provider>
-  );
+  )
 }
 
 export default ApolloClientsProvider

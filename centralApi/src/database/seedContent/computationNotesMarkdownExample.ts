@@ -74,4 +74,4 @@ Markdown also supports emojis :smile: :+1:.
 - **Title**: Sample Computation Notes
 - **Author**: John Doe
 - **Date**: 2024-08-02
-`;
+`

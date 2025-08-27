@@ -1,13 +1,13 @@
-import { useApolloClients } from "../../contexts/ApolloClientsContext";
-import { connectAsUser } from "./connectAsUser";
-import { getMountDir} from "./getMountDir";
-import { setMountDir } from "./setMountDir";
+import { useApolloClients } from '../../contexts/ApolloClientsContext'
+import { connectAsUser } from './connectAsUser'
+import { getMountDir } from './getMountDir'
+import { setMountDir } from './setMountDir'
 
 export const useEdgeApi = () => {
-  const { edgeClientApolloClient } = useApolloClients();
+  const { edgeClientApolloClient } = useApolloClients()
 
   if (!edgeClientApolloClient) {
-    throw new Error("Apollo Client is not defined");
+    throw new Error('Apollo Client is not defined')
   }
 
   return {
@@ -18,5 +18,5 @@ export const useEdgeApi = () => {
 
     // Set the mount directory for a consortium
     setMountDir: (consortiumId: string, mountDir: string) => setMountDir(edgeClientApolloClient, consortiumId, mountDir),
-  };
-};
+  }
+}

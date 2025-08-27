@@ -95,25 +95,25 @@ const logToPath = (logDir: string): void => {
 const safeSerialize = (obj: unknown): string => {
   try {
     if (typeof obj !== 'object' || obj === null) {
-      return JSON.stringify(obj, null, 2);
+      return JSON.stringify(obj, null, 2)
     }
 
-    const result: Record<string | symbol, unknown> = {};
+    const result: Record<string | symbol, unknown> = {}
 
     // Include regular properties
     Object.getOwnPropertyNames(obj).forEach((key) => {
-      result[key] = (obj as Record<string, unknown>)[key];
-    });
+      result[key] = (obj as Record<string, unknown>)[key]
+    })
 
     // Include symbol properties
     Object.getOwnPropertySymbols(obj).forEach((symbol) => {
-      result[symbol.toString()] = (obj as Record<symbol, unknown>)[symbol];
-    });
+      result[symbol.toString()] = (obj as Record<symbol, unknown>)[symbol]
+    })
 
-    return JSON.stringify(result, null, 2);
+    return JSON.stringify(result, null, 2)
   } catch {
-    return 'Unable to serialize object';
+    return 'Unable to serialize object'
   }
-};
+}
 
 export { logToPath, logger }

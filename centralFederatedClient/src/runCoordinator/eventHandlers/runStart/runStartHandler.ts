@@ -15,8 +15,8 @@ subscription runStartSubscription {
 }`
 
 export const runStartHandler = {
-  error: (err: any) =>{
-    logger.error(`Run Start Central - Subscription error`, { error: err })
+  error: (err: any) => {
+    logger.error('Run Start Central - Subscription error', { error: err })
   },
   complete: () => logger.info('Run Start Central - Subscription completed'),
   next: async ({ data }: { data: any }) => {
@@ -43,7 +43,7 @@ export const runStartHandler = {
       // report to the central api that the run is ready
       return await reportRunReady({ runId })
     } catch (error) {
-      logger.error(`Error in Run Start Central:`, { error })
+      logger.error('Error in Run Start Central:', { error })
 
       return await reportRunError({
         runId,

@@ -42,12 +42,12 @@ export async function provisionRun({
     path_provision_input,
     JSON.stringify(provision_input, null, 2),
   )
-  
+
   // set proper permissions
   await fs.promises.chmod(path_provision_input, 0o644)
 
   // wait for the file to be created
-  await new Promise(r => setTimeout(r, 1000))
+  await new Promise((r) => setTimeout(r, 1000))
 
   // launch the container and await its completion
   // throw errors appropriately here
@@ -59,10 +59,8 @@ export async function provisionRun({
         { hostDirectory: path_run, containerDirectory: '/provisioning/' },
       ],
       portBindings: [],
-      commandsToRun: [`python`, `/workspace/system/entry_provision.py`],
-      onContainerExitSuccess: async (containerId) => {
-        return resolve(void 0)
-      },
+      commandsToRun: ['python', '/workspace/system/entry_provision.py'],
+      onContainerExitSuccess: async (containerId) => resolve(void 0),
     })
   })
 

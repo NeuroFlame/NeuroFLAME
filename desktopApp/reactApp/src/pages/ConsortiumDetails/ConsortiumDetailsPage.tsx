@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import Grid from '@mui/material/Grid2';
+import React, { useState } from 'react'
+import Grid from '@mui/material/Grid2'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Typography
-} from "@mui/material";
-import { Members } from "./Members/Members";
-import { TitleAndDescription } from "./TitleAndDescription/TitleAndDescription";
-import DirectorySelect from "./DirectorySelect/DirectorySelect";
-import { useUserState } from "../../contexts/UserStateContext";
-import StartRunButton from "./StartRunButton/StartRunButton";
-import { ConsortiumDetailsProvider, useConsortiumDetailsContext } from "./ConsortiumDetailsContext";
-import { LatestRun } from "./LatestRun/LatestRun";
-import ComputationDisplay from "./ComputationDisplay/ComputationDisplay";
-import ConsortiumLeaderNotes from "./ConsortiumLeaderNotes/ConsortiumLeaderNotes";
-import Computation from "./Computation/Computation";
-import ComputationParameters from "./ComputationParameters/ComputationParameters";
-import { useNavigate, useParams } from 'react-router-dom';
+  DialogActions, TextField, Typography,
+} from '@mui/material'
+import { Members } from './Members/Members'
+import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
+import DirectorySelect from './DirectorySelect/DirectorySelect'
+import { useUserState } from '../../contexts/UserStateContext'
+import StartRunButton from './StartRunButton/StartRunButton'
+import { ConsortiumDetailsProvider, useConsortiumDetailsContext } from './ConsortiumDetailsContext'
+import { LatestRun } from './LatestRun/LatestRun'
+import ComputationDisplay from './ComputationDisplay/ComputationDisplay'
+import ConsortiumLeaderNotes from './ConsortiumLeaderNotes/ConsortiumLeaderNotes'
+import Computation from './Computation/Computation'
+import ComputationParameters from './ComputationParameters/ComputationParameters'
+import { useNavigate, useParams } from 'react-router-dom'
 
 function ConsortiumDeleteModal({
   open,
@@ -24,7 +24,7 @@ function ConsortiumDeleteModal({
   consortiumName,
   isDeleting,
   confirmName,
-  setConfirmName
+  setConfirmName,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,7 +43,7 @@ function ConsortiumDeleteModal({
         </Typography>
         <TextField
           fullWidth
-          placeholder="Consortium Name"
+          placeholder='Consortium Name'
           value={confirmName}
           onChange={(e) => setConfirmName(e.target.value)}
         />
@@ -55,42 +55,42 @@ function ConsortiumDeleteModal({
         <Button
           onClick={onDelete}
           disabled={confirmName !== consortiumName || isDeleting}
-          color="error"
-          variant="contained"
+          color='error'
+          variant='contained'
         >
           {isDeleting ? 'Deleting...' : 'Submit and Delete'}
         </Button>
       </DialogActions>
     </Dialog>
-  );
+  )
 }
 
 export function ConsortiumDetailsPage() {
-  const { consortiumId } = useParams<{ consortiumId: string }>();
-  const { data: { studyConfiguration, members, activeMembers, readyMembers, leader, title, description }, deleteConsortium, isLeader } = useConsortiumDetailsContext();
-  const { userId } = useUserState();
-  const navigate = useNavigate();
+  const { consortiumId } = useParams<{ consortiumId: string }>()
+  const { data: { studyConfiguration, members, activeMembers, readyMembers, leader, title, description }, deleteConsortium, isLeader } = useConsortiumDetailsContext()
+  const { userId } = useUserState()
+  const navigate = useNavigate()
 
-  const isActive = activeMembers.some((member) => member.id === userId);
+  const isActive = activeMembers.some((member) => member.id === userId)
 
   // Delete dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [confirmName, setConfirmName] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [confirmName, setConfirmName] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
-    if (confirmName !== title) return;
-    setIsDeleting(true);
+    if (confirmName !== title) return
+    setIsDeleting(true)
     try {
-      await deleteConsortium();
+      await deleteConsortium()
     } catch (err) {
-      console.error('Error deleting consortium:', err);
+      console.error('Error deleting consortium:', err)
     } finally {
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
-      navigate('/consortium/list');
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      navigate('/consortium/list')
     }
-  };
+  }
 
   return (
     <>
@@ -116,30 +116,30 @@ export function ConsortiumDetailsPage() {
           )}
         </Grid>
 
-        <Grid size={{ sm: 6, md: 4 }} className="consortium-details-grid-2">
-          <Box className="consortium-links">
+        <Grid size={{ sm: 6, md: 4 }} className='consortium-details-grid-2'>
+          <Box className='consortium-links'>
             <Button
               onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}
               color='success'
-              variant="outlined"
-              size="small"
+              variant='outlined'
+              size='small'
               style={{ marginRight: '0.5rem' }}
             >
               Setup
             </Button>
             <Button
               onClick={() => navigate('/consortium/list')}
-              variant="outlined"
-              size="small"
+              variant='outlined'
+              size='small'
               style={{ marginRight: '0.5rem' }}
             >
               Consortia
             </Button>
             {isLeader && (
               <Button
-                color="error"
-                variant="outlined"
-                size="small"
+                color='error'
+                variant='outlined'
+                size='small'
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 Delete
@@ -152,30 +152,30 @@ export function ConsortiumDetailsPage() {
           {studyConfiguration?.computation && <ComputationParameters />}
         </Grid>
 
-        <Grid size={{ sm: 12, md: 4 }} className="consortium-details-grid-3">
-          <Box className="consortium-links">
+        <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
+          <Box className='consortium-links'>
             <Button
               onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}
               color='success'
-              variant="outlined"
-              size="small"
+              variant='outlined'
+              size='small'
               style={{ marginRight: '0.5rem' }}
             >
               Setup Wizard
             </Button>
             <Button
               onClick={() => navigate('/consortium/list')}
-              variant="outlined"
-              size="small"
+              variant='outlined'
+              size='small'
               style={{ marginRight: '0.5rem' }}
             >
               Consortia
             </Button>
             {isLeader && (
               <Button
-                color="error"
-                variant="outlined"
-                size="small"
+                color='error'
+                variant='outlined'
+                size='small'
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 Delete Consortium
@@ -199,7 +199,7 @@ export function ConsortiumDetailsPage() {
         />
       )}
     </>
-  );
+  )
 }
 
 export default function ConsortiumDetailsPageWithProvider() {
@@ -207,5 +207,5 @@ export default function ConsortiumDetailsPageWithProvider() {
     <ConsortiumDetailsProvider>
       <ConsortiumDetailsPage />
     </ConsortiumDetailsProvider>
-  );
+  )
 }
