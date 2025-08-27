@@ -19,8 +19,8 @@ export const resolvers = {
         throw new Error('Not authorized')
       }
 
-      const { path_base_directory } = getConfig()
-      const consortiumDir = path.join(path_base_directory, consortiumId)
+      const { pathBaseDirectory } = getConfig()
+      const consortiumDir = path.join(pathBaseDirectory, consortiumId)
 
       try {
         // Read the mount_config.json file
@@ -60,8 +60,8 @@ export const resolvers = {
       context: any,
     ): Promise<boolean> => {
       try {
-        const { path_base_directory } = getConfig()
-        const consortiumDir = path.join(path_base_directory, consortiumId)
+        const { pathBaseDirectory } = getConfig()
+        const consortiumDir = path.join(pathBaseDirectory, consortiumId)
 
         // Ensure the consortium directory exists
         await fs.mkdir(consortiumDir, { recursive: true })

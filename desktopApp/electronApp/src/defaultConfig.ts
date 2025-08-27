@@ -11,7 +11,7 @@ export const defaultConfig: Config = {
   edgeClientConfig: {
     httpUrl: 'http://54.144.192.206:3001/graphql',
     wsUrl: 'ws://54.144.192.206:3001/graphql',
-    path_base_directory:
+    pathBaseDirectory:
       '',
     authenticationEndpoint: 'http://54.144.192.206:3001/authenticateToken',
     hostingPort: 3003,
@@ -30,7 +30,7 @@ export const testConfig: Config = {
   edgeClientConfig: {
     httpUrl: 'http://localhost:3001/graphql',
     wsUrl: 'ws://localhost:3001/graphql',
-    path_base_directory:
+    pathBaseDirectory:
       '',
     authenticationEndpoint: 'http://localhost:3001/authenticateToken',
     hostingPort: 3003,

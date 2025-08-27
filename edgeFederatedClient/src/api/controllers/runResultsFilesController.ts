@@ -49,7 +49,7 @@ const walkDirectory = (
 
 export const listRunFiles = async (req: Request, res: Response) => {
   try {
-    const { path_base_directory: filesDirectory } = await getConfig()
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
     const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results')
 
@@ -71,7 +71,7 @@ export const listRunFiles = async (req: Request, res: Response) => {
 
 export const serveRunFile = async (req: Request, res: Response) => {
   try {
-    const { path_base_directory: filesDirectory } = await getConfig()
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
     const filePathParam = req.params[0] // catch-all route segment
 
@@ -175,7 +175,7 @@ export const serveRunFile = async (req: Request, res: Response) => {
 
 export const serveRunFolder = async (req: Request, res: Response) => {
   try {
-    const { path_base_directory: filesDirectory } = await getConfig()
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
     const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results')
 

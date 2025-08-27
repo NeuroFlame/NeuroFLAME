@@ -33,9 +33,9 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      const { path_base_directory } = await getConfig()
+      const { pathBaseDirectory } = await getConfig()
 
-      const consortiumPath = path.join(path_base_directory, consortiumId)
+      const consortiumPath = path.join(pathBaseDirectory, consortiumId)
       const runPath = path.join(consortiumPath, runId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')

@@ -11,18 +11,18 @@ import { logger } from '../../../logger.js'
 interface UploadParameters {
   consortiumId: string
   runId: string
-  path_baseDirectory: string
+  pathBaseDirectory: string
 }
 
 export default async function uploadFileToServer({
   consortiumId,
   runId,
-  path_baseDirectory,
+  pathBaseDirectory,
 }: UploadParameters): Promise<void> {
   const { fileServerUrl, accessToken } = await getConfig()
   const url = `${fileServerUrl}/upload/${consortiumId}/${runId}`
   const zipPath = path.join(
-    path_baseDirectory,
+    pathBaseDirectory,
     'runs',
     consortiumId,
     runId,
@@ -30,7 +30,7 @@ export default async function uploadFileToServer({
     `${runId}.zip`,
   )
   const extractPath = path.join(
-    path_baseDirectory,
+    pathBaseDirectory,
     'runs',
     consortiumId,
     runId,

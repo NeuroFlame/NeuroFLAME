@@ -27,7 +27,7 @@ export async function start({ port }: { port: number }) {
     throw new Error('getConfig() returned undefined')
   }
 
-  const { path_base_directory: filesDirectory } = config
+  const { pathBaseDirectory: filesDirectory } = config
 
   const schema = makeExecutableSchema({ typeDefs, resolvers })
 

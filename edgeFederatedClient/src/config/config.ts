@@ -1,7 +1,7 @@
 export interface edgeClientLaunchConfiguration {
   httpUrl: string
   wsUrl: string
-  path_base_directory: string
+  pathBaseDirectory: string
   authenticationEndpoint: string
   hostingPort: number
   logPath?: string

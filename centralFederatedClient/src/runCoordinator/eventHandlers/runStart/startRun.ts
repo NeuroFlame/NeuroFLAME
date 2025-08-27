@@ -26,33 +26,33 @@ export default async function startRun({
   logger.info(`Starting run ${runId} for consortium ${consortiumId}`)
 
   const config = await getConfig()
-  const path_baseDir = config.baseDir
-  const path_run = path.join(path_baseDir, 'runs', consortiumId, runId)
-  const path_centralNodeRunKit = path.join(path_run, 'runKits', 'centralNode')
+  const pathBaseDir = config.baseDir
+  const pathRun = path.join(pathBaseDir, 'runs', consortiumId, runId)
+  const pathCentralNodeRunKit = path.join(pathRun, 'runKits', 'centralNode')
   const { FQDN, hostingPortRange } = config
 
   try {
     // Reserve ports for federated learning and admin servers
     const {
-      port: reserved_fed_learn_port,
-      server: fed_learn_server,
+      port: reservedFedLearnPort,
+      server: fedLearnServer,
     } = await reservePort(hostingPortRange)
     const {
-      port: reserved_admin_port,
-      server: admin_server,
+      port: reservedAdminPort,
+      server: adminServer,
     } = await reservePort(hostingPortRange)
-    const fed_learn_port = reserved_fed_learn_port
-    const admin_port = reserved_admin_port
+    const fedLearnPort = reservedFedLearnPort
+    const adminPort = reservedAdminPort
 
     // Provision the run
     logger.info(`Provisioning run ${runId}`)
     await provisionRun({
-      image_name: imageName,
+      imageName,
       userIds,
-      path_run,
+      pathRun,
       computationParameters,
-      fed_learn_port,
-      admin_port,
+      fedLearnPort,
+      adminPort,
       FQDN,
     })
 
@@ -61,12 +61,12 @@ export default async function startRun({
     await uploadToFileServer({
       consortiumId,
       runId,
-      path_baseDirectory: path_baseDir,
+      pathBaseDirectory: pathBaseDir,
     })
 
     // Close the reserved servers before launching the Docker container
-    fed_learn_server.close()
-    admin_server.close()
+    fedLearnServer.close()
+    adminServer.close()
 
     // Launch the Docker node
     await launchNode({
@@ -74,13 +74,13 @@ export default async function startRun({
       imageName,
       directoriesToMount: [
         {
-          hostDirectory: path_centralNodeRunKit,
+          hostDirectory: pathCentralNodeRunKit,
           containerDirectory: '/workspace/runKit/',
         },
       ],
       portBindings: [
-        { hostPort: fed_learn_port, containerPort: fed_learn_port },
-        { hostPort: admin_port, containerPort: admin_port },
+        { hostPort: fedLearnPort, containerPort: fedLearnPort },
+        { hostPort: adminPort, containerPort: adminPort },
       ],
       commandsToRun: ['python', '/workspace/system/entry_central.py'],
       onContainerExitSuccess: () => reportRunComplete({ runId }),
