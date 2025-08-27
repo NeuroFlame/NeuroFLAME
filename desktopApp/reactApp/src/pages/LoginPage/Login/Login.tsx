@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Box, Button, TextField, Typography, CircularProgress, Alert } from '@mui/material'
+import { useEffect, useState } from 'react'
+import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useLogin } from './useLogin'
-import logo from '../../../assets/coinstac-logo.png'
 
 export function Login() {
   const [username, setUsername] = useState('')

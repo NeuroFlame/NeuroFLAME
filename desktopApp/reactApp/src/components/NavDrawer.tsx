@@ -10,7 +10,7 @@ interface NavDrawerProps {
 }
 
 const NavDrawer: React.FC<NavDrawerProps> = ({ open, onClose, navSetDrawerOpen }) => {
-  const { roles, username, clearUserData } = useUserState()
+  const { roles, clearUserData } = useUserState()
 
   const isAdmin = roles.includes('admin')
 

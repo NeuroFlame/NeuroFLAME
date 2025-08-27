@@ -484,7 +484,7 @@ export default {
 
       // get the run's details from the database
       const run = await Run.findById(runId)
-      const result = await Run.updateOne(
+      await Run.updateOne(
         { _id: runId },
         { status: 'In Progress', lastUpdated: Date.now() },
       )
@@ -544,7 +544,7 @@ export default {
       }
 
       // Append the error to the runErrors array and update the run's status and lastUpdated fields
-      const result = await Run.updateOne(
+      await Run.updateOne(
         { _id: runId },
         {
           status: 'Error',
@@ -602,7 +602,7 @@ export default {
 
       // get the run's details from the database
       const run = await Run.findById(runId)
-      const result = await Run.updateOne(
+      await Run.updateOne(
         { _id: runId },
         { status: 'Complete', lastUpdated: Date.now() },
       )
@@ -693,7 +693,7 @@ export default {
 
         // see if the string is valid json
         try {
-          const parametersJson = JSON.parse(parameters)
+          JSON.parse(parameters)
         } catch (e) {
           throw new Error(`failed to parse parameters into JSON ${e}`)
         }

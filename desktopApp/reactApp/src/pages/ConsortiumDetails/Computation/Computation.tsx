@@ -6,7 +6,6 @@ import ComputationSelect from './ComputationSelect/ComputationSelect'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { useState } from 'react'
-import { Terminal } from 'xterm'
 import TerminalWindow from './TerminalWindow'
 
 interface ComputationDisplayProps {

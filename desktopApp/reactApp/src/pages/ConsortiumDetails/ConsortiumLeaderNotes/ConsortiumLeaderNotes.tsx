@@ -1,5 +1,4 @@
-import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Tooltip, Typography } from '@mui/material'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { Box, Button, Typography } from '@mui/material'
 import ConsortiumLeaderNotesDisplay from './ConsortiumLeaderNotesDisplay'
 import ConsortiumLeaderNotesEdit from './ConsortiumLeaderNotesEdit'
 import { useConsortiumLeaderNotes } from './useConsortiumLeaderNotes'
@@ -9,7 +8,7 @@ interface ConsortiumLeaderNotesProps {
   showAccordion: boolean;
 }
 
-export default function ConsortiumLeaderNotes({ consortiumLeaderNotes, showAccordion }: ConsortiumLeaderNotesProps) {
+export default function ConsortiumLeaderNotes({ consortiumLeaderNotes }: ConsortiumLeaderNotesProps) {
   const { isEditing, handleEdit, handleSave, handleCancel, isLeader } = useConsortiumLeaderNotes(consortiumLeaderNotes)
 
   return (

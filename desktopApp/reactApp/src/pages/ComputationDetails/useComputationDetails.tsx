@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
-import { QueryGetComputationDetailsArgs, Computation as GeneratedComputationDetails } from '../../apis/centralApi/generated/graphql' // Import the generated types
+import { QueryGetComputationDetailsArgs } from '../../apis/centralApi/generated/graphql' // Import the generated types
 
 export function useComputationDetails() {
   const computationId = useParams<{ computationId: string }>().computationId as string

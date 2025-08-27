@@ -1,6 +1,4 @@
 import Docker from 'dockerode'
-import path from 'path'
-import fs from 'fs'
 import { logger } from '../../logger.js'
 const docker = new Docker()
 

@@ -1,11 +1,9 @@
 // HomePage.tsx
-import React, { useState } from 'react'
-import { Box, Button, Typography } from '@mui/material'
+import React from 'react'
+import { Box, Button } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { useHomePage } from './useHomePage'
 
 const HomePage: React.FC = () => {
-  const { isLoggedIn, logout } = useHomePage() // Assuming logout is provided by useHomePage
   const navigate = useNavigate()
 
   return (

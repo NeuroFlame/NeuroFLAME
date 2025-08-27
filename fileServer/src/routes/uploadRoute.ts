@@ -1,5 +1,5 @@
 // uploadRoute.ts
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
 import isCentralUser from '../middleware/isCentralUser.js'
 import { uploadFile } from '../middleware/uploadFile.js'

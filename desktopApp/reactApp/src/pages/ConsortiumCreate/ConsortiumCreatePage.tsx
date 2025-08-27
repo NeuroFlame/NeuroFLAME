@@ -9,7 +9,6 @@ export default function ConsortiumCreate() {
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const navigate = useNavigate()
   const { consortiumCreate } = useCentralApi()
@@ -74,7 +73,6 @@ export default function ConsortiumCreate() {
             </Button>
           </Box>
           {error && <p style={{ color: 'red' }}>{error}</p>}
-          {success && <p style={{ color: 'green' }}>Consortium created successfully!</p>}
         </Box>
       </Box>
     </Container>

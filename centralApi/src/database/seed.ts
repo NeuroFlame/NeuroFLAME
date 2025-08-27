@@ -5,7 +5,7 @@ import { logger } from '../logger.js'
 import Consortium from './models/Consortium.js'
 import Computation from './models/Computation.js'
 import Run from './models/Run.js'
-import User, { IVault } from './models/User.js'
+import User from './models/User.js'
 import computationNotesMarkdownExample from './seedContent/computationNotesMarkdownExample.js'
 import computationNotesNvflareSsrCsv from './seedContent/computationNotesNvflareSsrCsv.js'
 import computationNotesNvflareBoilerplate from './seedContent/computationNotesNvflareBoilerplate.js'
@@ -169,6 +169,7 @@ const consortia = [
   },
 ]
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const runs = [
   {
     _id: predefinedIds.run1Id,

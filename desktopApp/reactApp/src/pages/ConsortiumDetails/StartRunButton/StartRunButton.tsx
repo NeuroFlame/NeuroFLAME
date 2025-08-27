@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { Button, Typography, CircularProgress } from '@mui/material'
 
@@ -10,7 +10,6 @@ export default function StartRunButton() {
   const [error, setError] = useState<string | null>(null)
   const [runId, setRunId] = useState<string | null>(null)
   const [runStarted, setRunStarted] = useState<boolean>(false)
-  const navigate = useNavigate()
 
   const handleStartRun = async () => {
     setLoading(true)

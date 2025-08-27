@@ -1,4 +1,4 @@
-import { createLogger, format, transports, Logger, error } from 'winston'
+import { createLogger, format, transports } from 'winston'
 import path from 'path'
 import fs from 'fs'
 

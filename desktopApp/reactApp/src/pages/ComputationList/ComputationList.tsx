@@ -1,5 +1,5 @@
 import React from 'react'
-import { Paper, List, Typography, Button, Box, CircularProgress, Container } from '@mui/material'
+import { Typography, Button, Box, CircularProgress, Container } from '@mui/material'
 import ReplayIcon from '@mui/icons-material/Replay'
 import { ComputationListItem as ComputationListItemType } from '../../apis/centralApi/generated/graphql' // Import the type
 import ComputationListItem from './ComputationListItem' // Import the new presentation component

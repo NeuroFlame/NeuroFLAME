@@ -6,7 +6,7 @@ import {
 } from '../config/environmentVariables.js'
 export { compare } from 'bcrypt'
 
-const { sign, verify } = jwt
+const { sign } = jwt
 
 interface AccessTokenPayload extends JwtPayload {
   userId: string;

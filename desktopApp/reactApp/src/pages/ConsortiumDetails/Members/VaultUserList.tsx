@@ -5,13 +5,11 @@ import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { PublicUser } from '../../../apis/centralApi/generated/graphql'
 import { useParams } from 'react-router-dom'
 import {
-  Container,
   List,
   ListItem,
   ListItemText,
   Button,
   Divider,
-  Typography,
   Box,
 } from '@mui/material'
 

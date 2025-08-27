@@ -1,6 +1,6 @@
 import React from 'react'
 import { ComputationListItem } from '../../../../apis/centralApi/generated/graphql'
-import { List, ListItem, ListItemText, ListItemAvatar, Avatar, Button } from '@mui/material'
+import { List, ListItem, ListItemText, Button } from '@mui/material'
 
 interface ComputationListProps {
   computations: ComputationListItem[];

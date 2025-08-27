@@ -9,10 +9,8 @@ export default function ComputationCreatePage() {
   const [imageName, setImageName] = useState('')
   const [imageDownloadUrl, setImageDownloadUrl] = useState('')
   const [notes, setNotes] = useState('')
-  const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const navigate = useNavigate()
   const { computationCreate } = useCentralApi()
@@ -21,7 +19,7 @@ export default function ComputationCreatePage() {
     try {
       setError(null)
       setLoading(true)
-      const ComputationId = await computationCreate({
+      await computationCreate({
         title,
         imageName,
         imageDownloadUrl,
@@ -85,7 +83,6 @@ export default function ComputationCreatePage() {
             </Button>
           </Box>
           {error && <p style={{ color: 'red' }}>{error}</p>}
-          {success && <p style={{ color: 'green' }}>Computation created successfully!</p>}
         </Box>
       </Box>
     </Container>

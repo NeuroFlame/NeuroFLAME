@@ -1,8 +1,7 @@
-import React, { useState } from 'react'
-import { ListItem, ListItemText, Button, Box, Paper, Typography } from '@mui/material'
+import React from 'react'
+import { Button, Box, Typography } from '@mui/material'
 import { ComputationListItem as ComputationListItemType } from '../../apis/centralApi/generated/graphql' // Import the type
 import { useNavigate } from 'react-router-dom'
-import { useUserState } from '../../contexts/UserStateContext'
 
 interface ComputationListItemProps {
   computation: ComputationListItemType;
@@ -10,8 +9,6 @@ interface ComputationListItemProps {
 
 const ComputationListItem: React.FC<ComputationListItemProps> = ({ computation }) => {
   const navigate = useNavigate()
-
-  const [loading, setLoading] = useState(false)
 
   return (
     <Box display='flex' flexDirection='row' style={{ background: 'white', padding: '1rem', marginBottom: '1rem' }}>
@@ -24,7 +21,6 @@ const ComputationListItem: React.FC<ComputationListItemProps> = ({ computation }
         <Button
           variant='contained'
           color='primary'
-          disabled={loading}
           sx={{ ml: 2 }}
           onClick={() => navigate(`/computation/details/${computation.id}`)}
         >

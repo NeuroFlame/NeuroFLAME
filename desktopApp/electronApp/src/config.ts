@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import { app, shell } from 'electron'
-import { defaultConfig, testConfig, testConfigCI } from './defaultConfig.js'
+import { defaultConfig, testConfig } from './defaultConfig.js'
 import { Config } from './types.js'
 import { logger } from './logger.js'
 
