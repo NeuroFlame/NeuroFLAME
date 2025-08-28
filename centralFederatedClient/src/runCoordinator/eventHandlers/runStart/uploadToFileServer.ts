@@ -121,7 +121,7 @@ export async function zipDirectory(
     try {
       await fs.mkdir(outputDir, { recursive: true })
     } catch (err) {
-      return reject(`Failed to create directory ${outputDir}: ${err}`)
+      return reject(Error(`Failed to create directory ${outputDir}: ${err}`))
     }
 
     const output = createWriteStream(outPath)

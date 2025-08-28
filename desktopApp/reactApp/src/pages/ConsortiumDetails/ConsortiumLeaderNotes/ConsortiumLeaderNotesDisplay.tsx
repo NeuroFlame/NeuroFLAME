@@ -13,9 +13,13 @@ export default function ConsortiumLeaderNotesDisplay({ consortiumLeaderNotes }: 
       overflow: 'scroll',
     }}
     >
-      {consortiumLeaderNotes && <div>
-        <ReactMarkdown children={consortiumLeaderNotes} remarkPlugins={[remarkGfm]} />
-      </div>}
+      {consortiumLeaderNotes && (
+        <div>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {consortiumLeaderNotes}
+          </ReactMarkdown>
+        </div>
+      )}
     </Box>
   )
 }

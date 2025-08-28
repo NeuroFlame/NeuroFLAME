@@ -38,7 +38,7 @@ export function DirectorySelectDisplay({
   const filePathAbbr = (path: string) => {
     if (path) {
       const parts = path.split('/').slice(-3)
-      const newPath = (parts.length == 3 ? '/' : '') + parts.join('/')
+      const newPath = (parts.length === 3 ? '/' : '') + parts.join('/')
       return '...' + newPath
     } else {
       return 'Enter Your Data Directory Path'

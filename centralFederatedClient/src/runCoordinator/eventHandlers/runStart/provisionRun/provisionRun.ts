@@ -47,7 +47,7 @@ export async function provisionRun({
   await fs.promises.chmod(pathProvisionInput, 0o644)
 
   // wait for the file to be created
-  await new Promise((r) => setTimeout(r, 1000))
+  await new Promise((resolve) => setTimeout(resolve, 1000))
 
   // launch the container and await its completion
   // throw errors appropriately here
@@ -60,7 +60,7 @@ export async function provisionRun({
       ],
       portBindings: [],
       commandsToRun: ['python', '/workspace/system/entry_provision.py'],
-      onContainerExitSuccess: async (containerId) => resolve(void 0),
+      onContainerExitSuccess: async (containerId) => resolve(undefined),
     })
   })
 

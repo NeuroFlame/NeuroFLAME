@@ -1,6 +1,6 @@
 import { Box, Typography, IconButton } from '@mui/material'
 import { HashLink } from 'react-router-hash-link'
-import type { Computation } from '../../../apis/centralApi/generated/graphql'
+import type { Computation as ComputationType } from '../../../apis/centralApi/generated/graphql'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import ComputationSelect from './ComputationSelect/ComputationSelect'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
@@ -9,7 +9,7 @@ import { useState } from 'react'
 import TerminalWindow from './TerminalWindow'
 
 interface ComputationDisplayProps {
-  computation: Maybe<Computation> | undefined;
+  computation: Maybe<ComputationType> | undefined;
 }
 
 export default function Computation({ computation }: ComputationDisplayProps) {

@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-debugger
+
 let instances: Array<{ app: ElectronApplication, appPage: Page }> = []
 
 async function createInstance(appId: string | number) {
