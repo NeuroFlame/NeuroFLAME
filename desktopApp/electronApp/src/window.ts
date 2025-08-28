@@ -4,7 +4,7 @@ import url from 'url'
 
 export async function createMainWindow(): Promise<BrowserWindow> {
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  
+
   // Window configuration
   const mainWindow = new BrowserWindow({
     width: 800,
@@ -26,10 +26,10 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     slashes: true,
   })
   const developmentUrl =
-    process.env.NODE_ENV === 'test' && process.env.CI === "true"
+    process.env.NODE_ENV === 'test' && process.env.CI === 'true'
       ? 'http://react:3000'
       : 'http://localhost:3000'
-  
+
   // Choose the appropriate start URL
   const startUrl = app.isPackaged ? productionUrl : developmentUrl
 

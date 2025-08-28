@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import defaultConfig from './defaultConfig.js'
-import {logger} from '../logger.js'
+import { logger } from '../logger.js'
 
 interface CentralApiConfig {
   fileServerUrl: string

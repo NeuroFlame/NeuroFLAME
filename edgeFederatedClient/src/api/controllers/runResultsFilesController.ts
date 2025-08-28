@@ -17,15 +17,15 @@ interface FileInfo {
 const walkDirectory = (
   dirPath: string,
   baseUrl: string,
-  rootPath: string
+  rootPath: string,
 ): FileInfo[] => {
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  let results: FileInfo[] = [];
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+  let results: FileInfo[] = []
 
   for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry.name);
-    const stat = fs.statSync(fullPath);
-    const relativePath = path.relative(rootPath, fullPath); // key fix here
+    const fullPath = path.join(dirPath, entry.name)
+    const stat = fs.statSync(fullPath)
+    const relativePath = path.relative(rootPath, fullPath) // key fix here
 
     const fileInfo: FileInfo = {
       name: entry.name,
@@ -34,77 +34,77 @@ const walkDirectory = (
       isDirectory: entry.isDirectory(),
       lastModified: stat.mtime,
       url: path.join(baseUrl, relativePath).replace(/\\/g, '/'), // consistent relative path
-    };
+    }
 
-    results.push(fileInfo);
+    results.push(fileInfo)
 
     if (entry.isDirectory()) {
-      const subResults = walkDirectory(fullPath, baseUrl, rootPath);
-      results = results.concat(subResults);
+      const subResults = walkDirectory(fullPath, baseUrl, rootPath)
+      results = results.concat(subResults)
     }
   }
 
-  return results;
-};
+  return results
+}
 
 export const listRunFiles = async (req: Request, res: Response) => {
   try {
-    const { path_base_directory: filesDirectory } = await getConfig();
-    const { consortiumId, runId } = req.params;
-    const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results');
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
+    const { consortiumId, runId } = req.params
+    const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results')
 
     if (!fs.existsSync(directoryPath)) {
-      logger.warn(`Directory not found: ${directoryPath}`);
-      return res.status(404).json({ error: 'Run directory not found' });
+      logger.warn(`Directory not found: ${directoryPath}`)
+      return res.status(404).json({ error: 'Run directory not found' })
     }
 
-    const baseUrl = `${consortiumId}/${runId}`;
-    const rootPath = directoryPath;
-    const fileList = walkDirectory(directoryPath, baseUrl, rootPath);
+    const baseUrl = `${consortiumId}/${runId}`
+    const rootPath = directoryPath
+    const fileList = walkDirectory(directoryPath, baseUrl, rootPath)
 
-    res.json(fileList);
+    res.json(fileList)
   } catch (error) {
-    logger.error(`Error in listRunFiles: ${(error as Error).message}`);
-    res.status(500).json({ error: 'Internal Server Error' });
+    logger.error(`Error in listRunFiles: ${(error as Error).message}`)
+    res.status(500).json({ error: 'Internal Server Error' })
   }
-};
+}
 
 export const serveRunFile = async (req: Request, res: Response) => {
   try {
-    const { path_base_directory: filesDirectory } = await getConfig();
-    const { consortiumId, runId } = req.params;
-    const filePathParam = req.params[0]; // catch-all route segment
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
+    const { consortiumId, runId } = req.params
+    const filePathParam = req.params[0] // catch-all route segment
 
-    const baseDirectory = path.join(filesDirectory, consortiumId, runId, 'results');
-    const resolvedBase = path.resolve(baseDirectory);
-    let resolvedFile = path.resolve(baseDirectory, filePathParam);
-    const currentFileName = path.basename(resolvedFile);
+    const baseDirectory = path.join(filesDirectory, consortiumId, runId, 'results')
+    const resolvedBase = path.resolve(baseDirectory)
+    const resolvedFile = path.resolve(baseDirectory, filePathParam)
+    const currentFileName = path.basename(resolvedFile)
 
     // Ensure path is within allowed directory
     if (!resolvedFile.startsWith(resolvedBase)) {
-      logger.warn(`Unauthorized path access attempt: ${resolvedFile}`);
-      return res.status(403).json({ error: 'Unauthorized access' });
+      logger.warn(`Unauthorized path access attempt: ${resolvedFile}`)
+      return res.status(403).json({ error: 'Unauthorized access' })
     }
 
     // Fail fast if it doesn't exist
     if (!fs.existsSync(resolvedFile)) {
-      logger.warn(`File not found: ${resolvedFile}`);
-      return res.status(404).send('File not found');
+      logger.warn(`File not found: ${resolvedFile}`)
+      return res.status(404).send('File not found')
     }
 
-    const stat = fs.lstatSync(resolvedFile);
+    const stat = fs.lstatSync(resolvedFile)
 
     // ✅ Handle directories
     if (stat.isDirectory()) {
-      const entries = fs.readdirSync(resolvedFile, { withFileTypes: true });
+      const entries = fs.readdirSync(resolvedFile, { withFileTypes: true })
 
       const directoryContents: FileInfo[] = entries.map((entry) => {
-        const entryPath = path.join(resolvedFile, entry.name);
-        const entryStat = fs.statSync(entryPath);
+        const entryPath = path.join(resolvedFile, entry.name)
+        const entryStat = fs.statSync(entryPath)
         const relativeUrl = path.relative(
           path.join(filesDirectory, consortiumId, runId, 'results'),
-          entryPath
-        );
+          entryPath,
+        )
 
         return {
           name: entry.name,
@@ -113,71 +113,73 @@ export const serveRunFile = async (req: Request, res: Response) => {
           isDirectory: entry.isDirectory(),
           lastModified: entryStat.mtime,
           url: `${consortiumId}/${runId}/${relativeUrl}`.replace(/\\/g, '/'),
-        };
-      });
+        }
+      })
 
-      return res.json(directoryContents);
+      return res.json(directoryContents)
     }
 
     // ✅ Handle .html files
     if (stat.isFile() && resolvedFile.endsWith('.html')) {
-      let contents = fs.readFileSync(resolvedFile, 'utf8');
+      let contents = fs.readFileSync(resolvedFile, 'utf8')
 
       if (!contents.includes('<base')) {
-        contents = contents.replace('<head>', `<head><base href="./">`);
+        contents = contents.replace('<head>', '<head><base href="./">')
       }
 
-      const token = req.query['x-access-token'];
+      const token = req.query['x-access-token']
       if (token) {
         contents = contents.replace(
           /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*?>/gi,
           (match, src) => {
-            const hasToken = src.includes('x-access-token=');
-            const connector = src.includes('?') ? '&' : '?';
-            return match.replace(src, hasToken ? src : `${src}${connector}x-access-token=${token}`);
-          }
-        );
+            const hasToken = src.includes('x-access-token=')
+            const connector = src.includes('?') ? '&' : '?'
+            return match.replace(src, hasToken ? src : `${src}${connector}x-access-token=${token}`)
+          },
+        )
 
         contents = contents.replace(
           /<a\s+[^>]*?href\s*=\s*["']#([^"']+)["']/gi,
           (match, anchor) => {
-            const connector = currentFileName.includes('?') ? '&' : '?';
-            return match.replace(`#${anchor}`, `${currentFileName}${connector}x-access-token=${token}#${anchor}`);
-          }
-        );
+            const connector = currentFileName.includes('?') ? '&' : '?'
+            return match.replace(`#${anchor}`, `${currentFileName}${connector}x-access-token=${token}#${anchor}`)
+          },
+        )
 
         contents = contents.replace(
           /<a\b[^>]*?\bhref\s*=\s*["']([^"']+\.html)["'][^>]*?>/gi,
           (match, href) => {
-            if (href.startsWith('mailto:') || href.startsWith('tel:')) return match;
-            const connector = href.includes('?') ? '&' : '?';
-            return match.replace(href, `${href}${connector}x-access-token=${token}`);
-          }
-        );
+            if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+              return match
+            }
+            const connector = href.includes('?') ? '&' : '?'
+            return match.replace(href, `${href}${connector}x-access-token=${token}`)
+          },
+        )
       }
 
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(contents);
+      res.setHeader('Content-Type', 'text/html')
+      return res.send(contents)
     }
 
     // ✅ Serve other files
     if (stat.isFile()) {
-      return res.sendFile(resolvedFile);
+      return res.sendFile(resolvedFile)
     }
 
-    logger.warn(`Unsupported file type at path: ${resolvedFile}`);
-    return res.status(400).send('Unsupported file type');
+    logger.warn(`Unsupported file type at path: ${resolvedFile}`)
+    return res.status(400).send('Unsupported file type')
   } catch (error) {
-    logger.error(`Error in serveRunFile: ${(error as Error).message}`);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    logger.error(`Error in serveRunFile: ${(error as Error).message}`)
+    return res.status(500).json({ error: 'Internal Server Error' })
   }
-};
+}
 
 export const serveRunFolder = async (req: Request, res: Response) => {
   try {
-    const { path_base_directory: filesDirectory } = await getConfig()
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
-    const directoryPath = path.join(filesDirectory, consortiumId, runId, `results`)
+    const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results')
 
     if (!fs.existsSync(directoryPath)) {
       logger.warn(`Directory not found: ${directoryPath}`)

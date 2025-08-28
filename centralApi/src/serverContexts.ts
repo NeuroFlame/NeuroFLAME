@@ -24,10 +24,14 @@ interface HttpContext {
   res: HttpResponse
 }
 
-const wsServerContext = (ctx: WebSocketContext, msg: any, args: any): ServerContext => {
+const wsServerContext = (
+  ctx: WebSocketContext,
+  msg: any,
+  args: any,
+): ServerContext => {
   try {
     const { accessToken } = ctx.connectionParams
-    const context = { ...(validateAccessToken(accessToken) as object) };
+    const context = { ...(validateAccessToken(accessToken) as object) }
     return context
   } catch (e) {
     return {
@@ -46,7 +50,7 @@ const httpServerContext = async ({
         ? req.headers['x-access-token'][0]
         : req.headers['x-access-token']
       )?.replace(/^null$/, '') || ''
-    const context = { ...(validateAccessToken(accessToken) as object) };
+    const context = { ...(validateAccessToken(accessToken) as object) }
     return context
   } catch (e) {
     return {

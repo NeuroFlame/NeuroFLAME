@@ -1,4 +1,4 @@
-//unzipFile.ts
+// unzipFile.ts
 import path from 'path'
 import unzipper from 'unzipper'
 import fs from 'fs-extra'

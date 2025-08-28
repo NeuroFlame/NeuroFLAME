@@ -75,7 +75,6 @@ const launchDockerNode = async ({
   })
 
   try {
-
     await isDockerRunning()
     await doesImageExist(imageName)
 
@@ -88,7 +87,9 @@ const launchDockerNode = async ({
         Binds: binds,
         PortBindings: portBindingsFormatted,
         NetworkMode: process.env.CI === 'true' ? 'ci-network' : 'bridge',
-        ExtraHosts: process.env.CI === 'true' ? ['host.docker.internal:host-gateway'] : [],
+        ExtraHosts: process.env.CI === 'true'
+          ? ['host.docker.internal:host-gateway']
+          : [],
       },
     })
 

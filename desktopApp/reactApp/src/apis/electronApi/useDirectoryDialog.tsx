@@ -1,4 +1,3 @@
-
 export function useDirectoryDialog(directory: string) {
-    return window.ElectronAPI.useDirectoryDialog(directory)
+  return window.ElectronAPI.useDirectoryDialog(directory)
 }

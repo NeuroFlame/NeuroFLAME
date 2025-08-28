@@ -52,7 +52,7 @@ export default async function reportRunError({
 
     // Handle the response data here
     if (responseData.errors) {
-      logger.error(`GraphQL Error`, { error: responseData.errors })
+      logger.error('GraphQL Error', { error: responseData.errors })
       throw new Error('Failed to report run error due to GraphQL error')
     }
 
@@ -62,7 +62,7 @@ export default async function reportRunError({
       throw new Error('Invalid response data')
     }
   } catch (error) {
-    logger.error(`Error reporting run error`, { error })
+    logger.error('Error reporting run error', { error })
     throw error
   }
 }

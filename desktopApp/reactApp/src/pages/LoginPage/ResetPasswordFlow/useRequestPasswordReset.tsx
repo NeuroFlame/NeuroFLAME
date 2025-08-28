@@ -1,27 +1,28 @@
-import { useState } from 'react';
-import { useCentralApi } from "../../../apis/centralApi/centralApi";
+import { useState } from 'react'
+import { useCentralApi } from '../../../apis/centralApi/centralApi'
 
 export function useRequestPasswordReset(callback?: () => void) {
-  const { requestPasswordReset } = useCentralApi();
+  const { requestPasswordReset } = useCentralApi()
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleRequestPasswordReset = async (username: string) => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
       // request to the central api
-      await requestPasswordReset({ username });
+      await requestPasswordReset({ username })
       if (callback) {
-        callback();
+        callback()
       }
     } catch (err) {
-      setError((err as Error).message || 'Requesting password reset failed, please try again.');
+      setError((err as Error).message ||
+        'Requesting password reset failed, please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  return { handleRequestPasswordReset, loading, error };
+  return { handleRequestPasswordReset, loading, error }
 };

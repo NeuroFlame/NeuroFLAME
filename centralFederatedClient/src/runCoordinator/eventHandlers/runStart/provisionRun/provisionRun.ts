@@ -4,72 +4,70 @@ import { launchNode } from '../../../nodeManager/launchNode.js'
 import { prepareHostingDirectory } from './prepareHostingDirectory.js'
 
 interface provisionRunArgs {
-  image_name: string
+  imageName: string
   userIds: string[]
-  path_run: string
+  pathRun: string
   computationParameters: string
-  fed_learn_port: number
-  admin_port: number
+  fedLearnPort: number
+  adminPort: number
   FQDN: string
 }
 
 export async function provisionRun({
-  image_name,
+  imageName,
   userIds,
   computationParameters,
-  path_run,
-  fed_learn_port,
-  admin_port,
+  pathRun,
+  fedLearnPort,
+  adminPort,
   FQDN,
 }: provisionRunArgs) {
-  const path_hosting = path.join(path_run, 'hosting')
+  const pathHosting = path.join(pathRun, 'hosting')
 
-  await ensureDirectoryExists(path_run)
-  await ensureDirectoryExists(path_hosting)
+  await ensureDirectoryExists(pathRun)
+  await ensureDirectoryExists(pathHosting)
 
   // make the input
-  const provision_input = {
+  const provisionInput = {
     user_ids: userIds,
     computation_parameters: computationParameters,
-    fed_learn_port,
-    admin_port,
+    fed_learn_port: fedLearnPort,
+    admin_port: adminPort,
     host_identifier: FQDN,
   }
 
   // save the file
-  const path_provision_input = path.join(path_run, 'provision_input.json')
+  const pathProvisionInput = path.join(pathRun, 'provision_input.json')
   await fs.promises.writeFile(
-    path_provision_input,
-    JSON.stringify(provision_input, null, 2),
+    pathProvisionInput,
+    JSON.stringify(provisionInput, null, 2),
   )
-  
+
   // set proper permissions
-  await fs.promises.chmod(path_provision_input, 0o644)
+  await fs.promises.chmod(pathProvisionInput, 0o644)
 
   // wait for the file to be created
-  await new Promise(r => setTimeout(r, 1000))
+  await new Promise((resolve) => setTimeout(resolve, 1000))
 
   // launch the container and await its completion
   // throw errors appropriately here
   await new Promise((resolve, reject) => {
     launchNode({
       containerService: 'docker',
-      imageName: image_name,
+      imageName,
       directoriesToMount: [
-        { hostDirectory: path_run, containerDirectory: '/provisioning/' },
+        { hostDirectory: pathRun, containerDirectory: '/provisioning/' },
       ],
       portBindings: [],
-      commandsToRun: [`python`, `/workspace/system/entry_provision.py`],
-      onContainerExitSuccess: async (containerId) => {
-        return resolve(void 0)
-      },
+      commandsToRun: ['python', '/workspace/system/entry_provision.py'],
+      onContainerExitSuccess: async (containerId) => resolve(undefined),
     })
   })
 
-  const path_runKits = path.join(path_run, 'runKits')
+  const pathRunKits = path.join(pathRun, 'runKits')
   await prepareHostingDirectory({
-    sourceDir: path_runKits,
-    targetDir: path_hosting,
+    sourceDir: pathRunKits,
+    targetDir: pathHosting,
     exclude: ['centralNode'],
   })
 }
