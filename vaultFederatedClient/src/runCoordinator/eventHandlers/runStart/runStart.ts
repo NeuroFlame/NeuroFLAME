@@ -8,15 +8,16 @@ import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
 
 export const RUN_START_SUBSCRIPTION = `
-subscription runStartSubscription {
+  subscription runStartSubscription {
     runStartEdge {
-        consortiumId
-        runId
-        imageName
-        downloadUrl
-        downloadToken
+      consortiumId
+      runId
+      imageName
+      downloadUrl
+      downloadToken
     }
-}`
+  }
+`
 
 export const runStartHandler = {
   error: (err: any) =>

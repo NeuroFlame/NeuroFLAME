@@ -19,7 +19,6 @@ export function useComputationDetails() {
       const details = await getComputationDetails({
         computationId,
       } as QueryGetComputationDetailsArgs)
-      console.log(details)
       setComputationDetails(details) // Update the computation details state with fetched data
     } catch (err: any) {
       setError(err.message) // Handle any errors that occur during fetch

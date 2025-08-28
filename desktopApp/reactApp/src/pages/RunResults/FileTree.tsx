@@ -193,7 +193,6 @@ function RenderTree({
                     }
 
                     const fullUrl = `${edgeClientRunResultsUrl}/${file.url}?x-access-token=${accessToken}`
-                    console.log(fullUrl)
                     setFrameSrc(fullUrl)
                     setCurrentFile(file.name)
                   }}

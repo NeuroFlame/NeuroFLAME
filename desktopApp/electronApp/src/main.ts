@@ -211,13 +211,13 @@ ipcMain.handle('restartApp', () => {
 function showInitializationError(error: Error) {
   const errorMessage = `
     The application encountered an error during startup and may not function as expected.
-    
+
     Details:
     ${error.message}
-    
+
     Technical Information for Troubleshooting:
     ${error.stack || 'No stack trace available'}
-    
+
     Please contact support if the issue persists.
   `
 

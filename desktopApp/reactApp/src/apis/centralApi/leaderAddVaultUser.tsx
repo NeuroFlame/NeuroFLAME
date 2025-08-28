@@ -6,7 +6,7 @@ export const leaderAddVaultUser = async (
   input: MutationLeaderAddVaultUserArgs, // Use MutationLeaderAddVaultUserArgs type for input
 ): Promise<void> => {
   const LEADER_ADD_VAULT_USER_MUTATION = gql`
-    mutation leaderAddVaultUser($consortiumId: String!,  $userId: String!) {
+    mutation leaderAddVaultUser($consortiumId: String!, $userId: String!) {
       leaderAddVaultUser(consortiumId: $consortiumId, userId: $userId)
     }
   `

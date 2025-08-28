@@ -8,7 +8,6 @@ const interceptExternalLinks = () => {
 
       if (isExternalLink) {
         event.preventDefault()
-        console.log('External link clicked:', target.href)
 
         // Open external link in a new window with specified position and size
         window.open(

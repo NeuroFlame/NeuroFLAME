@@ -6,7 +6,7 @@ export const consortiumSetMemberActive = async (
   input: MutationConsortiumSetMemberActiveArgs, // Use MutationConsortiumSetMemberActiveArgs type for input
 ): Promise<void> => {
   const SET_MEMBER_ACTIVE_MUTATION = gql`
-    mutation consortiumSetMemberActive($consortiumId: String!,  $active: Boolean!) {
+    mutation consortiumSetMemberActive($consortiumId: String!, $active: Boolean!) {
       consortiumSetMemberActive(consortiumId: $consortiumId, active: $active)
     }
   `

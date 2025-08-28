@@ -6,7 +6,7 @@ export const consortiumSetMemberReady = async (
   input: MutationConsortiumSetMemberReadyArgs, // Use MutationConsortiumSetMemberReadyArgs type for input
 ): Promise<void> => {
   const SET_MEMBER_READY_MUTATION = gql`
-    mutation consortiumSetMemberReady($consortiumId: String!,  $ready: Boolean!) {
+    mutation consortiumSetMemberReady($consortiumId: String!, $ready: Boolean!) {
       consortiumSetMemberReady(consortiumId: $consortiumId, ready: $ready)
     }
   `

@@ -4,15 +4,16 @@ import startRun from './startRun.js'
 import { logger } from '../../../logger.js'
 
 export const RUN_START_SUBSCRIPTION = `
-subscription runStartSubscription {
+  subscription runStartSubscription {
     runStartCentral {
-        consortiumId
-        runId
-        userIds
-        computationParameters
-        imageName
+      consortiumId
+      runId
+      userIds
+      computationParameters
+      imageName
     }
-}`
+  }
+`
 
 export const runStartHandler = {
   error: (err: any) => {

@@ -52,7 +52,6 @@ export const useMembers = ({
     })
 
   const setMemberActive = async (memberId: string, isActive: boolean) => {
-    console.log(memberId, isActive)
     try {
       await consortiumSetMemberActive({ consortiumId, active: isActive })
       refetch()

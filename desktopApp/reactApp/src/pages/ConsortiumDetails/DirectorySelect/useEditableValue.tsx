@@ -38,7 +38,6 @@ export function useEditableValue({
 
   // Change the value (e.g., through text input)
   const changeValue = (newValue: string) => {
-    console.log('hello')
     setEditableValue(newValue)
   }
 

@@ -6,7 +6,7 @@ export const leaderRemoveMember = async (
   input: MutationLeaderRemoveMemberArgs, // Use MutationleaderRemoveMemberArgs type for input
 ): Promise<void> => {
   const LEADER_REMOVE_MEMBER_MUTATION = gql`
-    mutation leaderRemoveMember($consortiumId: String!,  $userId: String!) {
+    mutation leaderRemoveMember($consortiumId: String!, $userId: String!) {
       leaderRemoveMember(consortiumId: $consortiumId, userId: $userId)
     }
   `

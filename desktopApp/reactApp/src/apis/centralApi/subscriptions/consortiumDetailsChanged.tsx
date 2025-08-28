@@ -3,7 +3,7 @@ import { ApolloClient, gql, NormalizedCacheObject } from '@apollo/client'
 const CONSORTIUM_DETAILS_CHANGED = gql`
   subscription OnConsortiumDetailsChanged($consortiumId: String!) {
     consortiumDetailsChanged(consortiumId: $consortiumId)
-    }
+  }
 `
 
 export function consortiumDetailsChanged(
