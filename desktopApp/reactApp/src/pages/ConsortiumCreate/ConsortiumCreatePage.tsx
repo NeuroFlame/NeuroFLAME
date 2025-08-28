@@ -40,11 +40,19 @@ export default function ConsortiumCreate() {
   return (
     <Container maxWidth='lg'>
       <Box marginTop={4} marginBottom={2}>
-        <Box display='flex' flexDirection='row' justifyContent='space-between' marginBottom={2}>
+        <Box
+          display='flex'
+          flexDirection='row'
+          justifyContent='space-between'
+          marginBottom={2}
+        >
           <Typography variant='h4' align='left'>
             Create New Consortium
           </Typography>
-          <Button variant='outlined' onClick={() => navigate('/consortium/list')}>
+          <Button
+            variant='outlined'
+            onClick={() => navigate('/consortium/list')}
+          >
             Back to Consortium List
           </Button>
         </Box>
@@ -64,11 +72,20 @@ export default function ConsortiumCreate() {
             onChange={(e) => setDescription(e.target.value)}
           />
           <Box marginTop={2} display='flex' gap={2} alignItems='center'>
-            <Button variant='contained' onClick={createAndWizard} disabled={loading} color='success'>
+            <Button
+              variant='contained'
+              onClick={createAndWizard}
+              disabled={loading}
+              color='success'
+            >
               {loading ? 'Creating...' : 'Create and Use Wizard'}
             </Button>
             <Typography>or</Typography>
-            <Button variant='contained' onClick={createAndDetails} disabled={loading}>
+            <Button
+              variant='contained'
+              onClick={createAndDetails}
+              disabled={loading}
+            >
               {loading ? 'Creating...' : 'Create and View Detail'}
             </Button>
           </Box>

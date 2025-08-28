@@ -11,9 +11,20 @@ interface UseMembersProps {
   leader: PublicUser;
 }
 
-export const useMembers = ({ members, activeMembers, readyMembers, leader }: UseMembersProps) => {
+export const useMembers = ({
+  members,
+  activeMembers,
+  readyMembers,
+  leader,
+}: UseMembersProps) => {
   const { userId } = useUserState()
-  const { consortiumSetMemberActive, consortiumSetMemberReady, consortiumLeave, leaderSetMemberInactive, leaderRemoveMember } = useCentralApi()
+  const {
+    consortiumSetMemberActive,
+    consortiumSetMemberReady,
+    consortiumLeave,
+    leaderSetMemberInactive,
+    leaderRemoveMember,
+  } = useCentralApi()
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
   const { refetch } = useConsortiumDetailsContext()
   const navigate = useNavigate()

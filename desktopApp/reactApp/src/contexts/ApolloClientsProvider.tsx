@@ -60,7 +60,9 @@ const ApolloClientsProvider: React.FC<Props> = ({ children, config }) => {
   }
 
   return (
-    <ApolloClientsContext.Provider value={{ centralApiApolloClient, edgeClientApolloClient }}>
+    <ApolloClientsContext.Provider
+      value={{ centralApiApolloClient, edgeClientApolloClient }}
+    >
       {children}
     </ApolloClientsContext.Provider>
   )

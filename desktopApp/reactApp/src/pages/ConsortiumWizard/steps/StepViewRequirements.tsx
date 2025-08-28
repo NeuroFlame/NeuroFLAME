@@ -10,7 +10,8 @@ export default function StepViewRequirements() {
   return (
     <>
       <Box style={{ margin: '1rem 0', color: 'red' }}>
-        Before you begin, please review both the Leader and Computation Notes for this Consortium and set up your data accordingly.
+        Before you begin, please review both the Leader and{' '}
+        Computation Notes for this Consortium and set up your data accordingly.
       </Box>
       <Box
         sx={{
@@ -24,7 +25,9 @@ export default function StepViewRequirements() {
         <Grid container spacing={2}>
           <Grid item xs={6}>
             {/* Wrapping ComputationDisplay with Box to control overflow */}
-            <Typography variant='h6' style={{ margin: '1rem 2rem 0' }}>Computation Notes</Typography>
+            <Typography variant='h6' style={{ margin: '1rem 2rem 0' }}>
+              Computation Notes
+            </Typography>
             <Box sx={{
               height: 'calc(100vh - 26rem)',  // Limit height to keep within view
               overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
@@ -35,17 +38,22 @@ export default function StepViewRequirements() {
               <ComputationDisplay notesHeading={false} />
             </Box>
           </Grid>
-          {consortiumLeaderNotes && <Grid item xs={6}>
-            <Box sx={{
-              height: 'calc(100vh - 26rem)',  // Limit height to keep within view
-              overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
-              padding: '0 1rem 6rem',
-              boxSizing: 'border-box',
-            }}
-            >
-              <ConsortiumLeaderNotes consortiumLeaderNotes={consortiumLeaderNotes} showAccordion={false} />
-            </Box>
-          </Grid>}
+          {consortiumLeaderNotes && (
+            <Grid item xs={6}>
+              <Box sx={{
+                height: 'calc(100vh - 26rem)',  // Limit height to keep within view
+                overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
+                padding: '0 1rem 6rem',
+                boxSizing: 'border-box',
+              }}
+              >
+                <ConsortiumLeaderNotes
+                  consortiumLeaderNotes={consortiumLeaderNotes}
+                  showAccordion={false}
+                />
+              </Box>
+            </Grid>
+          )}
         </Grid>
       </Box>
     </>

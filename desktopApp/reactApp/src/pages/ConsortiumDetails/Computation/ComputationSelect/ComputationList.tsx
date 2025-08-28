@@ -1,5 +1,7 @@
 import React from 'react'
-import { ComputationListItem } from '../../../../apis/centralApi/generated/graphql'
+import {
+  ComputationListItem,
+} from '../../../../apis/centralApi/generated/graphql'
 import { List, ListItem, ListItemText, Button } from '@mui/material'
 
 interface ComputationListProps {
@@ -7,10 +9,17 @@ interface ComputationListProps {
   onSelect: (computationId: string) => void;
 }
 
-const ComputationList: React.FC<ComputationListProps> = ({ computations, onSelect }) => (
+const ComputationList: React.FC<ComputationListProps> = ({
+  computations,
+  onSelect,
+}) => (
   <List>
     {computations.map((computation) => (
-      <ListItem key={computation.id} divider sx={{ display: 'flex', justifyContent: 'space-between' }}>
+      <ListItem
+        key={computation.id}
+        divider
+        sx={{ display: 'flex', justifyContent: 'space-between' }}
+      >
         <ListItemText
           sx={{ maxWidth: '400px' }}
           primary={computation.title}

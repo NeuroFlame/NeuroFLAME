@@ -4,7 +4,10 @@ import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { useNavigate } from 'react-router-dom'
 
 export function useLatestRun(consortiumId: string) {
-  const { getRunList, subscriptions: { consortiumLatestRunChanged } } = useCentralApi()
+  const {
+    getRunList,
+    subscriptions: { consortiumLatestRunChanged },
+  } = useCentralApi()
   const [latestRun, setLatestRun] = useState<RunListItem | null>(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -14,7 +17,9 @@ export function useLatestRun(consortiumId: string) {
     const runList = await getRunList({ consortiumId })
 
     // Sort the run list by `createdAt` in descending order and set the latest one
-    const sortedRunList = runList.sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
+    const sortedRunList = runList.sort(
+      (a, b) => Number(b.createdAt) - Number(a.createdAt),
+    )
     setLatestRun(sortedRunList[0] || null) // Set the latest run, or `null` if no runs exist
     setLoading(false)
   }
@@ -33,11 +38,12 @@ export function useLatestRun(consortiumId: string) {
 
   useEffect(() => {
     fetchRunList()
-    const subscription = consortiumLatestRunChanged({ consortiumId }).subscribe({
-      next: () => {
-        fetchRunList() // Refetch on updates
-      },
-    })
+    const subscription = consortiumLatestRunChanged({ consortiumId })
+      .subscribe({
+        next: () => {
+          fetchRunList() // Refetch on updates
+        },
+      })
     return () => {
       subscription.unsubscribe()
     }

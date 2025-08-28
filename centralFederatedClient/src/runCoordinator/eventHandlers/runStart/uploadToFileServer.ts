@@ -116,6 +116,7 @@ export async function zipDirectory(
   sourceDir: string,
   outPath: string,
 ): Promise<void> {
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const outputDir = path.dirname(outPath)
     try {

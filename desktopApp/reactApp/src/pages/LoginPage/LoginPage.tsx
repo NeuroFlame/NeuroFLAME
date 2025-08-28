@@ -11,7 +11,10 @@ import logo from '../../assets/neuroflame-logo.png'
 
 const LoginPage: React.FC = () => {
   const { isLoggedIn, logout } = useLoginPage() // Assuming logout is provided by useLoginPage
-  const [formType, setFormType] = useState<'login' | 'createUser' | 'resetPassword'>('login')
+  const [
+    formType,
+    setFormType,
+  ] = useState<'login' | 'createUser' | 'resetPassword'>('login')
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [userCreated, setUserCreated] = useState(false)
   const navigate = useNavigate()
@@ -59,19 +62,30 @@ const LoginPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 'xs' }}>
-        {userCreated && <Alert severity='success' style={{ marginBottom: '1rem' }}>New user successfully created. Log In below.</Alert>}
+        {userCreated && (
+          <Alert
+            severity='success'
+            style={{ marginBottom: '1rem' }}
+          >
+            New user successfully created. Log In below.
+          </Alert>
+        )}
 
         {!isLoggedIn ? (
           <>
             {formType === 'login' && <Login />}
-            {formType === 'createUser' && <CreateUser userCreated={handleUserCreated} />}
+            {formType === 'createUser' && (
+              <CreateUser userCreated={handleUserCreated} />
+            )}
             {formType === 'resetPassword' && <ResetPasswordFlow />}
 
             <Button
               variant='text'
               color='primary'
               fullWidth
-              onClick={() => setFormType(formType === 'createUser' ? 'login' : 'createUser')}
+              onClick={() => setFormType(
+                formType === 'createUser' ? 'login' : 'createUser',
+              )}
               sx={{ mt: 2 }}
             >
               {formType === 'createUser' ? 'Back to Login' : 'Create User'}
@@ -81,9 +95,13 @@ const LoginPage: React.FC = () => {
               variant='text'
               color='primary'
               fullWidth
-              onClick={() => setFormType(formType === 'resetPassword' ? 'login' : 'resetPassword')}
+              onClick={() => setFormType(
+                formType === 'resetPassword' ? 'login' : 'resetPassword',
+              )}
             >
-              {formType === 'resetPassword' ? 'Back to Login' : 'Reset Password'}
+              {formType === 'resetPassword'
+                ? 'Back to Login'
+                : 'Reset Password'}
             </Button>
           </>
         ) : (

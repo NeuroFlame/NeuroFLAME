@@ -8,13 +8,45 @@ export default function StepDownloadImage() {
   const selectedComputation = consortiumDetails?.studyConfiguration?.computation
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'row', width: '100%', alignItems: 'top' }}>
-      <Box style={{ maxWidth: '400px', border: '1px solid #eee', marginBottom: '1rem' }}>
+    <Box
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        width: '100%',
+        alignItems: 'top',
+      }}
+    >
+      <Box
+        style={{
+          maxWidth: '400px',
+          border: '1px solid #eee',
+          marginBottom: '1rem',
+        }}
+      >
         <Computation computation={selectedComputation} />
       </Box>
-      <Box style={{ maxWidth: '400px', marginBottom: '1rem', padding: '1rem', display: 'flex', flexDirection: 'row', width: '100%', alignItems: 'center' }}>
+      <Box
+        style={{
+          maxWidth: '400px',
+          marginBottom: '1rem',
+          padding: '1rem',
+          display: 'flex',
+          flexDirection: 'row',
+          width: '100%',
+          alignItems: 'center',
+        }}
+      >
         <div style={{ position: 'relative', width: '225px', height: '100px' }}>
-          <img src={ArrowDown} style={{ width: '100px', rotate: '20deg', position: 'absolute', top: '0', left: '-1rem' }} />
+          <img
+            src={ArrowDown}
+            style={{
+              width: '100px',
+              rotate: '20deg',
+              position: 'absolute',
+              top: '0',
+              left: '-1rem',
+            }}
+          />
         </div>
         <div style={{ fontWeight: 'bold' }}>
           <h3 style={{ color: 'red' }}>To download the Computation Image:</h3>

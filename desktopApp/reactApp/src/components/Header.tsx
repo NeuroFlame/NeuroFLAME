@@ -21,16 +21,13 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
   return (
     <>
       <AppBar position='sticky'>
-
         <Toolbar
           sx={{
             pr: '24px', // keep right padding when drawer closed
             backgroundColor: '#001f70',
           }}
         >
-          <Typography
-            sx={{ flexGrow: 1 }}
-          >
+          <Typography sx={{ flexGrow: 1 }}>
             {location.pathname}
           </Typography>
           <img
@@ -65,7 +62,11 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
           </IconButton>
         </Toolbar>
       </AppBar>
-      <NavDrawer open={drawerOpen} onClose={() => toggleDrawer(false)} navSetDrawerOpen={setDrawerOpen} />
+      <NavDrawer
+        open={drawerOpen}
+        onClose={() => toggleDrawer(false)}
+        navSetDrawerOpen={setDrawerOpen}
+      />
     </>
   )
 }

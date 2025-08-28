@@ -1,6 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
-import { PublicUser, StudyConfiguration } from '../../apis/centralApi/generated/graphql'
+import {
+  PublicUser,
+  StudyConfiguration,
+} from '../../apis/centralApi/generated/graphql'
 import { useParams } from 'react-router-dom'
 import { useUserState } from '../../contexts/UserStateContext'
 
@@ -25,7 +35,8 @@ interface ConsortiumDetailsContextType {
 }
 
 // Create the context
-const ConsortiumDetailsContext = createContext<ConsortiumDetailsContextType | undefined>(undefined)
+const ConsortiumDetailsContext =
+  createContext<ConsortiumDetailsContextType | undefined>(undefined)
 
 // Custom hook to use the context
 export const useConsortiumDetailsContext = () => {
@@ -41,13 +52,23 @@ interface ConsortiumDetailsProviderProps {
   children: ReactNode;
 }
 
-export const ConsortiumDetailsProvider: React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
-  const { getConsortiumDetails, consortiumDelete, subscriptions: { consortiumDetailsChanged } } = useCentralApi()
+export const ConsortiumDetailsProvider:
+React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
+  const {
+    getConsortiumDetails,
+    consortiumDelete,
+    subscriptions: {
+      consortiumDetailsChanged,
+    },
+  } = useCentralApi()
   const { consortiumId } = useParams<{ consortiumId: string }>()
   const { userId } = useUserState()
 
   // State Variables
-  const [studyConfiguration, setStudyConfiguration] = useState<StudyConfiguration>()
+  const [
+    studyConfiguration,
+    setStudyConfiguration,
+  ] = useState<StudyConfiguration>()
   const [members, setMembers] = useState<PublicUser[]>([])
   const [activeMembers, setActiveMembers] = useState<PublicUser[]>([])
   const [readyMembers, setReadyMembers] = useState<PublicUser[]>([])
@@ -86,11 +107,12 @@ export const ConsortiumDetailsProvider: React.FC<ConsortiumDetailsProviderProps>
   useEffect(() => {
     if (consortiumId) {
       fetchConsortiumDetails()
-      const subscription = consortiumDetailsChanged({ consortiumId }).subscribe({
-        next: () => {
-          fetchConsortiumDetails()
-        },
-      })
+      const subscription = consortiumDetailsChanged({ consortiumId })
+        .subscribe({
+          next: () => {
+            fetchConsortiumDetails()
+          },
+        })
       return () => {
         subscription.unsubscribe()
       }

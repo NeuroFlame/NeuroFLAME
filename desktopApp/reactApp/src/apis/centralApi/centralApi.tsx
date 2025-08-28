@@ -78,39 +78,68 @@ export const useCentralApi = () => {
     // Existing methods
     getConsortiumList: () => getConsortiumList(centralApiApolloClient),
     getComputationList: () => getComputationList(centralApiApolloClient),
-    getConsortiumDetails: (input: QueryGetConsortiumDetailsArgs) => getConsortiumDetails(centralApiApolloClient, input),
-    getRunDetails: (input: QueryGetRunDetailsArgs) => getRunDetails(centralApiApolloClient, input),
+    getConsortiumDetails: (input: QueryGetConsortiumDetailsArgs) =>
+      getConsortiumDetails(centralApiApolloClient, input),
+    getRunDetails: (input: QueryGetRunDetailsArgs) =>
+      getRunDetails(centralApiApolloClient, input),
     login: (input: MutationLoginArgs) => login(centralApiApolloClient, input),
-    studySetParameters: (input: MutationStudySetParametersArgs) => studySetParameters(centralApiApolloClient, input),
-    studySetComputation: (input: MutationStudySetComputationArgs) => studySetComputation(centralApiApolloClient, input),
-    consortiumSetMemberActive: (input: MutationConsortiumSetMemberActiveArgs) => consortiumSetMemberActive(centralApiApolloClient, input),
-    consortiumSetMemberReady: (input: MutationConsortiumSetMemberReadyArgs) => consortiumSetMemberReady(centralApiApolloClient, input),
-    startRun: (input: MutationStartRunArgs) => startRun(centralApiApolloClient, input),
-    studySetNotes: (input: MutationStudySetNotesArgs) => studySetNotes(centralApiApolloClient, input),
-    getRunList: (input: QueryGetRunListArgs) => getRunList(centralApiApolloClient, input),
-    adminChangeUserPassword: (input: MutationAdminChangeUserPasswordArgs) => adminChangeUserPassword(centralApiApolloClient, input),
-    adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) => adminChangeUserRoles(centralApiApolloClient, input),
-    computationCreate: (input: MutationComputationCreateArgs) => computationCreate(centralApiApolloClient, input),
-    computationEdit: (input: MutationComputationEditArgs) => computationEdit(centralApiApolloClient, input),
-    consortiumCreate: (input: MutationConsortiumCreateArgs) => consortiumCreate(centralApiApolloClient, input),
-    consortiumEdit: (input: MutationConsortiumEditArgs) => consortiumEdit(centralApiApolloClient, input),
-    consortiumDelete: (input: MutationConsortiumDeleteArgs) => consortiumDelete(centralApiApolloClient, input),
-    consortiumJoin: (input: MutationConsortiumJoinArgs) => consortiumJoin(centralApiApolloClient, input),
-    consortiumLeave: (input: MutationConsortiumLeaveArgs) => consortiumLeave(centralApiApolloClient, input),
-    userChangePassword: (input: MutationUserChangePasswordArgs) => userChangePassword(centralApiApolloClient, input),
-    userCreate: (input: MutationUserCreateArgs) => userCreate(centralApiApolloClient, input),
-    getComputationDetails: (input: QueryGetComputationDetailsArgs) => getComputationDetails(centralApiApolloClient, input),
+    studySetParameters: (input: MutationStudySetParametersArgs) =>
+      studySetParameters(centralApiApolloClient, input),
+    studySetComputation: (input: MutationStudySetComputationArgs) =>
+      studySetComputation(centralApiApolloClient, input),
+    consortiumSetMemberActive: (input: MutationConsortiumSetMemberActiveArgs) =>
+      consortiumSetMemberActive(centralApiApolloClient, input),
+    consortiumSetMemberReady: (input: MutationConsortiumSetMemberReadyArgs) =>
+      consortiumSetMemberReady(centralApiApolloClient, input),
+    startRun: (input: MutationStartRunArgs) =>
+      startRun(centralApiApolloClient, input),
+    studySetNotes: (input: MutationStudySetNotesArgs) =>
+      studySetNotes(centralApiApolloClient, input),
+    getRunList: (input: QueryGetRunListArgs) =>
+      getRunList(centralApiApolloClient, input),
+    adminChangeUserPassword: (input: MutationAdminChangeUserPasswordArgs) =>
+      adminChangeUserPassword(centralApiApolloClient, input),
+    adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) =>
+      adminChangeUserRoles(centralApiApolloClient, input),
+    computationCreate: (input: MutationComputationCreateArgs) =>
+      computationCreate(centralApiApolloClient, input),
+    computationEdit: (input: MutationComputationEditArgs) =>
+      computationEdit(centralApiApolloClient, input),
+    consortiumCreate: (input: MutationConsortiumCreateArgs) =>
+      consortiumCreate(centralApiApolloClient, input),
+    consortiumEdit: (input: MutationConsortiumEditArgs) =>
+      consortiumEdit(centralApiApolloClient, input),
+    consortiumDelete: (input: MutationConsortiumDeleteArgs) =>
+      consortiumDelete(centralApiApolloClient, input),
+    consortiumJoin: (input: MutationConsortiumJoinArgs) =>
+      consortiumJoin(centralApiApolloClient, input),
+    consortiumLeave: (input: MutationConsortiumLeaveArgs) =>
+      consortiumLeave(centralApiApolloClient, input),
+    userChangePassword: (input: MutationUserChangePasswordArgs) =>
+      userChangePassword(centralApiApolloClient, input),
+    userCreate: (input: MutationUserCreateArgs) =>
+      userCreate(centralApiApolloClient, input),
+    getComputationDetails: (input: QueryGetComputationDetailsArgs) =>
+      getComputationDetails(centralApiApolloClient, input),
     getVaultUserList: () => getVaultUserList(centralApiApolloClient),
-    leaderAddVaultUser: (input: MutationLeaderAddVaultUserArgs) => leaderAddVaultUser(centralApiApolloClient, input),
-    leaderRemoveMember: (input: MutationLeaderRemoveMemberArgs) => leaderRemoveMember(centralApiApolloClient, input),
-    leaderSetMemberInactive: (input: MutationLeaderSetMemberInactiveArgs) => leaderSetMemberInactive(centralApiApolloClient, input),
-    requestPasswordReset: (input: MutationRequestPasswordResetArgs) => requestPasswordReset(centralApiApolloClient, input),
-    resetPassword: (input: MutationResetPasswordArgs) => resetPassword(centralApiApolloClient, input),
+    leaderAddVaultUser: (input: MutationLeaderAddVaultUserArgs) =>
+      leaderAddVaultUser(centralApiApolloClient, input),
+    leaderRemoveMember: (input: MutationLeaderRemoveMemberArgs) =>
+      leaderRemoveMember(centralApiApolloClient, input),
+    leaderSetMemberInactive: (input: MutationLeaderSetMemberInactiveArgs) =>
+      leaderSetMemberInactive(centralApiApolloClient, input),
+    requestPasswordReset: (input: MutationRequestPasswordResetArgs) =>
+      requestPasswordReset(centralApiApolloClient, input),
+    resetPassword: (input: MutationResetPasswordArgs) =>
+      resetPassword(centralApiApolloClient, input),
 
     subscriptions: {
-      consortiumDetailsChanged: (input: { consortiumId: string }) => consortiumDetailsChanged(centralApiApolloClient, input),
-      consortiumLatestRunChanged: (input: { consortiumId: string }) => consortiumLatestRunChanged(centralApiApolloClient, input),
-      runDetailsChanged: (input: { runId: string }) => runDetailsChanged(centralApiApolloClient, input),
+      consortiumDetailsChanged: (input: { consortiumId: string }) =>
+        consortiumDetailsChanged(centralApiApolloClient, input),
+      consortiumLatestRunChanged: (input: { consortiumId: string }) =>
+        consortiumLatestRunChanged(centralApiApolloClient, input),
+      runDetailsChanged: (input: { runId: string }) =>
+        runDetailsChanged(centralApiApolloClient, input),
     },
   }
 }

@@ -5,7 +5,9 @@ interface MemberLeadButtonProps {
   handleLeave: () => void;
 }
 
-const MemberLeaveButton: React.FC<MemberLeadButtonProps> = ({ handleLeave }) => (
+const MemberLeaveButton: React.FC<MemberLeadButtonProps> = ({
+  handleLeave,
+}) => (
   <Button
     variant='outlined'
     onClick={handleLeave}

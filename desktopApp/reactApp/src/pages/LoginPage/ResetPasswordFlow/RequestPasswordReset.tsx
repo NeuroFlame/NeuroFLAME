@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useRequestPasswordReset } from './useRequestPasswordReset'
 
-export function RequestPasswordReset({ onChangeFormType }: { onChangeFormType: () => void }) {
-  const { handleRequestPasswordReset, loading, error } = useRequestPasswordReset(onChangeFormType)
+export function RequestPasswordReset({
+  onChangeFormType,
+}: { onChangeFormType: () => void }) {
+  const {
+    handleRequestPasswordReset,
+    loading,
+    error,
+  } = useRequestPasswordReset(onChangeFormType)
   const [username, setUsername] = useState('')
 
   useEffect(() => {
@@ -54,7 +60,14 @@ export function RequestPasswordReset({ onChangeFormType }: { onChangeFormType: (
         >
           {loading ? <CircularProgress size={24} /> : 'Send token'}
         </Button>
-        <Button variant='text' color='primary' fullWidth onClick={onChangeFormType}>I already have a token</Button>
+        <Button
+          variant='text'
+          color='primary'
+          fullWidth
+          onClick={onChangeFormType}
+        >
+          I already have a token
+        </Button>
       </Box>
     </Box>
   )

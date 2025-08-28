@@ -49,8 +49,14 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
         animation: 'fadeIn 2s',
       }}
     >
-      <Tooltip title={showId ? 'Click to hide User ID' : 'Click to reveal User ID'}>
-        <UserAvatar index={index} onClick={() => setShowId(!showId)} style={{ cursor: 'pointer' }}>
+      <Tooltip
+        title={showId ? 'Click to hide User ID' : 'Click to reveal User ID'}
+      >
+        <UserAvatar
+          index={index}
+          onClick={() => setShowId(!showId)}
+          style={{ cursor: 'pointer' }}
+        >
           <span
             style={{
               position: 'absolute',
@@ -65,7 +71,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
         </UserAvatar>
       </Tooltip>
       <span className='username' style={{ color: '#000' }}>{username}</span>
-      {showId &&
+      {showId && (
         <span
           className='username'
           style={{
@@ -76,7 +82,8 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
           }}
         >
           {id}
-        </span>}
+        </span>
+      )}
     </Box>
   )
 }

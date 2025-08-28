@@ -9,9 +9,12 @@ import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '')
 
-const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({ notesHeading }) => {
+const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({
+  notesHeading,
+}) => {
   const { data: consortiumDetails } = useConsortiumDetailsContext()
-  const computation = consortiumDetails?.studyConfiguration?.computation as Maybe<Computation>
+  const computation =
+    consortiumDetails?.studyConfiguration?.computation as Maybe<Computation>
 
   if (!computation) {
     return (
@@ -33,7 +36,10 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({ notesHeading 
       th: ({ children, ...props }) => {
         const text =
           Array.isArray(children)
-            ? children.map((c) => (typeof c === 'string' ? c : '')).join('').trim()
+            ? children
+              .map((c) => (typeof c === 'string' ? c : ''))
+              .join('')
+              .trim()
             : typeof children === 'string'
               ? children.trim()
               : ''
@@ -62,7 +68,9 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({ notesHeading 
       const headerRow = table.querySelector('thead tr')
       if (!headerRow) return
 
-      const ths = Array.from(headerRow.querySelectorAll<HTMLTableCellElement>('th'))
+      const ths = Array.from(
+        headerRow.querySelectorAll<HTMLTableCellElement>('th'),
+      )
       const headerSlugs = ths.map((th) => th.getAttribute('data-col') || '')
 
       Array.from(table.querySelectorAll('tbody tr')).forEach((tr) => {
@@ -84,7 +92,9 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({ notesHeading 
     >
       <div id='compnotes' />{/* For Notes anchor placement at 800px wide */}
       <CardContent>
-        {notesHeading && <Typography fontSize='11px'>Computation Notes:</Typography>}
+        {notesHeading && (
+          <Typography fontSize='11px'>Computation Notes:</Typography>
+        )}
         <Typography variant='h5' fontWeight='600' color='black'>
           {title}
         </Typography>

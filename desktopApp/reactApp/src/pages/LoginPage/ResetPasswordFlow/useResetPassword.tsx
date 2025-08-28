@@ -23,7 +23,8 @@ export function useResetPassword() {
       await connectAsUser()
       navigate('/home')
     } catch (err) {
-      setError((err as Error).message || 'Resetting password failed, please try again.')
+      setError((err as Error).message ||
+        'Resetting password failed, please try again.')
     } finally {
       setLoading(false)
     }

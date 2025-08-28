@@ -32,7 +32,11 @@ export function useDirectorySelect() {
   // Trigger the Electron directory picker
   const openDirectoryDialogHandler = async () => {
     try {
-      const { canceled, error, directoryPath } = await openDirectoryDialog(editableValue)
+      const {
+        canceled,
+        error,
+        directoryPath,
+      } = await openDirectoryDialog(editableValue)
       if (!canceled && !error && directoryPath) {
         changeValue(directoryPath) // Use updateDirectory to set the new value
       }

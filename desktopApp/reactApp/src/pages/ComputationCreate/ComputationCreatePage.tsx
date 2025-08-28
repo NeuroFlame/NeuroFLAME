@@ -40,11 +40,19 @@ export default function ComputationCreatePage() {
   return (
     <Container maxWidth='lg'>
       <Box marginTop={4} marginBottom={2}>
-        <Box display='flex' flexDirection='row' justifyContent='space-between' marginBottom={2}>
+        <Box
+          display='flex'
+          flexDirection='row'
+          justifyContent='space-between'
+          marginBottom={2}
+        >
           <Typography variant='h4' align='left'>
             Create New Computation
           </Typography>
-          <Button variant='outlined' onClick={() => navigate('/Computation/list')}>
+          <Button
+            variant='outlined'
+            onClick={() => navigate('/Computation/list')}
+          >
             Back to Computation List
           </Button>
         </Box>
@@ -78,7 +86,12 @@ export default function ComputationCreatePage() {
             onChange={(e) => setNotes(e.target.value)}
           />
           <Box display='flex' gap={2} alignItems='center'>
-            <Button variant='contained' onClick={createAndList} disabled={loading} color='success'>
+            <Button
+              variant='contained'
+              onClick={createAndList}
+              disabled={loading}
+              color='success'
+            >
               {loading ? 'Saving...' : 'Save'}
             </Button>
           </Box>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { File, Group, Dataset, h5wasm, FS } from 'h5wasm'
 
 interface MatViewerProps {
@@ -59,7 +59,10 @@ export default function MatViewer({ fileUrl }: MatViewerProps) {
 
   const isObjectOrArray = (val: any) => val && typeof val === 'object'
 
-  const extractGroup = async (group: Group, basePath = '/'): Promise<TreeNode[]> => {
+  const extractGroup = async (
+    group: Group,
+    basePath = '/',
+  ): Promise<TreeNode[]> => {
     const keys = group.keys()
     const result: TreeNode[] = []
 
@@ -122,7 +125,12 @@ export default function MatViewer({ fileUrl }: MatViewerProps) {
     if (ArrayBuffer.isView(val)) {
       const decoded = decodeTypedArray(val)
       if (typeof decoded === 'string') {
-        return [{ path: basePath, key: '0', value: decoded, isExpandable: false }]
+        return [{
+          path: basePath,
+          key: '0',
+          value: decoded,
+          isExpandable: false,
+        }]
       } else {
         decoded.forEach((v: number, i: number) => {
           children.push({ path: `${basePath}[${i}]`, key: `${i}`, value: v, isExpandable: false })
@@ -190,25 +198,31 @@ export default function MatViewer({ fileUrl }: MatViewerProps) {
       {nodes.map((node) => (
         <li key={node.path}>
           <div
-            style={{ cursor: node.isExpandable ? 'pointer' : 'default', userSelect: 'none' }}
+            style={{
+              cursor: node.isExpandable ? 'pointer' : 'default',
+              userSelect: 'none',
+            }}
             onClick={() => node.isExpandable && toggleExpand(node)}
           >
-            {node.isExpandable ? (node.expanded ? '▼' : '▶') : '•'} <strong>{node.key}</strong>: {
-                (() => {
-                  if (loadingKeys.has(node.path)) return '⏳ Loading...'
-                  const val = node.value
-                  if (val === null) return 'null'
-                  if (typeof val === 'string') return `"${val}"`
-                  if (Array.isArray(val)) return `[Array (${val.length})]`
-                  if (typeof val === 'object') {
-                    if ('ref_data' in val) return '[RefObject]'
-                    return '[Object]'
-                  }
-                  return String(val)
-                })()
-              }
+            {node.isExpandable ? (node.expanded ? '▼' : '▶') : '•'}{' '}
+            <strong>{node.key}</strong>: {
+              (() => {
+                if (loadingKeys.has(node.path)) return '⏳ Loading...'
+                const val = node.value
+                if (val === null) return 'null'
+                if (typeof val === 'string') return `"${val}"`
+                if (Array.isArray(val)) return `[Array (${val.length})]`
+                if (typeof val === 'object') {
+                  if ('ref_data' in val) return '[RefObject]'
+                  return '[Object]'
+                }
+                return String(val)
+              })()
+            }
           </div>
-          {node.expanded && node.children && renderTree(node.children, depth + 1)}
+          {node.expanded &&
+            node.children &&
+              renderTree(node.children, depth + 1)}
         </li>
       ))}
     </ul>
@@ -216,7 +230,9 @@ export default function MatViewer({ fileUrl }: MatViewerProps) {
 
   return (
     <div style={{ background: '#f8f8f8', padding: '1rem' }}>
-      {error ? <div style={{ color: 'red' }}>{error}</div> : treeData ? renderTree(treeData) : 'Loading .mat file...'}
+      {error ? (
+        <div style={{ color: 'red' }}>{error}</div>
+      ) : treeData ? renderTree(treeData) : 'Loading .mat file...'}
     </div>
   )
 };

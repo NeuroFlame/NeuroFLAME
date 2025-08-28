@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Grid from '@mui/material/Grid2'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent,
@@ -9,7 +9,10 @@ import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
 import DirectorySelect from './DirectorySelect/DirectorySelect'
 import { useUserState } from '../../contexts/UserStateContext'
 import StartRunButton from './StartRunButton/StartRunButton'
-import { ConsortiumDetailsProvider, useConsortiumDetailsContext } from './ConsortiumDetailsContext'
+import {
+  ConsortiumDetailsProvider,
+  useConsortiumDetailsContext,
+} from './ConsortiumDetailsContext'
 import { LatestRun } from './LatestRun/LatestRun'
 import ComputationDisplay from './ComputationDisplay/ComputationDisplay'
 import ConsortiumLeaderNotes from './ConsortiumLeaderNotes/ConsortiumLeaderNotes'
@@ -36,10 +39,13 @@ function ConsortiumDeleteModal({
 }) {
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Are you sure you want to delete this consortium?</DialogTitle>
+      <DialogTitle>
+        Are you sure you want to delete this consortium?
+      </DialogTitle>
       <DialogContent>
         <Typography mb={2}>
-          This action is irreversible. Please type <strong>{consortiumName}</strong> to confirm deletion.
+          This action is irreversible.{' '}
+          Please type <strong>{consortiumName}</strong> to confirm deletion.
         </Typography>
         <TextField
           fullWidth
@@ -67,7 +73,19 @@ function ConsortiumDeleteModal({
 
 export function ConsortiumDetailsPage() {
   const { consortiumId } = useParams<{ consortiumId: string }>()
-  const { data: { studyConfiguration, members, activeMembers, readyMembers, leader, title, description }, deleteConsortium, isLeader } = useConsortiumDetailsContext()
+  const {
+    data: {
+      studyConfiguration,
+      members,
+      activeMembers,
+      readyMembers,
+      leader,
+      title,
+      description,
+    },
+    deleteConsortium,
+    isLeader,
+  } = useConsortiumDetailsContext()
   const { userId } = useUserState()
   const navigate = useNavigate()
 

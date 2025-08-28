@@ -1,5 +1,5 @@
 // ChangePassword.tsx
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useChangePassword } from './useChangePassword'
 

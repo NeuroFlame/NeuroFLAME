@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useComputationDetails } from './useComputationDetails'
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown, { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
@@ -37,7 +37,10 @@ export default function ComputationDetails() {
       // derive a stable slug from header text
       const text =
         Array.isArray(children)
-          ? children.map((c) => (typeof c === 'string' ? c : '')).join('').trim()
+          ? children
+            .map((c) => (typeof c === 'string' ? c : ''))
+            .join('')
+            .trim()
           : typeof children === 'string'
             ? children.trim()
             : ''
@@ -109,7 +112,12 @@ export default function ComputationDetails() {
               {computationDetails.imageName}
             </Typography>
 
-            <Box mt={2} display='flex' flexDirection='column' alignItems='flex-start'>
+            <Box
+              mt={2}
+              display='flex'
+              flexDirection='column'
+              alignItems='flex-start'
+            >
               <Typography>Image Download:</Typography>
               <Box display='flex' alignItems='center' mb='1rem' width='100%'>
                 <Typography

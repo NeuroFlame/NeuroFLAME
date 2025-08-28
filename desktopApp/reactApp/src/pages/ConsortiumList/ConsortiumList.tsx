@@ -1,7 +1,15 @@
 import React from 'react'
-import { Typography, Button, Box, CircularProgress, Container } from '@mui/material'
+import {
+  Typography,
+  Button,
+  Box,
+  CircularProgress,
+  Container,
+} from '@mui/material'
 import ReplayIcon from '@mui/icons-material/Replay'
-import { ConsortiumListItem as ConsortiumListItemType } from '../../apis/centralApi/generated/graphql' // Import the type
+import {
+  ConsortiumListItem as ConsortiumListItemType,
+} from '../../apis/centralApi/generated/graphql' // Import the type
 import ConsortiumListItem from './ConsortiumListItem' // Import the new presentation component
 import { useNavigate } from 'react-router-dom'
 
@@ -12,12 +20,22 @@ interface ConsortiumListProps {
   onReload: () => void;
 }
 
-const ConsortiumList: React.FC<ConsortiumListProps> = ({ consortiumList, loading, error, onReload }) => {
+const ConsortiumList: React.FC<ConsortiumListProps> = ({
+  consortiumList,
+  loading,
+  error,
+  onReload,
+}) => {
   const navigate = useNavigate()
   // Loading state
   if (loading) {
     return (
-      <Box display='flex' justifyContent='center' alignItems='center' minHeight='100vh'>
+      <Box
+        display='flex'
+        justifyContent='center'
+        alignItems='center'
+        minHeight='100vh'
+      >
         <CircularProgress />
       </Box>
     )
@@ -27,8 +45,19 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({ consortiumList, loading
   if (error) {
     return (
       <Container>
-        <Box display='flex' flexDirection='column' justifyContent='center' alignItems='center' marginTop={2}>
-          <Button variant='contained' color='primary' onClick={onReload} sx={{ marginBottom: 2 }}>
+        <Box
+          display='flex'
+          flexDirection='column'
+          justifyContent='center'
+          alignItems='center'
+          marginTop={2}
+        >
+          <Button
+            variant='contained'
+            color='primary'
+            onClick={onReload}
+            sx={{ marginBottom: 2 }}
+          >
             Reload
           </Button>
           <Typography variant='h6' color='error' align='center'>
@@ -49,7 +78,12 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({ consortiumList, loading
           </Typography>
         </Box>
         <Box>
-          <Button variant='outlined' color='primary' onClick={() => navigate('/consortium/create/')} sx={{ marginRight: '1rem' }}>
+          <Button
+            variant='outlined'
+            color='primary'
+            onClick={() => navigate('/consortium/create/')}
+            sx={{ marginRight: '1rem' }}
+          >
             Create A New Consortium
           </Button>
           <Button variant='contained' color='primary' onClick={onReload}>
@@ -61,7 +95,11 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({ consortiumList, loading
       <Box>
         <>
           {consortiumList.map((consortium, index) => (
-            <ConsortiumListItem key={index} consortium={consortium} onReload={onReload} />
+            <ConsortiumListItem
+              key={index}
+              consortium={consortium}
+              onReload={onReload}
+            />
           ))}
         </>
       </Box>

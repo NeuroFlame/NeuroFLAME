@@ -12,7 +12,13 @@ export default function TextViewer({ fileUrl }: { fileUrl: string }) {
   }, [fileUrl])
 
   return (
-    <pre style={{ background: '#f8f8f8', padding: '1rem', whiteSpace: 'pre-wrap' }}>
+    <pre
+      style={{
+        background: '#f8f8f8',
+        padding: '1rem',
+        whiteSpace: 'pre-wrap',
+      }}
+    >
       {content}
     </pre>
   )

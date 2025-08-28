@@ -9,7 +9,10 @@ import StepDownloadImage from './steps/StepDownloadImage'
 import StepSetReady from './steps/StepSetReady'
 import StepViewRequirements from './steps/StepViewRequirements'
 import ConsortiumWizardNavBar from './ConsortiumWizardNavBar'
-import { ConsortiumDetailsProvider, useConsortiumDetailsContext } from '../ConsortiumDetails/ConsortiumDetailsContext'
+import {
+  ConsortiumDetailsProvider,
+  useConsortiumDetailsContext,
+} from '../ConsortiumDetails/ConsortiumDetailsContext'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { useUserState } from '../../contexts/UserStateContext'
 
@@ -108,78 +111,104 @@ const ConsortiumWizard = () => {
 
   return (
     <>
-      {steps && steps.length > 0 && <Box style={{
-        margin: '2rem 2rem 0',
-        padding: '2rem 1rem',
-        background: 'white',
-        borderRadius: '1rem',
-        height: 'calc(100vh - 13rem)',
-      }}
-                                    >
-        <ConsortiumWizardNavBar steps={steps} currentStep={step} handleStepNav={handleStepNav} />
-        <Box style={{ margin: '2rem 1rem 1rem' }}>
-          <Typography variant='h6' gutterBottom color='black'>
-            {isLeader ? 'Consortium Setup Wizard' : `Consortium: ${data.title}`}
-          </Typography>
-          <Typography variant='h5' gutterBottom>
-            Step {step + 1}: {steps[step].label}
-          </Typography>
-        </Box>
-        {/* Step Routes */}
-        <Box style={{ margin: '0 1rem 2rem' }}>
-          <Routes>
-            <Route path='step-select-computation' element={<StepSelectComputation />} />
-            <Route path='step-set-parameters' element={<StepSetParameters />} />
-            <Route path='step-select-data' element={<StepSelectData />} />
-            <Route path='step-download-image' element={<StepDownloadImage />} />
-            <Route path='step-add-notes' element={<StepAddNotes />} />
-            <Route path='step-set-ready' element={<StepSetReady />} />
-            <Route path='step-view-requirements' element={<StepViewRequirements />} />
-          </Routes>
-        </Box>
-        {/* Control Panel Buttons */}
+      {steps && steps.length > 0 && (
         <Box
-          sx={{
-            position: 'absolute',
-            bottom: '4rem',
-            width: 'calc(100% - 8rem)',
-            display: 'flex',
-            alignItems: 'center',
-            margin: '0 1rem',
-            justifyContent: 'space-between',
+          style={{
+            margin: '2rem 2rem 0',
+            padding: '2rem 1rem',
+            background: 'white',
+            borderRadius: '1rem',
+            height: 'calc(100vh - 13rem)',
           }}
         >
-          {step === 0 && !isReady && <Button
-            variant='outlined'
-            color='primary'
-            onClick={handleCancelAndExit}
-                                     >Cancel & Leave
-          </Button>}
-          {step > 0 && <Button
-            variant='contained'
-            onClick={handleBack}
-                       >
-            Go Back A Step
-          </Button>}
-          {(isReady || step === steps.length - 1) && (
-            <Button
-              variant='outlined'
-              color='primary'
-              onClick={handleNavigateToConsortiumDetails}
-            >
-              View Consortium Details
-            </Button>
-          )}
-          {step !== steps.length - 1 && <Button
-            variant='contained'
-            color='primary'
-            onClick={handleNext}
-            disabled={step >= steps.length - 1}
-                                        >
-            Go To Next Step
-          </Button>}
+          <ConsortiumWizardNavBar
+            steps={steps}
+            currentStep={step}
+            handleStepNav={handleStepNav}
+          />
+          <Box style={{ margin: '2rem 1rem 1rem' }}>
+            <Typography variant='h6' gutterBottom color='black'>
+              {isLeader ? 'Consortium Setup Wizard' : `Consortium: ${data.title}`}
+            </Typography>
+            <Typography variant='h5' gutterBottom>
+              Step {step + 1}: {steps[step].label}
+            </Typography>
+          </Box>
+          {/* Step Routes */}
+          <Box style={{ margin: '0 1rem 2rem' }}>
+            <Routes>
+              <Route
+                path='step-select-computation'
+                element={<StepSelectComputation />}
+              />
+              <Route
+                path='step-set-parameters'
+                element={<StepSetParameters />}
+              />
+              <Route path='step-select-data' element={<StepSelectData />} />
+              <Route
+                path='step-download-image'
+                element={<StepDownloadImage />}
+              />
+              <Route path='step-add-notes' element={<StepAddNotes />} />
+              <Route path='step-set-ready' element={<StepSetReady />} />
+              <Route
+                path='step-view-requirements'
+                element={<StepViewRequirements />}
+              />
+            </Routes>
+          </Box>
+          {/* Control Panel Buttons */}
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: '4rem',
+              width: 'calc(100% - 8rem)',
+              display: 'flex',
+              alignItems: 'center',
+              margin: '0 1rem',
+              justifyContent: 'space-between',
+            }}
+          >
+            {step === 0 && !isReady && (
+              <Button
+                variant='outlined'
+                color='primary'
+                onClick={handleCancelAndExit}
+              >
+                Cancel & Leave
+              </Button>
+            )}
+            {step > 0 && (
+              <Button
+                variant='contained'
+                onClick={handleBack}
+              >
+                Go Back A Step
+              </Button>
+            )}
+            {(isReady || step === steps.length - 1) && (
+              <Button
+                variant='outlined'
+                color='primary'
+                onClick={handleNavigateToConsortiumDetails}
+              >
+                View Consortium Details
+              </Button>
+            )}
+            {step !== steps.length - 1 && (
+              <Button
+                variant='contained'
+                color='primary'
+                onClick={handleNext}
+                disabled={step >= steps.length - 1}
+              >
+                Go To Next Step
+              </Button>
+            )}
+          </Box>
         </Box>
-      </Box>}
+      )}
     </>
   )
 }

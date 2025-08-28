@@ -16,7 +16,8 @@ const computationSchema: Schema = new Schema({
   owner: { type: String, required: false },
 })
 
-export const Computation: Model<IComputation> = mongoose.model<IComputation>('Computation', computationSchema)
+export const Computation: Model<IComputation> =
+  mongoose.model<IComputation>('Computation', computationSchema)
 export { computationSchema } // Export the schema for reuse
 
 export default Computation

@@ -1,6 +1,8 @@
 import { Box, Typography, IconButton } from '@mui/material'
 import { HashLink } from 'react-router-hash-link'
-import type { Computation as ComputationType } from '../../../apis/centralApi/generated/graphql'
+import type {
+  Computation as ComputationType,
+} from '../../../apis/centralApi/generated/graphql'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import ComputationSelect from './ComputationSelect/ComputationSelect'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
@@ -41,13 +43,26 @@ export default function Computation({ computation }: ComputationDisplayProps) {
   }
 
   return (
-    <Box p={2} borderRadius={2} marginBottom={2} bgcolor='white' position='relative'>
+    <Box
+      p={2}
+      borderRadius={2}
+      marginBottom={2}
+      bgcolor='white'
+      position='relative'
+    >
       <Box display='flex' justifyContent='space-between'>
         <Box>
           <Typography variant='h6' gutterBottom>
             Computation
           </Typography>
-          <Typography variant='h6' fontWeight='600' color='black' lineHeight='1'>{title}</Typography>
+          <Typography
+            variant='h6'
+            fontWeight='600'
+            color='black'
+            lineHeight='1'
+          >
+            {title}
+          </Typography>
         </Box>
         {isLeader && (
           <Box marginTop='1rem'>
@@ -56,7 +71,13 @@ export default function Computation({ computation }: ComputationDisplayProps) {
         )}
       </Box>
       <Box>
-        <Box marginTop={2} marginBottom={1} display='flex' flexDirection='column' alignItems='flex-start'>
+        <Box
+          marginTop={2}
+          marginBottom={1}
+          display='flex'
+          flexDirection='column'
+          alignItems='flex-start'
+        >
           <Typography>
             Image Download:
           </Typography>
@@ -97,7 +118,11 @@ export default function Computation({ computation }: ComputationDisplayProps) {
             <TerminalWindow command={imageDownloadUrl} />
           </Box>
         </Box>
-        <HashLink id='compnotes-anchor' style={{ fontSize: '0.9rem' }} to='#compnotes'>
+        <HashLink
+          id='compnotes-anchor'
+          style={{ fontSize: '0.9rem' }}
+          to='#compnotes'
+        >
           View Computation Notes
         </HashLink>
       </Box>

@@ -6,7 +6,9 @@ interface ConsortiumLeaderNotesDisplayProps {
   consortiumLeaderNotes: string;
 }
 
-export default function ConsortiumLeaderNotesDisplay({ consortiumLeaderNotes }: ConsortiumLeaderNotesDisplayProps) {
+export default function ConsortiumLeaderNotesDisplay({
+  consortiumLeaderNotes,
+}: ConsortiumLeaderNotesDisplayProps) {
   return (
     <Box sx={{
       height: 'auto',

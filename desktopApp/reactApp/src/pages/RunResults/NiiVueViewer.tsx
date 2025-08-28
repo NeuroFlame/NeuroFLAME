@@ -142,7 +142,13 @@ export default function NiiVueViewer({ fileUrl }: NiiVueViewerProps) {
   }
 
   return (
-    <Box sx={{ width: '100%', height: 'calc(100vh - 170px)', backgroundColor: 'black' }}>
+    <Box
+      sx={{
+        width: '100%',
+        height: 'calc(100vh - 170px)',
+        backgroundColor: 'black',
+      }}
+    >
       <Box sx={{ padding: 2, backgroundColor: '#f5f5f5' }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid item>
@@ -154,15 +160,29 @@ export default function NiiVueViewer({ fileUrl }: NiiVueViewerProps) {
           </Grid>
 
           <Grid item xs>
-            <Slider min={0} max={2} step={0.01} value={gamma} onChange={handleGammaChange} />
+            <Slider
+              min={0}
+              max={2}
+              step={0.01}
+              value={gamma}
+              onChange={handleGammaChange}
+            />
           </Grid>
 
           <Grid item>
-            <Typography>Brightness: {Math.round((opacity / 2) * 100)}%</Typography>
+            <Typography>
+              Brightness: {Math.round((opacity / 2) * 100)}%
+            </Typography>
           </Grid>
 
           <Grid item xs>
-            <Slider min={0} max={2} step={0.01} value={opacity} onChange={handleOpacityChange} />
+            <Slider
+              min={0}
+              max={2}
+              step={0.01}
+              value={opacity}
+              onChange={handleOpacityChange}
+            />
           </Grid>
 
           <Grid item xs={12} sm='auto'>
@@ -184,7 +204,11 @@ export default function NiiVueViewer({ fileUrl }: NiiVueViewerProps) {
           {numFrames > 1 && (
             <>
               <Grid item>
-                <Button variant='contained' color='success' onClick={() => setPlaying(!playing)}>
+                <Button
+                  variant='contained'
+                  color='success'
+                  onClick={() => setPlaying(!playing)}
+                >
                   {playing ? 'Pause' : 'Play'}
                 </Button>
               </Grid>

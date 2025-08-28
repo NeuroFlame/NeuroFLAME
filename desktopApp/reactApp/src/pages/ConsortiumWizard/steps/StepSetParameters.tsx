@@ -19,12 +19,13 @@ export default function StepSetParameters() {
         </Grid>
         <Grid item xs={6}>
           {/* Wrapping ComputationDisplay with Box to control overflow */}
-          <Box sx={{
-            height: 'calc(100vh - 26rem)',  // Limit height to keep within view
-            overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
-            padding: 1,
-            boxSizing: 'border-box',
-          }}
+          <Box
+            sx={{
+              height: 'calc(100vh - 26rem)',  // Limit height to keep within view
+              overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
+              padding: 1,
+              boxSizing: 'border-box',
+            }}
           >
             <ComputationDisplay notesHeading />
           </Box>

@@ -32,7 +32,11 @@ interface ElectronAPI {
   openConfig: () => Promise<void>;
   saveConfig: (configString: string) => Promise<void>;
   applyDefaultConfig: () => Promise<void>;
-  useDirectoryDialog: (pathString?: string) => Promise<{ directoryPath: undefined | string, canceled: boolean, error: string | null }>;
+  useDirectoryDialog: (pathString?: string) => Promise<{
+    directoryPath: undefined | string,
+    canceled: boolean,
+    error: string | null,
+  }>;
   restartApp: () => void;
   spawnTerminal: () => void;
   terminalOutput: (output: any) => Promise<{ output: any }>;

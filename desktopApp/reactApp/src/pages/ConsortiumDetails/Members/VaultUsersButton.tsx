@@ -32,7 +32,13 @@ const VaultUsersButton = () => {
   return (
     <>
       {/* Button to open the Modal */}
-      <Button variant='contained' color='primary' onClick={handleOpen} size='small' fullWidth>
+      <Button
+        variant='contained'
+        color='primary'
+        onClick={handleOpen}
+        size='small'
+        fullWidth
+      >
         Add Vault
       </Button>
 
@@ -44,7 +50,14 @@ const VaultUsersButton = () => {
         aria-describedby='modal-description'
       >
         <Box sx={style}>
-          <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <Typography variant='h6'>
               Vaults
             </Typography>

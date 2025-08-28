@@ -24,14 +24,26 @@ export default function AppRoutes() {
       <Route index path='/home' element={<HomePage />} />
       <Route path='/consortium/create' element={<ConsortiumCreatePage />} />
       <Route path='/consortium/list' element={<ConsortiumListPage />} />
-      <Route path='/consortium/details/:consortiumId' element={<ConsortiumDetailsPage />} />
-      <Route path='/consortium/wizard/:consortiumId/*' element={<ConsortiumWizard />} />
+      <Route
+        path='/consortium/details/:consortiumId'
+        element={<ConsortiumDetailsPage />}
+      />
+      <Route
+        path='/consortium/wizard/:consortiumId/*'
+        element={<ConsortiumWizard />}
+      />
       <Route path='/computation/create' element={<ComputationCreatePage />} />
       <Route path='/computation/list' element={<ComputationListPage />} />
-      <Route path='/computation/details/:computationId' element={<ComputationDetailsPage />} />
+      <Route
+        path='/computation/details/:computationId'
+        element={<ComputationDetailsPage />}
+      />
       <Route path='/run/list' element={<RunList />} />
       <Route path='/run/details/:runId' element={<RunDetails />} />
-      <Route path='/run/results/:consortiumId/:runId' element={<RunResults />} />
+      <Route
+        path='/run/results/:consortiumId/:runId'
+        element={<RunResults />}
+      />
       <Route path='/appConfig' element={<AppConfig />} />
       <Route path='/admin' element={<AdminPage />} />
     </Routes>

@@ -13,7 +13,7 @@ export default function ConsortiumWizardNavBar({
 }) {
   return (
     <Stepper activeStep={currentStep} alternativeLabel>
-      {steps.map((step, index) => (
+      {steps.map((step) => (
         <Step key={step.label} completed={step.completed}>
           <StepButton
             onClick={() => handleStepNav(step.path)}

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
-import { QueryGetRunListArgs, RunListItem } from '../../apis/centralApi/generated/graphql' // Import the generated types
+import {
+  QueryGetRunListArgs,
+  RunListItem,
+} from '../../apis/centralApi/generated/graphql' // Import the generated types
 import { useParams } from 'react-router-dom'
 
 export function useRunList() {

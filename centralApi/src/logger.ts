@@ -14,7 +14,10 @@ const logger = createLogger({
         output += ` ${message}`
       }
 
-      const errorStack = stack || meta.stack || (meta.error instanceof Error ? meta.error.stack : undefined)
+      const errorStack =
+        stack ||
+        meta.stack ||
+        (meta.error instanceof Error ? meta.error.stack : undefined)
       if (errorStack) {
         output += `\nStack: ${errorStack}`
       }

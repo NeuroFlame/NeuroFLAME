@@ -2,7 +2,9 @@ interface ComputationParametersDisplayProps {
   computationParameters: string;
 }
 
-export default function ComputationParametersDisplay({ computationParameters }: ComputationParametersDisplayProps) {
+export default function ComputationParametersDisplay({
+  computationParameters,
+}: ComputationParametersDisplayProps) {
   let formattedJson: string
 
   try {
@@ -15,9 +17,13 @@ export default function ComputationParametersDisplay({ computationParameters }: 
 
   return (
     <div>
-      <pre className='settings' style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+      <pre
+        className='settings'
+        style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+      >
         {computationParameters
           ? formattedJson
+          // eslint-disable-next-line @stylistic/max-len
           : 'Please provide settings that coorespond to your selected Computation. Refer to Computation Notes for Example Settings.'}
       </pre>
     </div>

@@ -1,7 +1,9 @@
 import StartRunButton from '../../ConsortiumDetails/StartRunButton/StartRunButton'
 
 export default function StepStartRun() {
-  return (<div>
-    <StartRunButton />
-  </div>)
+  return (
+    <div>
+      <StartRunButton />
+    </div>
+  )
 }

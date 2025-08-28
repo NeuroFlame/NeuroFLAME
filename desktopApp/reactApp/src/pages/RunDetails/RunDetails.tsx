@@ -14,7 +14,12 @@ export function RunDetails() {
     <Box p={2}>
       {runDetails && (
         <Box>
-          <Box display='flex' justifyContent='space-between' marginLeft='1rem' marginRight='1rem'>
+          <Box
+            display='flex'
+            justifyContent='space-between'
+            marginLeft='1rem'
+            marginRight='1rem'
+          >
             <Typography variant='h4'>
               Run Details
             </Typography>
@@ -42,16 +47,19 @@ export function RunDetails() {
             <Grid size={{ xs: 12, sm: 6 }}>
               <Box p={2} borderRadius={2} bgcolor='white'>
                 <Typography variant='body1'>
-                  <strong>Consortium:</strong> {runDetails.consortiumTitle} ({runDetails.consortiumId})
+                  <strong>Consortium:</strong>{' '}
+                  {runDetails.consortiumTitle} ({runDetails.consortiumId})
                 </Typography>
                 <Typography variant='body1'>
                   <strong>Status:</strong> {runDetails.status}
                 </Typography>
                 <Typography variant='body1'>
-                  <strong>Created At:</strong> {new Date(+runDetails.createdAt).toLocaleString()}
+                  <strong>Created At:</strong>{' '}
+                  {new Date(+runDetails.createdAt).toLocaleString()}
                 </Typography>
                 <Typography variant='body1'>
-                  <strong>Last Updated:</strong> {new Date(+runDetails.lastUpdated).toLocaleString()}
+                  <strong>Last Updated:</strong>{' '}
+                  {new Date(+runDetails.lastUpdated).toLocaleString()}
                 </Typography>
               </Box>
             </Grid>
@@ -60,18 +68,21 @@ export function RunDetails() {
               <MembersDisplay members={runDetails.members} />
             </Grid>
             {/* Errors */}
-            {runDetails.runErrors.length > 0 && (<Grid size={{ sm: 12 }}>
-              <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
-                <Typography variant='h6' gutterBottom>
-                  Errors
-                </Typography>
-                {runDetails.runErrors.map((error, index) => (
-                  <Typography key={index} variant='body2' color='error'>
-                    {new Date(+error.timestamp).toLocaleString()} {error.user.username} - {error.message}
+            {runDetails.runErrors.length > 0 && (
+              <Grid size={{ sm: 12 }}>
+                <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
+                  <Typography variant='h6' gutterBottom>
+                    Errors
                   </Typography>
-                ))}
-              </Box>
-            </Grid>)}
+                  {runDetails.runErrors.map((error, index) => (
+                    <Typography key={index} variant='body2' color='error'>
+                      {new Date(+error.timestamp).toLocaleString()}{' '}
+                      {error.user.username} - {error.message}
+                    </Typography>
+                  ))}
+                </Box>
+              </Grid>
+            )}
             <Grid size={{ sm: 12 }}>
               <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
                 {/* Study Configuration */}
@@ -80,7 +91,8 @@ export function RunDetails() {
                 </Typography>
                 <Box marginBottom={1}>
                   <Typography variant='body1'>
-                    <strong>Computation:</strong> {runDetails.studyConfiguration?.computation?.title}
+                    <strong>Computation:</strong>{' '}
+                    {runDetails.studyConfiguration?.computation?.title}
                   </Typography>
                 </Box>
                 <Grid container spacing={2}>
@@ -89,8 +101,16 @@ export function RunDetails() {
                       <strong>Parameters:</strong>
                     </Typography>
                     <Box marginTop={1}>
-                      <pre className='settings' style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
-                        {safelyRenderJson(runDetails.studyConfiguration.computationParameters)}
+                      <pre
+                        className='settings'
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          wordWrap: 'break-word',
+                        }}
+                      >
+                        {safelyRenderJson(
+                          runDetails.studyConfiguration.computationParameters,
+                        )}
                       </pre>
                     </Box>
                   </Grid>
@@ -99,8 +119,15 @@ export function RunDetails() {
                       <strong>Leader Notes:</strong>
                     </Typography>
                     <Box marginTop={1}>
-                      <div style={{ background: '#EEF2F2', padding: '1rem 1rem 0.5rem' }}>
-                        <ReactMarkdown>{runDetails.studyConfiguration.consortiumLeaderNotes}</ReactMarkdown>
+                      <div
+                        style={{
+                          background: '#EEF2F2',
+                          padding: '1rem 1rem 0.5rem',
+                        }}
+                      >
+                        <ReactMarkdown>
+                          {runDetails.studyConfiguration.consortiumLeaderNotes}
+                        </ReactMarkdown>
                       </div>
                     </Box>
                   </Grid>
@@ -111,7 +138,11 @@ export function RunDetails() {
         </Box>
       )}
       {error && <Alert severity='error'>{error}</Alert>}
-      {loading && <Typography variant='body1' color='textSecondary'>Loading...</Typography>}
+      {loading && (
+        <Typography variant='body1' color='textSecondary'>
+          Loading...
+        </Typography>
+      )}
     </Box>
   )
 }

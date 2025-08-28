@@ -17,7 +17,8 @@ export function useRequestPasswordReset(callback?: () => void) {
         callback()
       }
     } catch (err) {
-      setError((err as Error).message || 'Requesting password reset failed, please try again.')
+      setError((err as Error).message ||
+        'Requesting password reset failed, please try again.')
     } finally {
       setLoading(false)
     }

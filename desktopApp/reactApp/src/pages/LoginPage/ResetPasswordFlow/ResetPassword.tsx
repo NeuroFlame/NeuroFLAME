@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useResetPassword } from './useResetPassword'
 
-export function ResetPassword({ onChangeFormType }: { onChangeFormType: () => void }) {
+export function ResetPassword({
+  onChangeFormType,
+}: { onChangeFormType: () => void }) {
   const { handleResetPassword, loading, error } = useResetPassword()
   const [newPassword, setNewPassword] = useState('')
   const [token, setToken] = useState('')
@@ -75,7 +77,14 @@ export function ResetPassword({ onChangeFormType }: { onChangeFormType: () => vo
         >
           {loading ? <CircularProgress size={24} /> : 'Reset Password'}
         </Button>
-        <Button variant='text' color='primary' fullWidth onClick={onChangeFormType}>Resend Email</Button>
+        <Button
+          variant='text'
+          color='primary'
+          fullWidth
+          onClick={onChangeFormType}
+        >
+          Resend Email
+        </Button>
       </Box>
     </Box>
   )

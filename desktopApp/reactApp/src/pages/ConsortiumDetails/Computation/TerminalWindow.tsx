@@ -4,8 +4,10 @@ import ScrollToBottom from 'react-scroll-to-bottom'
 import { Box, Button, Typography } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
-const ScrollToBottomWrapper = forwardRef<HTMLDivElement, React.ComponentProps<typeof ScrollToBottom>>(
-  (props, ref) => <ScrollToBottom {...props} />,
+const ScrollToBottomWrapper = forwardRef<
+  HTMLDivElement, React.ComponentProps<typeof ScrollToBottom>
+>(
+  (props) => <ScrollToBottom {...props} />,
 )
 
 const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
@@ -16,7 +18,12 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
   const [showTerminal, setShowTerminal] = useState(false)
   const [imageExists, setImageExists] = useState(false)
 
-  const { spawnTerminal, terminalInput, terminalOutput, removeTerminalOutputListener } = electronApi
+  const {
+    spawnTerminal,
+    terminalInput,
+    terminalOutput,
+    removeTerminalOutputListener,
+  } = electronApi
 
   // Refs to interact with the DOM elements
   const terminalRef = useRef<HTMLDivElement | null>(null)
@@ -44,7 +51,8 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
   }, [output])
 
   const testOutputForImage = (str:string) => {
-    if (str.includes('"Id": "sha256:') || str.includes('Status: Downloaded newer image for')) {
+    if (str.includes('"Id": "sha256:') ||
+      str.includes('Status: Downloaded newer image for')) {
       setImageExists(true)
     } else {
       setImageExists(false)
@@ -73,17 +81,36 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
         >
           Run Docker Pull
         </Button>}
-      {showTerminal && <ScrollToBottomWrapper ref={terminalRef} className='terminalWindow'>
-        {Array.from(new Set(output)).map((item, index) => (
-          <div key={index} style={{ whiteSpace: 'nowrap' }}>&gt; {item}</div>
-        ))}
-      </ScrollToBottomWrapper>}
+      {showTerminal && (
+        <ScrollToBottomWrapper ref={terminalRef} className='terminalWindow'>
+          {Array.from(new Set(output)).map((item, index) => (
+            <div key={index} style={{ whiteSpace: 'nowrap' }}>&gt; {item}</div>
+          ))}
+        </ScrollToBottomWrapper>
+      )}
       <Box display='flex' justifyContent='space-between' alignContent='center'>
-        {imageExists && <Box display='flex' justifyContent='flex-start' alignContent='center'>
-          <CheckCircleIcon sx={{ color: '#2FB600' }} />
-          <Typography style={{ fontSize: '0.8rem', lineHeight: '2', marginLeft: '0.25rem' }}>Docker Image Downloaded</Typography>
-        </Box>}
-        {showTerminal && <Button size='small' onClick={() => setShowTerminal(false)}>Hide Terminal</Button>}
+        {imageExists && (
+          <Box display='flex' justifyContent='flex-start' alignContent='center'>
+            <CheckCircleIcon sx={{ color: '#2FB600' }} />
+            <Typography
+              style={{
+                fontSize: '0.8rem',
+                lineHeight: '2',
+                marginLeft: '0.25rem',
+              }}
+            >
+              Docker Image Downloaded
+            </Typography>
+          </Box>
+        )}
+        {showTerminal && (
+          <Button
+            size='small'
+            onClick={() => setShowTerminal(false)}
+          >
+            Hide Terminal
+          </Button>
+        )}
       </Box>
     </>
   )

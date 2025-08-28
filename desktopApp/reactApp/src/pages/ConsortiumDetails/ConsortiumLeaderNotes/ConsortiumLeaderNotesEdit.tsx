@@ -1,7 +1,16 @@
 import { Box, Button } from '@mui/material'
 import { useState } from 'react'
 import {
-  MDXEditor, BoldItalicUnderlineToggles, ListsToggle, headingsPlugin, quotePlugin, listsPlugin, toolbarPlugin, diffSourcePlugin, DiffSourceToggleWrapper, markdownShortcutPlugin,
+  MDXEditor,
+  BoldItalicUnderlineToggles,
+  ListsToggle,
+  headingsPlugin,
+  quotePlugin,
+  listsPlugin,
+  toolbarPlugin,
+  diffSourcePlugin,
+  DiffSourceToggleWrapper,
+  markdownShortcutPlugin,
   linkPlugin,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
@@ -26,10 +35,21 @@ export default function ConsortiumLeaderNotesEdit({
   return (
     <Box>
       <Box style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
-        <Button variant='outlined' color='secondary' size='small' onClick={onCancel} sx={{ mr: 1 }}>
+        <Button
+          variant='outlined'
+          color='secondary'
+          size='small'
+          onClick={onCancel}
+          sx={{ mr: 1 }}
+        >
           Cancel
         </Button>
-        <Button variant='contained' color='primary' size='small' onClick={handleSave}>
+        <Button
+          variant='contained'
+          color='primary'
+          size='small'
+          onClick={handleSave}
+        >
           Save
         </Button>
       </Box>

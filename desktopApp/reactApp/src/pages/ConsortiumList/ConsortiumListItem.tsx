@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Button, Box, Typography } from '@mui/material'
-import { ConsortiumListItem as ConsortiumListItemType } from '../../apis/centralApi/generated/graphql' // Import the type
+import {
+  ConsortiumListItem as ConsortiumListItemType,
+} from '../../apis/centralApi/generated/graphql' // Import the type
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { useNavigate } from 'react-router-dom'
 import { useUserState } from '../../contexts/UserStateContext'
@@ -10,7 +12,10 @@ interface ConsortiumListItemProps {
   onReload: any;
 }
 
-const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({ consortium, onReload }) => {
+const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
+  consortium,
+  onReload,
+}) => {
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
@@ -49,7 +54,12 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({ consortium, onR
   }
 
   return (
-    <Box display='flex' flexDirection='row' alignItems='center' style={{ background: 'white', padding: '1rem', marginBottom: '1rem' }}>
+    <Box
+      display='flex'
+      flexDirection='row'
+      alignItems='center'
+      style={{ background: 'white', padding: '1rem', marginBottom: '1rem' }}
+    >
       <Box flex={1}>
         <a onClick={() => navigate(`/consortium/details/${consortium.id}`)}>
           <Typography variant='h6'>{consortium.title || 'No Title'}</Typography>
@@ -57,15 +67,17 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({ consortium, onR
         <Typography>{consortium.description || 'No Description'}</Typography>
       </Box>
       <Box>
-        {isMember && <Button
-          variant='contained'
-          color='success'
-          onClick={() => navigate(`/consortium/details/${consortium.id}`)}
-          disabled={loading}
-          sx={{ ml: 2 }}
-                     >
-          View
-        </Button>}
+        {isMember && (
+          <Button
+            variant='contained'
+            color='success'
+            onClick={() => navigate(`/consortium/details/${consortium.id}`)}
+            disabled={loading}
+            sx={{ ml: 2 }}
+          >
+            View
+          </Button>
+        )}
         <Button
           variant={isMember ? 'outlined' : 'contained'}
           color='primary'

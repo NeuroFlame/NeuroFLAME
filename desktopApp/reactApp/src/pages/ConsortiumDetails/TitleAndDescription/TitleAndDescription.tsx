@@ -1,6 +1,9 @@
 import { Typography, Box } from '@mui/material'
 
-export function TitleAndDescription({ title, description }: { title: string, description: string }) {
+export function TitleAndDescription({
+  title,
+  description,
+}: { title: string, description: string }) {
   return (
     <Box marginBottom={2}>
       <Typography fontSize='11px'>Consortium:</Typography>

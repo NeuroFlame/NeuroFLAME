@@ -12,13 +12,13 @@ export function useComputationDetails() {
   const [error, setError] = useState<string | null>(null)
   const [computationDetails, setComputationDetails] = useState<any | null>(null)
 
-  console.log(computationId)
-
   // Function to fetch computation details
   const fetchComputationDetails = async () => {
     try {
       setLoading(true)
-      const details = await getComputationDetails({ computationId } as QueryGetComputationDetailsArgs)
+      const details = await getComputationDetails({
+        computationId,
+      } as QueryGetComputationDetailsArgs)
       console.log(details)
       setComputationDetails(details) // Update the computation details state with fetched data
     } catch (err: any) {

@@ -34,7 +34,8 @@ const setDataForSRRFreesurfer = async (page: Page) => {
   // Select data
   await page.getByPlaceholder(/enter your data directory path/i).click({ timeout: EXIST_TIMEOUT })
   await page.getByPlaceholder(/enter your data directory path/i)
-    .fill(process.env.CI === 'true' ? (process.env.CI_DATA_DIR ?? (() => { throw new Error('CI_DATA_DIR is not set') })())
+    .fill(process.env.CI === 'true'
+      ? (process.env.CI_DATA_DIR ?? (() => { throw new Error('CI_DATA_DIR is not set') })())
       : path.resolve('tests/data/srr-freesurfer/site1'))
   await page.getByRole('button', { name: /save/i }).click()
 }

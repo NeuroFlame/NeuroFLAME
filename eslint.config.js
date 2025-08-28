@@ -15,8 +15,10 @@ module.exports = [
       'arrow-parens': ['error', 'always'],
       curly: ['error', 'multi-line', 'consistent'],
       'no-lonely-if': ['error'],
+      'no-useless-escape': 'off',
       'object-shorthand': ['error'],
       'prefer-arrow-callback': ['error'],
+      'n/handle-callback-err': 'off',
       '@stylistic/comma-dangle': ['error', 'always-multiline'],
       '@stylistic/jsx-closing-tag-location': ['error', 'line-aligned'],
       '@stylistic/jsx-self-closing-comp': ['error', {
@@ -36,7 +38,7 @@ module.exports = [
       '@stylistic/max-len': [
         'error',
         {
-          code: 80,
+          code: 120,
           ignoreComments: true,
           ignoreTrailingComments: true,
           ignoreUrls: true,

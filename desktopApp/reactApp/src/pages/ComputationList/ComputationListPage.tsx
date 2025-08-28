@@ -5,7 +5,10 @@ import ComputationList from './ComputationList' // Import the presentation compo
 
 const ComputationListPageContainer: React.FC = () => {
   const { getComputationList } = useCentralApi()
-  const [computationList, setComputationList] = useState<ComputationListItem[]>([])
+  const [
+    computationList,
+    setComputationList,
+  ] = useState<ComputationListItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 

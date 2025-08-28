@@ -28,7 +28,10 @@ async function setPermissions(dir: string, mode: number): Promise<void> {
   }
 }
 
-export async function unzipFile({ directory, fileName }: UnzipFileParams): Promise<void> {
+export async function unzipFile({
+  directory,
+  fileName,
+}: UnzipFileParams): Promise<void> {
   const zipPath = path.join(directory, fileName)
 
   try {
@@ -45,7 +48,10 @@ export async function unzipFile({ directory, fileName }: UnzipFileParams): Promi
   logger.info(`Starting to unzip file: ${zipPath}`)
 
   try {
-    await fs.createReadStream(zipPath).pipe(unzipper.Extract({ path: directory })).promise()
+    await fs
+      .createReadStream(zipPath)
+      .pipe(unzipper.Extract({ path: directory }))
+      .promise()
     logger.info(`Successfully unzipped file: ${zipPath}`)
   } catch (err) {
     logger.error(`Error unzipping file ${zipPath}: ${(err as Error).message}`)

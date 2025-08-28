@@ -1402,7 +1402,7 @@ export default {
       ),
     },
     consortiumLatestRunChanged: {
-      resolve: (payload: { consortiumId: string }): string => 'Consortium latest run changed',
+      resolve: (): string => 'Consortium latest run changed',
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
         async (
@@ -1430,7 +1430,7 @@ export default {
     },
 
     consortiumDetailsChanged: {
-      resolve: (payload: { consortiumId: string }): string => 'Consortium details changed',
+      resolve: (): string => 'Consortium details changed',
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
         async (

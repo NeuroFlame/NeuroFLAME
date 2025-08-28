@@ -1,5 +1,12 @@
-import React, { useRef } from 'react'
-import { Box, Button, InputAdornment, TextField, Tooltip, Typography } from '@mui/material'
+import { useRef } from 'react'
+import {
+  Box,
+  Button,
+  InputAdornment,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
 import WarningIcon from '@mui/icons-material/Warning'
 
@@ -48,13 +55,20 @@ export function DirectorySelectDisplay({
   return (
     <>
       <Box p={2} borderRadius={2} marginBottom={2} bgcolor='white'>
-        <Box display='flex' flexDirection='row' justifyContent='space-between' alignItems='center'>
+        <Box
+          display='flex'
+          flexDirection='row'
+          justifyContent='space-between'
+          alignItems='center'
+        >
           <Typography variant='h6'>
             Data Directory
           </Typography>
-          {!directory && <Tooltip title='You have not entered your Data Directory Path'>
-            <WarningIcon color='warning' />
-          </Tooltip>}
+          {!directory && (
+            <Tooltip title='You have not entered your Data Directory Path'>
+              <WarningIcon color='warning' />
+            </Tooltip>
+          )}
         </Box>
         {/* TextField for manual directory input, disabled unless in edit mode */}
         <TextField
@@ -74,7 +88,10 @@ export function DirectorySelectDisplay({
           }}
           InputProps={{
             endAdornment: (
-              <InputAdornment position='end' sx={{ display: iconDisplay, cursor: 'pointer' }}>
+              <InputAdornment
+                position='end'
+                sx={{ display: iconDisplay, cursor: 'pointer' }}
+              >
                 <Tooltip title='Edit Directory Path'>
                   <EditIcon
                     sx={{ color: '#888', marginRight: '-5px' }}
@@ -86,18 +103,28 @@ export function DirectorySelectDisplay({
             ),
           }}
         />
-        {!directory && !isEditing && <Box marginBottom='0.5rem'><Typography fontSize='small' align='center'>or</Typography></Box>}
+        {!directory && !isEditing && (
+          <Box marginBottom='0.5rem'>
+            <Typography fontSize='small' align='center'>or</Typography>
+          </Box>
+        )}
         <Box display='flex' gap={1}>
           {/* Button to trigger the Electron directory picker */}
-          {!isEditing && <Button
-            variant='contained'
-            color='primary'
-            fullWidth={!directory}
-            onClick={onOpenDirectoryDialog}
-            style={{ whiteSpace: 'nowrap', fontSize: '10px', backgroundColor: '#0066FF' }}
-                         >
-            Browse To Select Data Directory
-          </Button>}
+          {!isEditing && (
+            <Button
+              variant='contained'
+              color='primary'
+              fullWidth={!directory}
+              onClick={onOpenDirectoryDialog}
+              style={{
+                whiteSpace: 'nowrap',
+                fontSize: '10px',
+                backgroundColor: '#0066FF',
+              }}
+            >
+              Browse To Select Data Directory
+            </Button>
+          )}
           {/* Row of Edit, Save, and Cancel buttons */}
           {isEditing && (
             <Button

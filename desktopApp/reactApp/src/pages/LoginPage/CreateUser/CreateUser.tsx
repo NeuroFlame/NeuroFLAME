@@ -1,5 +1,5 @@
 // CreateUser.tsx
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useCreateUser } from './useCreateUser'
 
@@ -16,7 +16,14 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
 
   return (
     <Box width='400px'>
-      {error && <Alert severity='error' style={{ marginBottom: '1rem' }}>{error}</Alert>}
+      {error && (
+        <Alert
+          severity='error'
+          style={{ marginBottom: '1rem' }}
+        >
+          {error}
+        </Alert>
+      )}
 
       <TextField
         placeholder='Username'

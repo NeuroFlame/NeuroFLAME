@@ -17,7 +17,10 @@ export default function StepAddNotes() {
         boxSizing: 'border-box',
       }}
     >
-      <ConsortiumLeaderNotes consortiumLeaderNotes={consortiumLeaderNotes || ''} showAccordion={false} />
+      <ConsortiumLeaderNotes
+        consortiumLeaderNotes={consortiumLeaderNotes || ''}
+        showAccordion={false}
+      />
     </Box>
   )
 }

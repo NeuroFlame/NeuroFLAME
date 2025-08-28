@@ -1,6 +1,13 @@
 // ChangeUserPassword.tsx
-import React, { useState } from 'react'
-import { Box, Button, TextField, CircularProgress, Alert, Typography } from '@mui/material'
+import { useState } from 'react'
+import {
+  Box,
+  Button,
+  TextField,
+  CircularProgress,
+  Alert,
+  Typography,
+} from '@mui/material'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 
 export default function ChangeUserPassword() {
@@ -28,10 +35,20 @@ export default function ChangeUserPassword() {
 
   return (
     <Box maxWidth='xs' sx={{ width: '100%' }}>
-      <Typography variant='h6' sx={{ mb: 2 }}>Change User Password</Typography>
+      <Typography variant='h6' sx={{ mb: 2 }}>
+        Change User Password
+      </Typography>
 
-      {error && <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity='success' sx={{ mb: 2 }}>{success}</Alert>}
+      {error && (
+        <Alert severity='error' sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity='success' sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
 
       <TextField
         label='Username'

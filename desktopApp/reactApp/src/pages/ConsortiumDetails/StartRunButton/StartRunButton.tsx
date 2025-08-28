@@ -25,6 +25,7 @@ export default function StartRunButton() {
       const startRunTimeout = setTimeout(() => {
         setRunStarted(false)
       }, 10000)
+      // eslint-disable-next-line no-unsafe-finally
       return () => clearTimeout(startRunTimeout)
     }
   }

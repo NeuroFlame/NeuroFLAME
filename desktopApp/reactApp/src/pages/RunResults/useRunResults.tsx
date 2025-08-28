@@ -12,19 +12,34 @@ export interface FileInfo {
 }
 
 export function useRunResults() {
-  const { consortiumId, runId } = useParams<{ consortiumId: string, runId: string }>()
+  const {
+    consortiumId,
+    runId,
+  } = useParams<{ consortiumId: string, runId: string }>()
   const [fileList, setFileList] = useState<FileInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [frameSrc, setFrameSrc] = useState<string | null>(null)
-  const [edgeClientRunResultsUrl, setEdgeClientRunResultsUrl] = useState<string | null>(null)
-  const [filesPanelWidth, setFilesPanelWidth] = useState<object>({ sm: 3, md: 2 })
+  const [
+    edgeClientRunResultsUrl,
+    setEdgeClientRunResultsUrl,
+  ] = useState<string | null>(null)
+  const [
+    filesPanelWidth,
+    setFilesPanelWidth,
+  ] = useState<object>({ sm: 3, md: 2 })
   const [filesPanelShow, setFilesPanelShow] = useState<string>('inline')
-  const [iframePanelWidth, setIframePanelWidth] = useState<object>({ sm: 9, md: 10 })
+  const [
+    iframePanelWidth,
+    setIframePanelWidth,
+  ] = useState<object>({ sm: 9, md: 10 })
   const [iframeExpanded, setIframeExpanded] = useState<boolean>(false)
   const [arrowForwardShow, setArrowForwardShow] = useState<string>('none')
 
-  const fetchRecursive = async (relativePath: string, token: string): Promise<FileInfo[]> => {
+  const fetchRecursive = async (
+    relativePath: string,
+    token: string,
+  ): Promise<FileInfo[]> => {
     const normalizedPath = relativePath.replace(/^\/+/, '') // remove leading slashes
     const fullUrl = `${edgeClientRunResultsUrl}/${normalizedPath}${normalizedPath.endsWith('/') ? '' : '/'}`
 

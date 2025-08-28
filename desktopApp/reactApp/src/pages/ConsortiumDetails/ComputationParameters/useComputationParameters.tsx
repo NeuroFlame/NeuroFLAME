@@ -5,8 +5,13 @@ import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 
 export const useComputationParameters = () => {
-  const { refetch, isLeader, data: consortiumDetails } = useConsortiumDetailsContext()
-  const computationParameters = consortiumDetails?.studyConfiguration?.computationParameters
+  const {
+    refetch,
+    isLeader,
+    data: consortiumDetails,
+  } = useConsortiumDetailsContext()
+  const computationParameters =
+    consortiumDetails?.studyConfiguration?.computationParameters
   const [isEditing, setIsEditing] = useState(false)
   const { studySetParameters } = useCentralApi()
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string

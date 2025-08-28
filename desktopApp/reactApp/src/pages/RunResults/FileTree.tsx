@@ -38,7 +38,14 @@ type FileTreeProps = {
 function buildFileTree(files: FileItem[]): TreeNode {
   const root: TreeNode = {}
 
-  files.forEach(({ name, url, displayUrl, isDirectory, size, lastModified }) => {
+  files.forEach(({
+    name,
+    url,
+    displayUrl,
+    isDirectory,
+    size,
+    lastModified,
+  }) => {
     const parts = displayUrl.split('/')
     let current: TreeNode = root
 
@@ -94,7 +101,11 @@ const Folder: React.FC<{
         }}
         onClick={() => setOpen(!open)}
       >
-        {open ? <FolderOpenIcon fontSize='small' /> : <FolderIcon fontSize='small' />}
+        {open ? (
+          <FolderOpenIcon fontSize='small' />
+        ) : (
+          <FolderIcon fontSize='small' />
+        )}
         <span style={{ marginLeft: '0.5rem' }}>{name}</span>
       </div>
       {open && children}
@@ -104,11 +115,21 @@ const Folder: React.FC<{
 
 function getFileIcon(fileName: string) {
   const ext = fileName.split('.').pop()?.toLowerCase()
-  if (!ext) return <InsertDriveFileIcon fontSize='small' />
-  if (['csv', 'tsv', 'txt'].includes(ext)) return <DescriptionIcon fontSize='small' />
-  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) return <ImageIcon fontSize='small' />
-  if (['html', 'js', 'ts'].includes(ext)) return <CodeIcon fontSize='small' />
-  if (['mat', 'npy', 'h5'].includes(ext)) return <DataObjectIcon fontSize='small' />
+  if (!ext) {
+    return <InsertDriveFileIcon fontSize='small' />
+  }
+  if (['csv', 'tsv', 'txt'].includes(ext)) {
+    return <DescriptionIcon fontSize='small' />
+  }
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) {
+    return <ImageIcon fontSize='small' />
+  }
+  if (['html', 'js', 'ts'].includes(ext)) {
+    return <CodeIcon fontSize='small' />
+  }
+  if (['mat', 'npy', 'h5'].includes(ext)) {
+    return <DataObjectIcon fontSize='small' />
+  }
   return <InsertDriveFileIcon fontSize='small' />
 }
 
@@ -179,7 +200,15 @@ function RenderTree({
                 >
                   {file.name}
                 </button>
-                <div style={{ width: '100%', padding: '0 0 0 2px', margin: 0, fontSize: '0.6rem', color: '#666' }}>
+                <div
+                  style={{
+                    width: '100%',
+                    padding: '0 0 0 2px',
+                    margin: 0,
+                    fontSize: '0.6rem',
+                    color: '#666',
+                  }}
+                >
                   ({formatBytes(file.size)}, {new Date(file.lastModified).toLocaleDateString()})
                 </div>
               </div>

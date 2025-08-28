@@ -26,7 +26,11 @@ const GetUserColor = (index: number, active: boolean): string => {
 
 const UserAvatar = styled(Avatar, {
   shouldForwardProp: (prop) => prop !== 'admin' && prop !== 'active',
-})<{ index: number; admin: boolean; active: boolean }>(({ index, admin, active }) => ({
+})<{ index: number; admin: boolean; active: boolean }>(({
+  index,
+  admin,
+  active,
+}) => ({
   width: '45px',
   height: '45px',
   background: !admin ? GetUserColor(index, active) : 'none',
@@ -43,7 +47,15 @@ interface MemberAvatarProps {
 }
 
 const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
-  const { username, isLeader, isActive, isReady, index, direction, nameSize } = props
+  const {
+    username,
+    isLeader,
+    isActive,
+    isReady,
+    index,
+    direction,
+    nameSize,
+  } = props
 
   return (
     <Box
@@ -60,21 +72,21 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
       }}
     >
       <Box style={{ position: 'relative' }}>
-        {isReady
-          ? <CheckCircleIcon
-              sx={{
-                position: 'absolute',
-                backgroundColor: '#ffffff',
-                borderRadius: '16px',
-                color: '#2FA84F',
-                width: '16px',
-                height: '16px',
-                top: '-2px',
-                right: '-0.25rem',
-                zIndex: '3',
-              }}
-            /> : ''}
-        {isLeader &&
+        {isReady ? (
+          <CheckCircleIcon
+            sx={{
+              position: 'absolute',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              color: '#2FA84F',
+              width: '16px',
+              height: '16px',
+              top: '-2px',
+              right: '-0.25rem',
+              zIndex: '3',
+            }}
+          />) : ''}
+        {isLeader && (
           <img
             src={Crown}
             style={{
@@ -88,7 +100,8 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
               zIndex: '3',
               rotate: '-25deg',
             }}
-          />}
+          />
+        )}
         <UserAvatar index={index} admin={isLeader} active={isActive}>
           <span
             style={{
@@ -101,7 +114,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
           >
             {username.charAt(0).toUpperCase()}
           </span>
-          {isLeader &&
+          {isLeader && (
             <img
               src={isActive ? Shield : GreyShield}
               style={{
@@ -111,7 +124,8 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
                 zIndex: '1',
                 objectFit: 'cover',
               }}
-            />}
+            />
+          )}
         </UserAvatar>
       </Box>
       <span

@@ -46,10 +46,18 @@ export default function RunResults() {
     return (
       <Grid container spacing={2} padding={2}>
         <Grid size={{ sm: 12 }}>
-          <Typography variant='h6' color='error' style={{ marginBottom: '1rem' }}>
+          <Typography
+            variant='h6'
+            color='error'
+            style={{ marginBottom: '1rem' }}
+          >
             {error}
           </Typography>
-          <Button variant='contained' color='primary' onClick={() => navigate(-1)}>
+          <Button
+            variant='contained'
+            color='primary'
+            onClick={() => navigate(-1)}
+          >
             Go Back
           </Button>
         </Grid>
@@ -115,7 +123,9 @@ export default function RunResults() {
       </Grid>
       <Grid size={filesPanelWidth} style={{ transition: 'width 0.5s' }}>
         <Box display={filesPanelShow}>
-          <Typography variant='h6' style={{ marginTop: '2rem' }}>Files:</Typography>
+          <Typography variant='h6' style={{ marginTop: '2rem' }}>
+            Files:
+          </Typography>
           <div style={{ height: '75vh', overflowY: 'scroll' }}>
             <ul style={{ listStyle: 'none', margin: '0', padding: '0' }}>
               <FileTree
@@ -130,7 +140,10 @@ export default function RunResults() {
       </Grid>
       <Grid
         size={iframePanelWidth}
-        style={iframeExpanded ? { transition: 'width 0.5s', marginTop: '-1rem' } : { transition: 'width 0.5s', marginTop: '0rem' }}
+        style={{
+          transition: 'width 0.5s',
+          marginTop: iframeExpanded ? '-1rem' : '0rem',
+        }}
       >
         <Button
           variant='text'
@@ -148,7 +161,13 @@ export default function RunResults() {
         >
           Expand Results Panel
         </Button>
-        <Box style={{ background: '#fff', minHeight: 'calc(50vh)', padding: '0.25rem 1rem 1rem' }}>
+        <Box
+          style={{
+            background: '#fff',
+            minHeight: 'calc(50vh)',
+            padding: '0.25rem 1rem 1rem',
+          }}
+        >
           {currentFile && (
             <h3 style={{ padding: '1rem 0 0' }}>
               <span style={{ color: 'black' }}>Viewing:</span> {currentFile}
@@ -170,11 +189,21 @@ export default function RunResults() {
                 width='100%'
                 height='100%'
                 sandbox='allow-same-origin'
-                style={{ border: 'none', background: 'white', height: 'calc(100vh - 170px)' }}
+                style={{
+                  border: 'none',
+                  background: 'white',
+                  height: 'calc(100vh - 170px)',
+                }}
               />
             )
           ) : (
-            <div style={{ background: 'white', height: 'calc(100vh - 225px)', padding: '1rem' }}>
+            <div
+              style={{
+                background: 'white',
+                height: 'calc(100vh - 225px)',
+                padding: '1rem',
+              }}
+            >
               <h2>No index.html file in the output folder.</h2>
               <p>You're welcome to view the files on the left.</p>
             </div>

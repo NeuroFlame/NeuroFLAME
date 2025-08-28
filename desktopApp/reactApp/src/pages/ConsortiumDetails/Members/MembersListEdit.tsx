@@ -15,11 +15,21 @@ interface MembersListEditProps {
   setMemberReady: (memberId: string, isReady: boolean) => void;
 }
 
-export default function MembersListEdit({ memberList, leaderSetMemberActive, leaderSetRemoveMember }: MembersListEditProps) {
+export default function MembersListEdit({
+  memberList,
+  leaderSetMemberActive,
+  leaderSetRemoveMember,
+}: MembersListEditProps) {
   return (
     <Box style={{ width: '100%' }}>
       {/* Display Leader */}
-      {memberList.map(({ id, username, isActive, isReady, isLeader }, index) => (
+      {memberList.map(({
+        id,
+        username,
+        isActive,
+        isReady,
+        isLeader,
+      }, index) => (
         <Box
           key={`member-${id}-${index}`}
           style={{
@@ -45,31 +55,35 @@ export default function MembersListEdit({ memberList, leaderSetMemberActive, lea
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem' }}>
-            {isActive && <Button
-              color='primary'
-              size='small'
-              variant='outlined'
-              style={{ borderColor: 'grey' }}
-              sx={{
-                color: 'grey',
-                borderColor: 'grey',
-                '&:hover': {
-                  backgroundColor: '#f0f0f0', // Light gray on hover
-                },
-              }}
-              onClick={() => leaderSetMemberActive(id)}
-                         >
-              Set Inactive
-            </Button>}
-            {!isLeader && <Button
-              color='primary'
-              size='small'
-              variant='contained'
-              style={{ backgroundColor: 'grey' }}
-              onClick={() => leaderSetRemoveMember(id)}
-                          >
-              Remove
-            </Button>}
+            {isActive && (
+              <Button
+                color='primary'
+                size='small'
+                variant='outlined'
+                style={{ borderColor: 'grey' }}
+                sx={{
+                  color: 'grey',
+                  borderColor: 'grey',
+                  '&:hover': {
+                    backgroundColor: '#f0f0f0', // Light gray on hover
+                  },
+                }}
+                onClick={() => leaderSetMemberActive(id)}
+              >
+                Set Inactive
+              </Button>
+            )}
+            {!isLeader && (
+              <Button
+                color='primary'
+                size='small'
+                variant='contained'
+                style={{ backgroundColor: 'grey' }}
+                onClick={() => leaderSetRemoveMember(id)}
+              >
+                Remove
+              </Button>
+            )}
           </div>
         </Box>
       ))}

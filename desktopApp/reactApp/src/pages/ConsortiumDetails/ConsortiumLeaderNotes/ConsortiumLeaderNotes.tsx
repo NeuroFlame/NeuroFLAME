@@ -8,12 +8,34 @@ interface ConsortiumLeaderNotesProps {
   showAccordion: boolean;
 }
 
-export default function ConsortiumLeaderNotes({ consortiumLeaderNotes }: ConsortiumLeaderNotesProps) {
-  const { isEditing, handleEdit, handleSave, handleCancel, isLeader } = useConsortiumLeaderNotes(consortiumLeaderNotes)
+export default function ConsortiumLeaderNotes({
+  consortiumLeaderNotes,
+}: ConsortiumLeaderNotesProps) {
+  const {
+    isEditing,
+    handleEdit,
+    handleSave,
+    handleCancel,
+    isLeader,
+  } = useConsortiumLeaderNotes(consortiumLeaderNotes)
 
   return (
-    <Box p={2} borderRadius={2} bgcolor='white' marginBottom={0} style={{ position: 'relative' }}>
-      <Box sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 1rem 0' }}>
+    <Box
+      p={2}
+      borderRadius={2}
+      bgcolor='white'
+      marginBottom={0}
+      style={{ position: 'relative' }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          margin: '0 0 1rem 0',
+        }}
+      >
         <Typography variant='h6' gutterBottom>
           Leader Notes
         </Typography>
@@ -30,13 +52,17 @@ export default function ConsortiumLeaderNotes({ consortiumLeaderNotes }: Consort
           </Button>
         )}
       </Box>
-      {isEditing
-        ? <ConsortiumLeaderNotesEdit
-            consortiumLeaderNotes={consortiumLeaderNotes}
-            onSave={handleSave}
-            onCancel={handleCancel}
-          />
-        : <ConsortiumLeaderNotesDisplay consortiumLeaderNotes={consortiumLeaderNotes} />}
+      {isEditing ? (
+        <ConsortiumLeaderNotesEdit
+          consortiumLeaderNotes={consortiumLeaderNotes}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      ) : (
+        <ConsortiumLeaderNotesDisplay
+          consortiumLeaderNotes={consortiumLeaderNotes}
+        />
+      )}
     </Box>
   )
 }

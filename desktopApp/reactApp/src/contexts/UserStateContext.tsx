@@ -1,14 +1,26 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from 'react'
 
 interface UserStateContextType {
   userId: string;
   username: string;
   roles: string[];
-  setUserData: (userData: { accessToken: string, userId: string, username: string, roles: string[] }) => void;
+  setUserData: (userData: {
+    accessToken: string,
+    userId: string,
+    username: string,
+    roles: string[],
+  }) => void;
   clearUserData: () => void;
 }
 
-const UserStateContext = createContext<UserStateContextType | undefined>(undefined)
+const UserStateContext =
+  createContext<UserStateContextType | undefined>(undefined)
 
 export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   const [userData, _setUserData] = useState({
@@ -46,7 +58,12 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     userId,
     username,
     roles,
-  }: { accessToken: string, userId: string, username: string, roles: string[] }) => {
+  }: {
+    accessToken: string,
+    userId: string,
+    username: string,
+    roles: string[],
+  }) => {
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('userId', userId)
     localStorage.setItem('username', username)
@@ -70,7 +87,12 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('roles')
   }
 
-  const setUserData = async (data: { accessToken: string, userId: string, username: string, roles: string[] }) => {
+  const setUserData = async (data: {
+    accessToken: string,
+    userId: string,
+    username: string,
+    roles: string[],
+  }) => {
     _setUserData({
       accessToken: data.accessToken,
       userId: data.userId,
@@ -82,7 +104,15 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <UserStateContext.Provider value={{ userId: userData.userId, username: userData.username, roles: userData.roles, setUserData, clearUserData }}>
+    <UserStateContext.Provider
+      value={{
+        userId: userData.userId,
+        username: userData.username,
+        roles: userData.roles,
+        setUserData,
+        clearUserData,
+      }}
+    >
       {children}
     </UserStateContext.Provider>
   )

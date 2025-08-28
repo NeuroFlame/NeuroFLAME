@@ -5,7 +5,10 @@ interface useEditableValueParams {
   saveValue: (newValue: string) => Promise<void>; // Save the updated value (API call)
 }
 
-export function useEditableValue({ fetchValue, saveValue }: useEditableValueParams) {
+export function useEditableValue({
+  fetchValue,
+  saveValue,
+}: useEditableValueParams) {
   const [editableValue, setEditableValue] = useState<string>('') // Current value being edited
   const [originalValue, setOriginalValue] = useState<string>('') // Original value fetched
   const [isEditing, setIsEditing] = useState<boolean>(false) // Tracks whether we're in edit mode

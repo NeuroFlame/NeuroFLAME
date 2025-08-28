@@ -149,7 +149,9 @@ export const serveRunFile = async (req: Request, res: Response) => {
         contents = contents.replace(
           /<a\b[^>]*?\bhref\s*=\s*["']([^"']+\.html)["'][^>]*?>/gi,
           (match, href) => {
-            if (href.startsWith('mailto:') || href.startsWith('tel:')) return match
+            if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+              return match
+            }
             const connector = href.includes('?') ? '&' : '?'
             return match.replace(href, `${href}${connector}x-access-token=${token}`)
           },

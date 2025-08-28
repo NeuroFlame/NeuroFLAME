@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
-import { QueryGetRunDetailsArgs, RunDetails as GeneratedRunDetails } from '../../apis/centralApi/generated/graphql' // Import the generated types
+import {
+  QueryGetRunDetailsArgs,
+  RunDetails as GeneratedRunDetails,
+} from '../../apis/centralApi/generated/graphql' // Import the generated types
 
 export function useRunDetails() {
   const { runId } = useParams<{ runId: string }>() // Extract runId from the route params
-  const { getRunDetails, subscriptions: { runDetailsChanged } } = useCentralApi() // Fetch the getRunDetails and runDetailsChanged functions
+  const {
+    getRunDetails,
+    subscriptions: { runDetailsChanged },
+  } = useCentralApi() // Fetch the getRunDetails and runDetailsChanged functions
 
   // Local state to hold the fetched run details, loading status, and errors
   const [runDetails, setRunDetails] = useState<GeneratedRunDetails | null>(null) // Use the generated RunDetails type
