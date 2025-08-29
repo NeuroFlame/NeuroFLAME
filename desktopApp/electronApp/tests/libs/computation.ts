@@ -62,7 +62,7 @@ try {
   await page.getByRole("button", { name: /details/i }).click()
 }
   // Check results
-  await expect(page.getByText('global_regression_result.html')).toBeVisible()
+  await expect(page.getByText('global_regression_result.json')).toBeVisible()
 }
 
 export default {
