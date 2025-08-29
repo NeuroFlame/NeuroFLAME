@@ -152,6 +152,8 @@ type Mutation {
   leaderSetMemberInactive(consortiumId: String!, userId: String!): Boolean!
   leaderRemoveMember(consortiumId: String!, userId: String!): Boolean!
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!
+  requestPasswordReset(username: String!): Boolean!
+  resetPassword(token: String!, newPassword: String!): LoginOutput!
 }
 
 type Subscription {

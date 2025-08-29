@@ -1,23 +1,24 @@
 // LoginPage.tsx
 import React, { useState } from 'react';
 import { Box, Button, Typography, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { CreateUser } from './CreateUser/CreateUser';
 import { Login } from './Login/Login';
 import { ChangePassword } from './ChangePassword/ChangePassword';
+import { ResetPasswordFlow } from './ResetPasswordFlow/ResetPasswordFlow';
 import { useLoginPage } from './useLoginPage';
 import logo from '../../assets/neuroflame-logo.png';
-import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
   const { isLoggedIn, logout } = useLoginPage(); // Assuming logout is provided by useLoginPage
-  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [formType, setFormType] = useState<'login' | 'createUser' | 'resetPassword'>('login');
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [userCreated, setUserCreated] = useState(false);
   const navigate = useNavigate();
 
   const handleUserCreated = () => {
-    setShowCreateUser(false);
     setUserCreated(true);
+    setFormType('login'); // Switch back to login form after user creation
   }
 
   return (
@@ -54,22 +55,31 @@ const LoginPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 'xs' }}>
-         {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
+        {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
+        
         {!isLoggedIn ? (
           <>
-            {showCreateUser ? (
-              <CreateUser userCreated={handleUserCreated} />
-            ) : (
-              <Login />
-            )}
+            {formType === 'login' && <Login />}
+            {formType === 'createUser' && <CreateUser userCreated={handleUserCreated} />}
+            {formType === 'resetPassword' && <ResetPasswordFlow />}
+            
             <Button
               variant="text"
               color="primary"
               fullWidth
-              onClick={() => setShowCreateUser(!showCreateUser)}
+              onClick={() => setFormType(formType === 'createUser' ? 'login' : 'createUser')}
               sx={{ mt: 2 }}
             >
-              {showCreateUser ? 'Back to Login' : 'Create User'}
+              {formType === 'createUser' ? 'Back to Login' : 'Create User'}
+            </Button>
+
+            <Button
+              variant="text"
+              color="primary"
+              fullWidth
+              onClick={() => setFormType(formType === 'resetPassword' ? 'login' : 'resetPassword')}
+            >
+              {formType === 'resetPassword' ? 'Back to Login' : 'Reset Password'}
             </Button>
           </>
         ) : (
@@ -99,17 +109,17 @@ const LoginPage: React.FC = () => {
           </>
         )}
       </Box>
+      
       <Box sx={{ maxWidth: 'xs' }}>
-      <Button
-        variant="text"
-        color="primary"
-        fullWidth
-        onClick={() => navigate(`/appConfig`)}
-      >
-        App Configuration
-      </Button>
+        <Button
+          variant="text"
+          color="primary"
+          fullWidth
+          onClick={() => navigate('/appConfig')}
+        >
+          App Configuration
+        </Button>
       </Box>
-
     </Box>
   );
 };
