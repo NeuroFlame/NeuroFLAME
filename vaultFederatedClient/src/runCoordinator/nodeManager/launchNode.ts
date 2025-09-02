@@ -75,7 +75,6 @@ const launchDockerNode = async ({
   })
 
   try {
-
     await isDockerRunning()
     await doesImageExist(imageName)
 

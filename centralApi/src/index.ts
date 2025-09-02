@@ -40,8 +40,8 @@ export async function start({
 
   await mongoose.connect(url, {
     autoIndex: false,
-    user: user,
-    pass: pass,
+    user,
+    pass,
     authSource: 'admin',
   })
 

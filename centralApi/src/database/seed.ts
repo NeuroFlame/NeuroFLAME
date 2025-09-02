@@ -5,7 +5,8 @@ import { logger } from '../logger.js'
 import Consortium from './models/Consortium.js'
 import Computation from './models/Computation.js'
 import Run from './models/Run.js'
-import User, { IVault } from './models/User.js'
+import User from './models/User.js'
+// eslint-disable-next-line @stylistic/max-len
 import computationNotesSingleRoundRidgeRegressionFreesurfer from './seedContent/computationNotesSingleRoundRidgeRegressionFreesurfer.js'
 
 const { databaseDetails } = await getConfig()
@@ -67,14 +68,14 @@ const users = [
 ]
 
 const computations = [
-    {
-        _id: predefinedIds.computation1Id,
-        title: "Single-Round Ridge Regression for FreeSurfer Data",
-        imageName: "coinstacteam/nfc-single-round-ridge-regression-freesurfer",
-        imageDownloadUrl: "docker pull coinstacteam/nfc-single-round-ridge-regression-freesurfer",
-        notes: computationNotesSingleRoundRidgeRegressionFreesurfer,
-        owner: predefinedIds.user1Id.toString(),
-    },
+  {
+    _id: predefinedIds.computation1Id,
+    title: 'Single-Round Ridge Regression for FreeSurfer Data',
+    imageName: 'coinstacteam/nfc-single-round-ridge-regression-freesurfer',
+    imageDownloadUrl: 'docker pull coinstacteam/nfc-single-round-ridge-regression-freesurfer',
+    notes: computationNotesSingleRoundRidgeRegressionFreesurfer,
+    owner: predefinedIds.user1Id.toString(),
+  },
 ]
 
 const consortia = [
@@ -88,23 +89,24 @@ const consortia = [
     studyConfiguration: {
       consortiumLeaderNotes: 'Leader notes for single round ridge regression',
       computationParameters: JSON.stringify({
-        "Dependents": {
-          "4th-Ventricle":"float",
-          "5th-Ventricle":"float"
+        Dependents: {
+          '4th-Ventricle': 'float',
+          '5th-Ventricle': 'float',
         },
-        "Covariates": {
-          "sex":"str",
-          "isControl":"bool",
-          "age":"float"
+        Covariates: {
+          sex: 'str',
+          isControl: 'bool',
+          age: 'float',
         },
-        "Lambda": 1,
-        "IgnoreSubjectsWithInvalidData" : true
-        }),
+        Lambda: 1,
+        IgnoreSubjectsWithInvalidData: true,
+      }),
       computation: computations[0],
     },
   },
 ]
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const runs = [
   {
     _id: predefinedIds.run1Id,

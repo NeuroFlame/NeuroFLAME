@@ -12,10 +12,8 @@ interface VaultFederatedClientConfig {
   logPath?: string
 }
 
-
 export default async function getConfig(): Promise<
-  VaultFederatedClientConfig> 
- {
+  VaultFederatedClientConfig> {
   const configPath = getConfigPath()
 
   if (configPath) {

@@ -1,3 +1,3 @@
-export function removeTerminalOutputListener(){
-    return window.ElectronAPI.removeTerminalOutputListener();
+export function removeTerminalOutputListener() {
+  return window.ElectronAPI.removeTerminalOutputListener()
 }

@@ -1,3 +1,3 @@
 export function restartApp() {
-    return window.ElectronAPI.restartApp()
+  return window.ElectronAPI.restartApp()
 }

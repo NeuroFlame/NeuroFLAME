@@ -17,7 +17,6 @@ interface CentralFederateClientConfig {
   }
 }
 
-
 export default async function getConfig(): Promise<
   CentralFederateClientConfig
 > {

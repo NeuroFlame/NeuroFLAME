@@ -1,85 +1,107 @@
 // LoginPage.tsx
-import React, { useState } from 'react';
-import { Box, Button, Typography, Alert } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { CreateUser } from './CreateUser/CreateUser';
-import { Login } from './Login/Login';
-import { ChangePassword } from './ChangePassword/ChangePassword';
-import { ResetPasswordFlow } from './ResetPasswordFlow/ResetPasswordFlow';
-import { useLoginPage } from './useLoginPage';
-import logo from '../../assets/neuroflame-logo.png';
+import React, { useState } from 'react'
+import { Box, Button, Typography, Alert } from '@mui/material'
+import { useNavigate } from 'react-router-dom'
+import { CreateUser } from './CreateUser/CreateUser'
+import { Login } from './Login/Login'
+import { ChangePassword } from './ChangePassword/ChangePassword'
+import { ResetPasswordFlow } from './ResetPasswordFlow/ResetPasswordFlow'
+import { useLoginPage } from './useLoginPage'
+import logo from '../../assets/neuroflame-logo.png'
 
 const LoginPage: React.FC = () => {
-  const { isLoggedIn, logout } = useLoginPage(); // Assuming logout is provided by useLoginPage
-  const [formType, setFormType] = useState<'login' | 'createUser' | 'resetPassword'>('login');
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [userCreated, setUserCreated] = useState(false);
-  const navigate = useNavigate();
+  const { isLoggedIn, logout } = useLoginPage() // Assuming logout is provided by useLoginPage
+  const [
+    formType,
+    setFormType,
+  ] = useState<'login' | 'createUser' | 'resetPassword'>('login')
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [userCreated, setUserCreated] = useState(false)
+  const navigate = useNavigate()
 
   const handleUserCreated = () => {
-    setUserCreated(true);
-    setFormType('login'); // Switch back to login form after user creation
+    setUserCreated(true)
+    setFormType('login') // Switch back to login form after user creation
   }
 
   return (
     <Box sx={{
-      width: "100vw",
-      height: "100vh",
-      background: "#001F70",
+      width: '100vw',
+      height: '100vh',
+      background: '#001F70',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      alignItems: 'center'
-    }}>
+      alignItems: 'center',
+    }}
+    >
       <Box sx={{
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: '1rem'
-      }}>
-        <img 
-          src={logo} 
-          alt="Logo" 
+        marginBottom: '1rem',
+      }}
+      >
+        <img
+          src={logo}
+          alt='Logo'
           style={{
-            width: '110px', 
+            width: '110px',
             height: '70px',
-            marginRight: '1rem'
-          }} 
+            marginRight: '1rem',
+          }}
         />
         <Typography style={{
           fontFamily: 'Lato',
           fontSize: '3rem',
           color: 'white',
-        }}>Neuro<b>FLAME</b></Typography>
+        }}
+        >Neuro<b>FLAME</b>
+        </Typography>
       </Box>
 
       <Box sx={{ maxWidth: 'xs' }}>
-        {userCreated && <Alert severity="success" style={{marginBottom: '1rem'}}>New user successfully created. Log In below.</Alert>}
-        
+        {userCreated && (
+          <Alert
+            severity='success'
+            style={{ marginBottom: '1rem' }}
+          >
+            New user successfully created. Log In below.
+          </Alert>
+        )}
+
         {!isLoggedIn ? (
           <>
             {formType === 'login' && <Login />}
-            {formType === 'createUser' && <CreateUser userCreated={handleUserCreated} />}
+            {formType === 'createUser' && (
+              <CreateUser userCreated={handleUserCreated} />
+            )}
             {formType === 'resetPassword' && <ResetPasswordFlow />}
-            
+
             <Button
-              variant="text"
-              color="primary"
+              variant='text'
+              color='primary'
               fullWidth
-              onClick={() => setFormType(formType === 'createUser' ? 'login' : 'createUser')}
+              onClick={() => setFormType(
+                formType === 'createUser' ? 'login' : 'createUser',
+              )}
               sx={{ mt: 2 }}
             >
               {formType === 'createUser' ? 'Back to Login' : 'Create User'}
             </Button>
 
             <Button
-              variant="text"
-              color="primary"
+              variant='text'
+              color='primary'
               fullWidth
-              onClick={() => setFormType(formType === 'resetPassword' ? 'login' : 'resetPassword')}
+              onClick={() => setFormType(
+                formType === 'resetPassword' ? 'login' : 'resetPassword',
+              )}
             >
-              {formType === 'resetPassword' ? 'Back to Login' : 'Reset Password'}
+              {formType === 'resetPassword'
+                ? 'Back to Login'
+                : 'Reset Password'}
             </Button>
           </>
         ) : (
@@ -88,8 +110,8 @@ const LoginPage: React.FC = () => {
               <ChangePassword />
             ) : (
               <Button
-                variant="text"
-                color="primary"
+                variant='text'
+                color='primary'
                 fullWidth
                 onClick={() => setShowChangePassword(true)}
                 sx={{ mt: 2 }}
@@ -98,8 +120,8 @@ const LoginPage: React.FC = () => {
               </Button>
             )}
             <Button
-              variant="contained"
-              color="secondary"
+              variant='contained'
+              color='secondary'
               fullWidth
               onClick={logout}
               sx={{ mt: 2 }}
@@ -109,11 +131,11 @@ const LoginPage: React.FC = () => {
           </>
         )}
       </Box>
-      
+
       <Box sx={{ maxWidth: 'xs' }}>
         <Button
-          variant="text"
-          color="primary"
+          variant='text'
+          color='primary'
           fullWidth
           onClick={() => navigate('/appConfig')}
         >
@@ -121,7 +143,7 @@ const LoginPage: React.FC = () => {
         </Button>
       </Box>
     </Box>
-  );
-};
+  )
+}
 
-export default LoginPage;
+export default LoginPage
