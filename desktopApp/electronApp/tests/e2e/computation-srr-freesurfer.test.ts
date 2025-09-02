@@ -18,7 +18,7 @@ const DATA = {
     description: `e2e-srr-freesurfer-${CONSORTIUM_ID}`,
   },
   computation: {
-    name: 'sbasodi1/test_neuroflame_comp_srr_freesurfer',
+    name: 'coinstacteam/nfc-single-round-ridge-regression-freesurfer',
   },
 }
 
