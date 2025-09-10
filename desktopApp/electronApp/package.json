@@ -32,6 +32,7 @@
     "@playwright/test": "^1.52.0",
     "@types/electron": "^1.6.10",
     "@types/node": "^20.17.57",
+    "buffer-from": "^1.1.2",
     "electron": "^30.5.1",
     "electron-builder": "^24.13.3",
     "ts-loader": "^9.5.1",
@@ -40,5 +41,8 @@
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
+  },
+    "build": {
+    "electronVersion": "30.5.1"
   }
 }
