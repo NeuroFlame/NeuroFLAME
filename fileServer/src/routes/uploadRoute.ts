@@ -1,5 +1,5 @@
-//uploadRoute.ts
-import { Router, Request, Response, NextFunction } from 'express'
+// uploadRoute.ts
+import { Router, Request, Response } from 'express'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
 import isCentralUser from '../middleware/isCentralUser.js'
 import { uploadFile } from '../middleware/uploadFile.js'
@@ -14,7 +14,7 @@ router.post(
   uploadFile,
   unzipFile,
   (req: Request, res: Response) => {
-    res.send(`File uploaded and extracted successfully!`)
+    res.send('File uploaded and extracted successfully!')
   },
 )
 

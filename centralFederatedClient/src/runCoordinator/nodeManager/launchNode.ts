@@ -1,6 +1,4 @@
 import Docker from 'dockerode'
-import path from 'path'
-import fs from 'fs'
 import { logger } from '../../logger.js'
 const docker = new Docker()
 
@@ -77,7 +75,6 @@ const launchDockerNode = async ({
   })
 
   try {
-
     await isDockerRunning()
     await doesImageExist(imageName)
 
@@ -90,7 +87,9 @@ const launchDockerNode = async ({
         Binds: binds,
         PortBindings: portBindingsFormatted,
         NetworkMode: process.env.CI === 'true' ? 'ci-network' : 'bridge',
-        ExtraHosts: process.env.CI === 'true' ? ['host.docker.internal:host-gateway'] : [],
+        ExtraHosts: process.env.CI === 'true'
+          ? ['host.docker.internal:host-gateway']
+          : [],
       },
     })
 
@@ -132,8 +131,8 @@ const attachDockerEventHandlers = async ({
       logger.error(
         `Container ${containerId} exited with error code ${StatusCode}`,
       )
-      const logs = await container.logs({ stdout: true, stderr: true });
-      logger.error(`Logs from container ${containerId}: ${logs}`);
+      const logs = await container.logs({ stdout: true, stderr: true })
+      logger.error(`Logs from container ${containerId}: ${logs}`)
       onContainerExitError &&
         onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
     } else {

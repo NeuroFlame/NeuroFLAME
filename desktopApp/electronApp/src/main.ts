@@ -27,6 +27,7 @@ function resolveShellAndArgs(): { shell: string; args: string[] } {
     return {
       shell: 'powershell.exe',
       args: ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit'],
+
     }
     // If you prefer classic cmd:
     // return { shell: 'cmd.exe', args: ['/K'] }
@@ -133,7 +134,7 @@ async function appOnReady(): Promise<void> {
     return { action: 'allow' }
   })
 
-  // ---- Terminal IPC (drop-in replacement) ----------------------------------
+  // ---- Terminal IPC ----------------------------------
 
   ipcMain.handle('spawnTerminal', () => {
     // Clean up any previous instance

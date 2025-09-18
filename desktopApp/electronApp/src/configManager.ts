@@ -18,8 +18,8 @@ async function initializeConfig(): Promise<Config> {
       logPath:
         config.edgeClientConfig.logPath ||
         path.join(config.logPath || defaultAppLogPath, 'edgeClient'),
-      path_base_directory:
-        config.edgeClientConfig.path_base_directory ||
+      pathBaseDirectory:
+        config.edgeClientConfig.pathBaseDirectory ||
         defaultEdgeClientBasePath,
     },
   }
@@ -28,7 +28,7 @@ async function initializeConfig(): Promise<Config> {
   await ensurePathsExist([
     finalConfig.logPath,
     finalConfig.edgeClientConfig.logPath,
-    finalConfig.edgeClientConfig.path_base_directory,
+    finalConfig.edgeClientConfig.pathBaseDirectory,
   ])
 
   // Save the updated config

@@ -1,6 +1,6 @@
 import { createClient } from 'graphql-ws'
 import { WebSocket } from 'ws'
-import {logger} from '../logger.js'
+import { logger } from '../logger.js'
 import {
   runStartHandler,
   RUN_START_SUBSCRIPTION,

@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import { Schema, Document } from 'mongoose'
 import { computationSchema, IComputation } from './Computation.js'
 
 // Define an interface for the StudyConfiguration part of documents

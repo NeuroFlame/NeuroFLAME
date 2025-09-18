@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test"
+import { Page } from '@playwright/test'
 import { EXIST_TIMEOUT } from './constants'
 
 const logIn = async ({ username, password }, page: Page) => {
@@ -8,7 +8,7 @@ const logIn = async ({ username, password }, page: Page) => {
 }
 
 const logOut = async (page: Page) => {
-  await page.getByLabel("menu").click({ timeout: EXIST_TIMEOUT });
+  await page.getByLabel('menu').click({ timeout: EXIST_TIMEOUT });
   (await page.$('div:text("Logout")'))?.click()
 }
 
