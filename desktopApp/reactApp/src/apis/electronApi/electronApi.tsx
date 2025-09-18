@@ -1,14 +1,14 @@
-import { applyDefaultConfig } from "./applyDefaultConfig";
-import { getConfig } from "./getConfig";
-import { getConfigPath } from "./getConfigPath";
-import { openConfig } from "./openConfig";
-import { useDirectoryDialog } from "./useDirectoryDialog";
-import { saveConfig } from "./saveConfig";
-import { restartApp } from "./restartApp";
-import { spawnTerminal } from "./spawnTerminal";
-import { terminalInput } from "./terminalInput";
-import { terminalOutput } from "./terminalOutput";
-import { removeTerminalOutputListener } from "./removeTerminalOutputListener";
+import { applyDefaultConfig } from './applyDefaultConfig'
+import { getConfig } from './getConfig'
+import { getConfigPath } from './getConfigPath'
+import { openConfig } from './openConfig'
+import { useDirectoryDialog } from './useDirectoryDialog'
+import { saveConfig } from './saveConfig'
+import { restartApp } from './restartApp'
+import { spawnTerminal } from './spawnTerminal'
+import { terminalInput } from './terminalInput'
+import { terminalOutput } from './terminalOutput'
+import { removeTerminalOutputListener } from './removeTerminalOutputListener'
 
 export interface Config {
   centralServerQueryUrl: string;
@@ -20,7 +20,7 @@ export interface Config {
   edgeClientConfig: {
     httpUrl: string,
     wsUrl: string,
-    path_base_directory: string,
+    pathBaseDirectory: string,
     authenticationEndpoint: string,
     hostingPort: number
   }
@@ -32,7 +32,11 @@ interface ElectronAPI {
   openConfig: () => Promise<void>;
   saveConfig: (configString: string) => Promise<void>;
   applyDefaultConfig: () => Promise<void>;
-  useDirectoryDialog: (pathString?: string) => Promise<{ directoryPath: undefined | string, canceled: boolean, error: string | null }>;
+  useDirectoryDialog: (pathString?: string) => Promise<{
+    directoryPath: undefined | string,
+    canceled: boolean,
+    error: string | null,
+  }>;
   restartApp: () => void;
   spawnTerminal: () => void;
   terminalOutput: (output: any) => Promise<{ output: any }>;
@@ -57,7 +61,5 @@ export const electronApi = {
   terminalOutput,
   terminalInput,
   spawnTerminal,
-  removeTerminalOutputListener
+  removeTerminalOutputListener,
 }
-
-

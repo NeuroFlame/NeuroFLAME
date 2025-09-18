@@ -1,5 +1,4 @@
 const packageJson = require('./package.json');
-debugger
 module.exports = {
   appId: 'neuroflame',
   productName: 'NeuroFLAME',

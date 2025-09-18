@@ -120,4 +120,4 @@ The computation outputs both **site-level** and **global-level** results, which 
 *   **Degrees of Freedom**: The degrees of freedom used in the regression.
     
 *   **Sum of Squared Errors (SSE)**: A measure of the model’s error.
-`;
+`

@@ -8,19 +8,20 @@ import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
 
 export const RUN_START_SUBSCRIPTION = `
-subscription runStartSubscription {
+  subscription runStartSubscription {
     runStartEdge {
-        consortiumId
-        runId
-        imageName
-        downloadUrl
-        downloadToken
+      consortiumId
+      runId
+      imageName
+      downloadUrl
+      downloadToken
     }
-}`
+  }
+`
 
 export const runStartHandler = {
   error: (err: any) =>
-    logger.error(`Run Start - Subscription error`, { error: err }),
+    logger.error('Run Start - Subscription error', { error: err }),
   complete: () => logger.info('Run Start - Subscription completed'),
   next: async ({ data }: { data: any }) => {
     logger.info('Run Start - Received data')
@@ -33,9 +34,9 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      const { path_base_directory } = await getConfig()
+      const { pathBaseDirectory } = await getConfig()
 
-      const consortiumPath = path.join(path_base_directory, consortiumId)
+      const consortiumPath = path.join(pathBaseDirectory, consortiumId)
       const runPath = path.join(consortiumPath, runId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')
@@ -102,7 +103,7 @@ export const runStartHandler = {
         portBindings: [],
         commandsToRun: ['python', '/workspace/system/entry_edge.py'],
         onContainerExitError: async (containerId, error) => {
-          logger.error(`Error in container: ${containerId}`, { error: error })
+          logger.error(`Error in container: ${containerId}`, { error })
           reportRunError({
             runId,
             errorMessage: `Error in container: ${containerId}`,
@@ -113,7 +114,7 @@ export const runStartHandler = {
         },
       })
     } catch (error) {
-      logger.error('Error in runStartHandler', { error: error })
+      logger.error('Error in runStartHandler', { error })
 
       await reportRunError({
         runId: data.runStartEdge.runId,

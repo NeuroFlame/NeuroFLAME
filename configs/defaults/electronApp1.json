@@ -9,7 +9,7 @@
   "edgeClientConfig": {
     "httpUrl": "http://localhost:3001/graphql",
     "wsUrl": "ws://localhost:3001/graphql",
-    "path_base_directory": "{{REPO_DIR}}/_devTestDirectories/edgeSite1",
+    "pathBaseDirectory": "{{REPO_DIR}}/_devTestDirectories/edgeSite1",
     "authenticationEndpoint": "http://localhost:3001/authenticateToken",
     "hostingPort": 3003,
     "logPath": "C:\\Users\\dylan\\AppData\\Roaming\\neuroflame\\logs\\edgeClient"

@@ -1,4 +1,4 @@
-const neostandard = require('neostandard');
+const neostandard = require('neostandard')
 
 module.exports = [
   ...neostandard({
@@ -7,32 +7,18 @@ module.exports = [
       ...neostandard.resolveIgnoresFromGitignore(),
       '**/*/*.cjs',
     ],
-    semi: true,
+    semi: false,
   }),
   {
     rules: {
-      strict: ['error', 'global'],
-      'no-loop-func': ['error'],
-      curly: ['error', 'multi-line', 'consistent'],
-      'no-unused-private-class-members': ['error'],
-      'no-invalid-this': ['error'],
-      'class-methods-use-this': ['warn'],
       'arrow-body-style': ['error', 'as-needed'],
       'arrow-parens': ['error', 'always'],
-      'prefer-arrow-callback': ['error'],
-      'prefer-numeric-literals': ['error'],
-      'prefer-rest-params': ['error'],
-      'prefer-spread': ['error'],
-      'no-console': ['off'],
-      'max-nested-callbacks': [
-        'error',
-        { max: 5 },
-      ],
+      curly: ['error', 'multi-line', 'consistent'],
       'no-lonely-if': ['error'],
-      'no-nested-ternary': ['error'],
+      'no-useless-escape': 'off',
       'object-shorthand': ['error'],
-      'operator-assignment': ['error', 'always'],
-      'n/handle-callback-err': ['off'],
+      'prefer-arrow-callback': ['error'],
+      'n/handle-callback-err': 'off',
       '@stylistic/comma-dangle': ['error', 'always-multiline'],
       '@stylistic/jsx-closing-tag-location': ['error', 'line-aligned'],
       '@stylistic/jsx-self-closing-comp': ['error', {
@@ -52,11 +38,11 @@ module.exports = [
       '@stylistic/max-len': [
         'error',
         {
-          code: 80,
+          code: 120,
           ignoreComments: true,
           ignoreTrailingComments: true,
           ignoreUrls: true,
-          ignoreStrings: true,
+          ignoreStrings: false,
           ignoreTemplateLiterals: true,
           ignoreRegExpLiterals: true,
         },
@@ -72,4 +58,4 @@ module.exports = [
       ],
     },
   },
-];
+]

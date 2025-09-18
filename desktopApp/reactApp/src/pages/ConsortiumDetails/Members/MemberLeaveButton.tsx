@@ -1,22 +1,21 @@
-import React, { useState } from "react";
-import { useCentralApi } from "../../../apis/centralApi/centralApi";
-import { Button, Typography, CircularProgress } from "@mui/material";
+import React from 'react'
+import { Button } from '@mui/material'
 
 interface MemberLeadButtonProps {
-    handleLeave: () => void;
+  handleLeave: () => void;
 }
 
-const MemberLeaveButton: React.FC<MemberLeadButtonProps> = ({handleLeave}) => {
-    return (
-        <Button
-            variant="outlined"
-            onClick={handleLeave}
-            size='small' 
-            fullWidth
-        >
-            Leave Consortium
-        </Button>
-    );
-}
+const MemberLeaveButton: React.FC<MemberLeadButtonProps> = ({
+  handleLeave,
+}) => (
+  <Button
+    variant='outlined'
+    onClick={handleLeave}
+    size='small'
+    fullWidth
+  >
+    Leave Consortium
+  </Button>
+)
 
-export default MemberLeaveButton;
+export default MemberLeaveButton

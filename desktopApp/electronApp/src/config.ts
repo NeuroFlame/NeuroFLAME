@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import { app, shell } from 'electron'
-import { defaultConfig, testConfig, testConfigCI } from './defaultConfig.js'
+import { defaultConfig, testConfig } from './defaultConfig.js'
 import { Config } from './types.js'
 import { logger } from './logger.js'
 
@@ -16,8 +16,8 @@ export function getConfigPath(): string {
 }
 
 export async function getConfig(): Promise<Config> {
-  if (process.env.NODE_ENV === "test" && process.env.CI !== "true") {
-    return testConfig;
+  if (process.env.NODE_ENV === 'test' && process.env.CI !== 'true') {
+    return testConfig
   }
 
   const configPath = getConfigPath()

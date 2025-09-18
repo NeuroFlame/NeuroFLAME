@@ -1,5 +1,5 @@
-import { ApolloClient, gql, NormalizedCacheObject } from '@apollo/client';
-import { Query, QueryGetConsortiumDetailsArgs } from './generated/graphql'; // Adjust based on your actual generated types
+import { ApolloClient, gql, NormalizedCacheObject } from '@apollo/client'
+import { Query, QueryGetConsortiumDetailsArgs } from './generated/graphql' // Adjust based on your actual generated types
 
 // Define the GraphQL query for fetching the consortium details
 const GET_CONSORTIUM_DETAILS = gql`
@@ -37,28 +37,28 @@ const GET_CONSORTIUM_DETAILS = gql`
       }
     }
   }
-`;
+`
 
 // Fetch the consortium details from the GraphQL API using Apollo Client
 export const getConsortiumDetails = async (
-    apolloClient: ApolloClient<NormalizedCacheObject>,
-    input: QueryGetConsortiumDetailsArgs  // Adjust based on your actual generated types
+  apolloClient: ApolloClient<NormalizedCacheObject>,
+  input: QueryGetConsortiumDetailsArgs,  // Adjust based on your actual generated types
 ): Promise<Query['getConsortiumDetails']> => {
-    const { consortiumId } = input;
-    const { data, errors } = await apolloClient.query<{ getConsortiumDetails: Query['getConsortiumDetails'] }>({
-        query: GET_CONSORTIUM_DETAILS,
-        variables: { consortiumId },
-    });
+  const { consortiumId } = input
+  const { data, errors } = await apolloClient.query<{ getConsortiumDetails: Query['getConsortiumDetails'] }>({
+    query: GET_CONSORTIUM_DETAILS,
+    variables: { consortiumId },
+  })
 
-    // Throw GraphQL errors if present
-    if (errors?.length) {
-        throw new Error(errors.map(err => err.message).join(', '));
-    }
+  // Throw GraphQL errors if present
+  if (errors?.length) {
+    throw new Error(errors.map((err) => err.message).join(', '))
+  }
 
-    // Ensure data exists
-    if (!data?.getConsortiumDetails) {
-        throw new Error(`Failed to fetch consortium details for ID: ${consortiumId}`);
-    }
+  // Ensure data exists
+  if (!data?.getConsortiumDetails) {
+    throw new Error(`Failed to fetch consortium details for ID: ${consortiumId}`)
+  }
 
-    return data.getConsortiumDetails;
-};
+  return data.getConsortiumDetails
+}

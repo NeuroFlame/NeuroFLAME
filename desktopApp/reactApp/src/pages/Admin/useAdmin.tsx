@@ -1,3 +1,3 @@
-export function useAdmin(){
-    return {}
+export function useAdmin() {
+  return {}
 }
