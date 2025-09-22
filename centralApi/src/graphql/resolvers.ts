@@ -748,8 +748,8 @@ export default {
       { title, description }: { title: string; description: string },
       context: Context,
     ): Promise<any> => {
-      if (!title || !description) {
-        throw new Error('Title and description are required')
+      if (!title) {
+        throw new Error('Title is required')
       }
 
       if (title) {
