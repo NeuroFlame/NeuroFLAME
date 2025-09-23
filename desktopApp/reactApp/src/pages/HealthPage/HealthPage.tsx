@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { electronApi } from '../../apis/electronApi/electronApi'
 import { useTerminalDockerHealth, StatusState } from './useTerminalDockerHealth'
-import { Paper, Typography } from '@mui/material'
+import { Button, Paper, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 
 export type EndpointStatus = {
@@ -175,26 +175,20 @@ export default function HealthPage() {
      <Typography variant='h5' style={{ marginBottom: 20 }}>App Health</Typography>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, justifyContent: 'space-between', alignItems: 'center' }}>
-        <button
+        <Button
+          variant='contained'
+          color='primary'
           onClick={run}
           disabled={loading || !ready || !urls}
-          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer' }}
         >
           {loading ? 'Running…' : !urls ? 'Loading config…' : !ready ? 'Starting terminal…' : 'Re-run Checks'}
-        </button>
-                    <button
-            style={{
-                background: 'none',
-                border: '1px solid #06f',
-                color: '#06f',
-                cursor: 'pointer',
-                borderRadius: '0.5rem'
-                
-            }}
+        </Button>
+        <Button
+            variant='outlined'
             onClick={() => navigate('/appConfig')}
             >
             App Config
-            </button>
+        </Button>
       </div>
 
       {error && (
@@ -267,34 +261,28 @@ export default function HealthPage() {
       </div>
 
         {/* Docker logs toggle */}
-        <div style={{ padding: '8px 12px' }}>
-            <button
-            style={{
-                fontSize: 12,
-                background: 'none',
-                border: '1px solid #06f',
-                color: '#06f',
-                cursor: 'pointer',
-                borderRadius: '0.5rem'
-                
-            }}
-            onClick={() => setShowDockerLogs((s) => !s)}
+        <div style={{ padding: '1rem 0' }}>
+            <Button
+              variant='outlined'
+              color='primary'
+              onClick={() => setShowDockerLogs((s) => !s)}
             >
             {showDockerLogs ? 'Hide Docker Logs' : 'Show Docker Logs'}
-            </button>
+            </Button>
             {showDockerLogs && (
             <pre
                 style={{
-                marginTop: 8,
-                maxHeight: 200,
-                overflowY: 'auto',
-                background: '#f7f7f7',
-                padding: 8,
-                border: '1px solid #ddd',
-                borderRadius: 6,
-                fontSize: 11,
-                lineHeight: 1.4,
-                color: '#333',
+                  width: 'calc(100% - 1.5rem)',
+                  marginTop: '1rem',
+                  maxHeight: 200,
+                  overflowY: 'auto',
+                  background: '#f7f7f7',
+                  padding: 8,
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  lineHeight: 1.4,
+                  color: '#333',
                 }}
             >
                 {getLastLines(50).join('\n')}
