@@ -173,9 +173,6 @@ export default function HealthPage() {
   return (
     <Paper style={{ maxWidth: 1100, margin: '1rem auto', padding: '1rem' }}>
      <Typography variant='h5' style={{ marginBottom: 20 }}>App Health</Typography>
-      <p style={{ color: '#666', marginBottom: 20 }}>
-        Uses <code className='inline'>electronApi.getConfig()</code> for endpoints. Network checks run in the renderer. Docker rows show <strong>CHECKING</strong> until the terminal confirms OK or times out.
-      </p>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <button
@@ -304,10 +301,6 @@ export default function HealthPage() {
             </pre>
             )}
         </div>
-
-      <p style={{ marginTop: 16, fontSize: 12, color: '#777' }}>
-        Tip: On Linux/macOS, Docker socket is usually <code className='inline'>/var/run/docker.sock</code> on Windows it’s <code className='inline'>\\.\pipe\docker_engine</code> Colima/Lima may use different paths.
-      </p>
     </Paper>
   )
 }
