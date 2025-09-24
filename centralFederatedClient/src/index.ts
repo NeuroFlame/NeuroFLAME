@@ -1,12 +1,10 @@
 import * as runCoordinator from './runCoordinator/runCoordinator.js'
-import getConfig from './config/getConfig.js'
+import { ACCESS_TOKEN, LOG_PATH, WS_URL } from './config.js'
 import { logger, logToPath } from './logger.js'
 
 interface FederatedClientLaunchConfiguration {
-  httpUrl: string
   wsUrl: string
   accessToken: string
-  userId: string
 }
 
 export async function start(
@@ -23,11 +21,13 @@ export async function start(
 
 ;(async () => {
   try {
-    const config = await getConfig()
-    if (config.logPath) {
-      logToPath(config.logPath)
+    if (LOG_PATH) {
+      logToPath(LOG_PATH)
     }
-    await start(config)
+    await start({
+      wsUrl: WS_URL,
+      accessToken: ACCESS_TOKEN,
+    })
   } catch (err) {
     logger.error('Failed to start:', { error: err })
   }

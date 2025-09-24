@@ -5,7 +5,7 @@ import fs from 'fs/promises'
 import path from 'path'
 import archiver from 'archiver'
 import crypto from 'crypto'
-import getConfig from '../../../config/getConfig.js'
+import { ACCESS_TOKEN, FILE_SERVER_URL } from '../../../config.js'
 import { logger } from '../../../logger.js'
 
 interface UploadParameters {
@@ -19,8 +19,7 @@ export default async function uploadFileToServer({
   runId,
   pathBaseDirectory,
 }: UploadParameters): Promise<void> {
-  const { fileServerUrl, accessToken } = await getConfig()
-  const url = `${fileServerUrl}/upload/${consortiumId}/${runId}`
+  const url = `${FILE_SERVER_URL}/upload/${consortiumId}/${runId}`
   const zipPath = path.join(
     pathBaseDirectory,
     'runs',
@@ -49,7 +48,7 @@ export default async function uploadFileToServer({
     const checksum = await generateChecksum(zipPath)
     logger.info(`Checksum is ${checksum}`)
 
-    await uploadZipFile(url, zipPath, accessToken)
+    await uploadZipFile(url, zipPath, ACCESS_TOKEN)
   } catch (error) {
     logger.error('Error during file upload:', formatAxiosError(error))
     throw error // Properly propagate errors

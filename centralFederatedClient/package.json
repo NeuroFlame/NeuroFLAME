@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js --",
-    "start-configured": "npm run compile && node ./dist/index.js -- --config=../configs/centralFederatedClient.json"
+    "start": "npm run compile && node ./dist/index.js"
   },
   "type": "module",
   "author": "",
