@@ -35,6 +35,14 @@ cd desktopApp/electronApp && npm install && cd ../..
 ```
 
 ### **3. Initialize Configuration**
+Initialize .env files and set proper values in .env files:
+```bash
+cd centralApi && cp .env.template .env && cd ..
+cd centralFederatedClient && cp .env.template .env && cd ..
+cd fileServer && cp .env.template .env && cd ..
+cd vaultFederatedClient && cp .env.template .env && cd ..
+```
+
 Initialize the configuration files:
 ```bash
 cd configs
@@ -69,17 +77,17 @@ Open multiple terminal windows and run the following commands in each:
 
 **Central API:**
 ```bash
-cd centralApi && npm run start-configured
+cd centralApi && npm run start
 ```
 
 **Central Federated Client:**
 ```bash
-cd centralFederatedClient && npm run start-configured
+cd centralFederatedClient && npm run start
 ```
 
 **File Server:**
 ```bash
-cd fileServer && npm run start-configured
+cd fileServer && npm run start
 ```
 
 **Desktop App (React):**
