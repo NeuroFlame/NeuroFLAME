@@ -1,4 +1,4 @@
-import getConfig from '../../../config/getConfig.js'
+import { BASE_IDR, DATASET_DIR } from '../../../config.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import path from 'path'
@@ -34,9 +34,7 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      const { baseDir, datasetDir } = await getConfig()
-
-      const consortiumPath = path.join(baseDir, consortiumId)
+      const consortiumPath = path.join(BASE_IDR, consortiumId)
       const runPath = path.join(consortiumPath, runId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')
@@ -81,7 +79,7 @@ export const runStartHandler = {
       // Load mount configuration and add data path
       try {
         directoriesToMount.push({
-          hostDirectory: datasetDir,
+          hostDirectory: DATASET_DIR,
           containerDirectory: '/workspace/data',
         })
       } catch (e) {
