@@ -16,32 +16,22 @@ import resolvers from './graphql/resolvers.js'
 
 import { httpServerContext, wsServerContext } from './serverContexts.js'
 import { validateAccessToken } from './authentication/authentication.js'
+import { APOLLO_PORT, DATABASE_URI, LOG_PATH } from './config.js'
 
-import getConfig from './config/getConfig.js'
-
-const config = await getConfig()
-if (config.logPath) {
-  logToPath(config.logPath)
+if (LOG_PATH) {
+  logToPath(LOG_PATH)
 }
 
 export async function start({
   port,
-  databaseDetails,
+  databaseURI,
 }: {
   port: number
-  databaseDetails: {
-    url: string
-    user: string
-    pass: string
-  }
+  databaseURI: string
   logPath?: string
 }) {
-  const { url, user, pass } = databaseDetails
-
-  await mongoose.connect(url, {
+  await mongoose.connect(databaseURI, {
     autoIndex: false,
-    user,
-    pass,
     authSource: 'admin',
   })
 
@@ -129,6 +119,6 @@ export async function start({
 }
 
 start({
-  port: config.apolloPort,
-  databaseDetails: config.databaseDetails,
+  port: APOLLO_PORT,
+  databaseURI: DATABASE_URI,
 }).catch(logger.error) // Proper error handling
