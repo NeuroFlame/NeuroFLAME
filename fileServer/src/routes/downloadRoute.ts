@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
-import getConfig from '../config/getConfig.js'
+import { BASE_DIR } from '../config.js'
 
 const router = Router()
 
@@ -12,8 +12,6 @@ router.post(
   async (req: Request, res: Response) => {
     const { consortiumId, runId, userId } = req.params
     const tokenPayload = res.locals.tokenPayload
-    const config = await getConfig()
-    const { baseDir: BASE_DIR } = config
 
     if (
       !tokenPayload?.consortiumId ||

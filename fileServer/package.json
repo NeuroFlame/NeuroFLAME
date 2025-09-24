@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js --",
-    "start-configured": "npm run compile && node ./dist/index.js -- --config=../configs/fileServer.json",
+    "start": "npm run compile && node ./dist/index.js",
     "zip-test": "npm run compile && node ./dist/unzipIt.js -- "
   },
   "author": "",

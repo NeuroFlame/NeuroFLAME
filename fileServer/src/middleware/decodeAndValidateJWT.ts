@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import axios from 'axios'
-import getConfig from '../config/getConfig.js'
+import { AUTHENTICATION_URL } from '../config.js'
 import { logger } from '../logger.js'
 
 const decodeAndValidateJWT = async (
@@ -8,8 +8,6 @@ const decodeAndValidateJWT = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const config = await getConfig()
-  const { authenticationUrl: AUTHENTICATION_URL } = config
   const token = req.headers['x-access-token'] as string | undefined
   if (!token) return res.status(401).send('Access token is required')
 
