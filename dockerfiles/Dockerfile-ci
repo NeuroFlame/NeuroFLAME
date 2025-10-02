@@ -36,12 +36,17 @@ RUN npm install
 
 WORKDIR /nf/centralApi
 RUN cp .env.template .env
-RUN echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NjI4OWM3OWFlYmFiNjcwNDBhMjAwNjciLCJyb2xlcyI6WyJjZW50cmFsIl0sImlhdCI6MTcxMzkzODM5Mn0.xtJwKGbAK5veZIcxlFBXbLM2-oT2h6MJkf-D1JllybM" >> .env
+RUN echo "FILE_SERVER_URL=http://fileServer:3002" >> .env
+RUN echo "ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NjI4OWM3OWFlYmFiNjcwNDBhMjAwNjciLCJyb2xlcyI6WyJjZW50cmFsIl0sImlhdCI6MTcxMzkzODM5Mn0.xtJwKGbAK5veZIcxlFBXbLM2-oT2h6MJkf-D1JllybM" >> .env
+RUN echo "DATABASE_URI=mongodb://admin:secret@mongo:27017/centralDatabase" >> .env
 RUN rm -rf node_modules
 RUN npm install
 
 WORKDIR /nf/centralFederatedClient
 RUN cp .env.template .env
+RUN echo "HTTP_URL=http://api:3001" >> .env
+RUN echo "WS_URL=http://api:3001" >> .env
+RUN echo "FILE_SERVER_URL=http://fileServer:3002" >> .env
 RUN echo "ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NjI4OWM3OWFlYmFiNjcwNDBhMjAwNjciLCJyb2xlcyI6WyJjZW50cmFsIl0sImlhdCI6MTcxMzkzODM5Mn0.xtJwKGbAK5veZIcxlFBXbLM2-oT2h6MJkf-D1JllybM" >> .env
 RUN rm -rf node_modules
 RUN npm install
