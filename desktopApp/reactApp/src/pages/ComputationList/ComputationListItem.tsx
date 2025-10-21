@@ -20,7 +20,7 @@ const ComputationListItem: React.FC<ComputationListItemProps> = ({
       flexDirection='row'
       style={{
         background: 'white',
-        padding: '1re,',
+        padding: '1rem',
         marginBottom: '1rem',
       }}
     >

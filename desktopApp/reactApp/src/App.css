@@ -178,6 +178,15 @@ pre.settings,
   border-radius: 8px; /* Rounded corners */
 }
 
+code.inline,
+pre.inline {
+  display: inline;
+  width: auto;
+  padding: 0.2rem 0.4rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 .terminalWindow {
   font-family: monospace;
   background-color: #1A2948; /* Light grey background */   
