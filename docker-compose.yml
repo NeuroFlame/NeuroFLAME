@@ -57,6 +57,9 @@ services:
       - "3002:3002"
     networks:
       - ci_network
+    environment:
+      - BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/fileServerDir
+      - AUTHENTICATION_URL=http://api:3001/authenticateToken
 
   react:
     depends_on:
