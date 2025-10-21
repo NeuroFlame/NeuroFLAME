@@ -136,7 +136,7 @@ type Mutation {
   studySetComputation(consortiumId: String!, computationId: String!): Boolean!
   studySetParameters(consortiumId: String!, parameters: String!): Boolean!
   studySetNotes(consortiumId: String!, notes: String!): Boolean!
-  consortiumCreate(title: String!, description: String!): String!
+  consortiumCreate(title: String!, description: String): String!
   consortiumEdit(consortiumId: String!, title: String!, description: String!): Boolean!
   consortiumJoin(consortiumId: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!
