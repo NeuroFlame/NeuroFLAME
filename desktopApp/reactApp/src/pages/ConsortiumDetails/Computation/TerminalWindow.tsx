@@ -5,18 +5,27 @@ import { Box, Button, Typography } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 const ScrollToBottomWrapper = forwardRef<
-  HTMLDivElement, React.ComponentProps<typeof ScrollToBottom>
->(
-  (props) => <ScrollToBottom {...props} />,
-)
+  HTMLDivElement,
+  React.ComponentProps<typeof ScrollToBottom>
+>((props, ref) => <ScrollToBottom {...props} />)
+
+const MATCHERS = [
+  /"Id":\s*"sha256:/, // docker image inspect output
+  /Status:\s+Downloaded newer image for/i,
+  // optional: include the fully qualified repo line from Docker Hub
+  /docker\.io\/coinstacteam\/nfc-single-round-ridge-regression-freesurfer:latest/i,
+]
 
 const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
-  // State to store terminal input and output
-  // const [input, setInput] = useState('');
   const [output, setOutput] = useState<string[]>([])
   const [isTerminalReady, setTerminalReady] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
   const [imageExists, setImageExists] = useState(false)
+
+  const imageExistsRef = useRef(false)
+  useEffect(() => {
+    imageExistsRef.current = imageExists
+  }, [imageExists])
 
   const {
     spawnTerminal,
@@ -25,72 +34,87 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
     removeTerminalOutputListener,
   } = electronApi
 
-  // Refs to interact with the DOM elements
-  const terminalRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
+  const lineIndicatesImage = (line: string) => MATCHERS.some((rx) => rx.test(line))
+
+  // Wrapped setter that the Electron API will call.
+  // It detects the match in real time and then updates `output`.
+  const setOutputDetecting = (val: string[] | string | ((prev: string[]) => string[])) => {
+    if (typeof val === 'function') {
+      setOutput((prev) => {
+        const next = val(prev)
+        if (!imageExistsRef.current && next.some(lineIndicatesImage)) {
+          setImageExists(true)
+        }
+        return Array.from(new Set(next))
+      })
+    } else {
+      const incoming = Array.isArray(val) ? val : [val]
+      setOutput((prev) => {
+        const next = [...prev, ...incoming]
+        if (!imageExistsRef.current && next.some(lineIndicatesImage)) {
+          setImageExists(true)
+        }
+        const deduped = Array.from(new Set(next))
+        // keep view scrolled
+        queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }))
+        return deduped
+      })
+    }
+  }
+
   useEffect(() => {
-    // Request Electron to spawn a new terminal (IPC call to spawn terminal)
     if (!isTerminalReady) {
       spawnTerminal(setTerminalReady)
     }
-    terminalOutput(output, setOutput)
-    checkIfImageDownloaded()
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+
+    // IMPORTANT: register listener ONCE with (output, setOutput)
+    // We pass our wrapped setter to get real-time detection.
+    terminalOutput(output, setOutputDetecting)
+
+    // Probe whether image already exists (flips `imageExists` from inspect output)
+    const imageName = command.replace(/^docker\s+pull\s+/i, '')
+    terminalInput(`docker image inspect ${imageName}`)
 
     return () => {
-      // Cleanup the listener when the component is unmounted or the terminal is closed
       removeTerminalOutputListener()
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // run once
 
-  useEffect(() => {
-    Array.from(new Set(output)).map((item, index) => (
-      testOutputForImage(item)
-    ))
-  }, [output])
-
-  const testOutputForImage = (str:string) => {
-    if (str.includes('"Id": "sha256:') ||
-      str.includes('Status: Downloaded newer image for')) {
-      setImageExists(true)
-    } else {
-      setImageExists(false)
-    }
-  }
-
-  const checkIfImageDownloaded = () => {
-    const imageName = command.replace('docker pull ', '')
-    terminalInput('docker image inspect ' + imageName)
-  }
-
-  const handleButtonPress = (input:string) => {
+  const handleButtonPress = (input: string) => {
     terminalInput(input)
-    terminalOutput(output, setOutput)
     setShowTerminal(true)
   }
 
   return (
     <>
-      {!imageExists && !showTerminal &&
+      {!imageExists && !showTerminal && (
         <Button
-          variant='contained'
-          size='small'
+          variant="contained"
+          size="small"
           onClick={() => handleButtonPress(command)}
           style={{ backgroundColor: '#0066FF' }}
         >
           Run Docker Pull
-        </Button>}
+        </Button>
+      )}
+
       {showTerminal && (
-        <ScrollToBottomWrapper ref={terminalRef} className='terminalWindow'>
-          {Array.from(new Set(output)).map((item, index) => (
-            <div key={index} style={{ whiteSpace: 'nowrap' }}>&gt; {item}</div>
+        <ScrollToBottomWrapper className="terminalWindow">
+          {output.map((item, index) => (
+            <div key={index} style={{ whiteSpace: 'nowrap' }}>
+              &gt; {item}
+            </div>
           ))}
+          <div ref={messagesEndRef} />
         </ScrollToBottomWrapper>
       )}
-      <Box display='flex' justifyContent='space-between' alignContent='center'>
+
+      <Box display="flex" justifyContent="space-between" alignContent="center">
         {imageExists && (
-          <Box display='flex' justifyContent='flex-start' alignContent='center'>
+          <Box display="flex" justifyContent="flex-start" alignContent="center">
             <CheckCircleIcon sx={{ color: '#2FB600' }} />
             <Typography
               style={{
@@ -104,10 +128,7 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
           </Box>
         )}
         {showTerminal && (
-          <Button
-            size='small'
-            onClick={() => setShowTerminal(false)}
-          >
+          <Button size="small" onClick={() => setShowTerminal(false)}>
             Hide Terminal
           </Button>
         )}
