@@ -67,7 +67,7 @@ export default function ConsortiumCreate() {
           <TextareaAutosize
             minRows={3}
             style={{ width: 'calc(100% - 2rem)', marginBottom: '0.5rem' }}
-            placeholder='Description'
+            placeholder='Description (Optional)'
             defaultValue={description}
             onChange={(e) => setDescription(e.target.value)}
           />

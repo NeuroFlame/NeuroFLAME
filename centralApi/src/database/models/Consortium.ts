@@ -18,7 +18,7 @@ interface IConsortium extends Document {
 // Create the Consortium schema
 const consortiumSchema: Schema = new Schema({
   title: { type: String, required: true },
-  description: { type: String, required: true },
+  description: { type: String, required: false },
   leader: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
   activeMembers: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
