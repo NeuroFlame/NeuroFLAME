@@ -5,5 +5,5 @@ EXPOSE 3003
 
 WORKDIR /nf/centralApi
 
-CMD node ./dist/database/seed.js -- --config=../configs/centralApi.json && \
-    node ./dist/index.js -- --config=../configs/centralApi.json
+CMD node ./dist/database/seed.js && \
+    node ./dist/index.js

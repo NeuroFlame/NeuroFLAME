@@ -46,6 +46,7 @@ services:
       - ci_network
     environment:
       - CI=true
+      - CENTRAL_BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/centralFederatedClientDir
 
   fileServer:
     depends_on:
@@ -56,6 +57,9 @@ services:
       - "3002:3002"
     networks:
       - ci_network
+    environment:
+      - FILE_SERVER_BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/fileServerDir
+      - AUTHENTICATION_URL=http://api:3001/authenticateToken
 
   react:
     depends_on:

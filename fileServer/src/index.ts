@@ -1,16 +1,14 @@
 import express from 'express'
 import downloadRoute from './routes/downloadRoute.js'
 import uploadRoute from './routes/uploadRoute.js'
-import getConfig from './config/getConfig.js'
+import { LOG_PATH, PORT } from './config.js'
 import { logger, logToPath } from './logger.js'
 
 const init = async () => {
   const app = express()
-  const config = await getConfig()
-  if (config.logPath) {
-    logToPath(config.logPath)
+  if (LOG_PATH) {
+    logToPath(LOG_PATH)
   }
-  const { port: PORT } = config
 
   app.use(express.json())
 

@@ -3,7 +3,7 @@ import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import getConfig from '../config/getConfig.js'
+import { BASE_DIR } from '../config.js'
 import { logger } from '../logger.js'
 
 function generateChecksumSync(filePath: string): string {
@@ -18,10 +18,8 @@ export const uploadFile = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const config = await getConfig()
-  const { baseDir } = config
   const { consortiumId, runId } = req.params
-  const uploadPath = path.join(baseDir, consortiumId, runId)
+  const uploadPath = path.join(BASE_DIR, consortiumId, runId)
   fs.mkdirSync(uploadPath, { recursive: true })
 
   const storage = multer.diskStorage({
