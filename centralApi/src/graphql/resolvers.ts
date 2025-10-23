@@ -3,7 +3,7 @@ import {
   compare,
   hashPassword,
 } from '../authentication/authentication.js'
-import getConfig from '../config/getConfig.js'
+import { FILE_SERVER_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
 import Run, { IRun } from '../database/models/Run.js'
 import User from '../database/models/User.js'
@@ -34,7 +34,7 @@ interface Context {
   error: string
 }
 
-const resend = new Resend('re_MbGcduit_5KeApqi5A9k1wkfcscAmpiSb')
+const resend = new Resend(RESEND_API_KEY)
 export default {
   Query: {
     getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
@@ -748,8 +748,8 @@ export default {
       { title, description }: { title: string; description: string },
       context: Context,
     ): Promise<any> => {
-      if (!title || !description) {
-        throw new Error('Title and description are required')
+      if (!title) {
+        throw new Error('Title is required')
       }
 
       if (title) {
@@ -1327,14 +1327,12 @@ export default {
 
         const { accessToken } = tokens as { accessToken: string }
 
-        const { fileServerUrl } = await getConfig()
-
         const output = {
           userId,
           runId,
           imageName,
           consortiumId,
-          downloadUrl: `${fileServerUrl}/download/${consortiumId}/${runId}/${userId}`,
+          downloadUrl: `${FILE_SERVER_URL}/download/${consortiumId}/${runId}/${userId}`,
           downloadToken: accessToken,
         }
 

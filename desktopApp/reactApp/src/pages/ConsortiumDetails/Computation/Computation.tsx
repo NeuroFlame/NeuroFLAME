@@ -65,7 +65,7 @@ export default function Computation({ computation }: ComputationDisplayProps) {
           </Typography>
         </Box>
         {isLeader && (
-          <Box marginTop='1rem'>
+          <Box>
             <ComputationSelect computation={computation} refetch={refetch} />
           </Box>
         )}

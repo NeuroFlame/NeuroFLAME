@@ -4,4 +4,4 @@ EXPOSE 3010-3099
 
 WORKDIR /nf/centralFederatedClient
 
-CMD npm run start-configured
+CMD npm run start

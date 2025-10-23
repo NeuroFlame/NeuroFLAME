@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
-import getConfig from '../config/getConfig.js'
+import { DATABASE_URI } from '../config.js'
 import { logger } from '../logger.js'
 import Consortium from './models/Consortium.js'
 import Computation from './models/Computation.js'
@@ -9,8 +9,6 @@ import User from './models/User.js'
 // eslint-disable-next-line @stylistic/max-len
 import computationNotesSingleRoundRidgeRegressionFreesurfer from './seedContent/computationNotesSingleRoundRidgeRegressionFreesurfer.js'
 
-const { databaseDetails } = await getConfig()
-const { url, user, pass } = databaseDetails
 const saltRounds = 10
 
 // Predefined ObjectIds for relationships and consistency
@@ -124,7 +122,7 @@ const runs = [
 // Seeding Function
 const seedDatabase = async () => {
   try {
-    await mongoose.connect(url, { user, pass, authSource: 'admin' })
+    await mongoose.connect(DATABASE_URI, { authSource: 'admin' })
     logger.info('MongoDB connected successfully.')
 
     // Clear existing data

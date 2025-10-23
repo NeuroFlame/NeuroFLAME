@@ -121,7 +121,7 @@ export type MutationComputationEditArgs = {
 
 
 export type MutationConsortiumCreateArgs = {
-  description: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
   title: Scalars['String']['input'];
 };
 

@@ -1,4 +1,4 @@
-import getConfig from '../../config/getConfig.js'
+import { ACCESS_TOKEN, HTTP_URL } from '../../config.js'
 import { logger } from '../../logger.js'
 import fetch from 'node-fetch' // Import node-fetch
 
@@ -29,15 +29,12 @@ export default async function reportRunError({
   runId: string
   errorMessage: string
 }) {
-  const config = await getConfig()
-  const { httpUrl, accessToken } = config
-
   try {
-    const response = await fetch(httpUrl, {
+    const response = await fetch(HTTP_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-access-token': accessToken,
+        'x-access-token': ACCESS_TOKEN,
       },
       body: JSON.stringify({
         query: REPORT_RUN_ERROR_MUTATION,

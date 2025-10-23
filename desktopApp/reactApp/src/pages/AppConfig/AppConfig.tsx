@@ -102,7 +102,7 @@ export function AppConfig() {
   const handleMenuClose = () => setAnchorEl(null)
 
   return (
-    <Paper sx={{ margin: '1rem', padding: '1rem' }}>
+    <Paper style={{ maxWidth: 1100, margin: '1rem auto', padding: '1rem' }}>
       {/* Header Section */}
       <Box
         display='flex'
@@ -111,7 +111,7 @@ export function AppConfig() {
         mb={2}
       >
         <Box>
-          <Typography variant='h6'>Configuration</Typography>
+          <Typography variant='h5'>Configuration</Typography>
           <Typography variant='body2' color='textSecondary'>
             <strong>Config Path:</strong> {configPath}
           </Typography>
@@ -155,6 +155,9 @@ export function AppConfig() {
             <MenuItem onClick={fetchAll}>Re-fetch Config</MenuItem>
             <MenuItem onClick={handleApplyDefaultConfig}>
               Apply Default Config
+            </MenuItem>
+            <MenuItem onClick={() => navigate('/appHealth')}>
+              Check App Health
             </MenuItem>
           </Menu>
         </Box>

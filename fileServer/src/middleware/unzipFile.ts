@@ -3,7 +3,7 @@ import path from 'path'
 import unzipper from 'unzipper'
 import fs from 'fs-extra'
 import { Request, Response, NextFunction } from 'express'
-import getConfig from '../config/getConfig.js'
+import { BASE_DIR } from '../config.js'
 import { logger } from '../logger.js'
 
 export const unzipFile = async (
@@ -18,9 +18,7 @@ export const unzipFile = async (
 
     const zipPath = req.file.path
     const { consortiumId, runId } = req.params
-    const config = await getConfig()
-    const { baseDir } = config
-    const extractPath = path.join(baseDir, consortiumId, runId)
+    const extractPath = path.join(BASE_DIR, consortiumId, runId)
     const tmpPath = path.join(extractPath, 'tmp.zip')
 
     // Ensure the extraction directory exists and copy the uploaded file to a temporary location

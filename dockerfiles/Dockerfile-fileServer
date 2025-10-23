@@ -4,4 +4,4 @@ EXPOSE 3002
 
 WORKDIR /nf/fileServer
 
-CMD npm run start-configured
+CMD npm run start

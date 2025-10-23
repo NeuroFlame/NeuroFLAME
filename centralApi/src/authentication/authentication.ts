@@ -1,9 +1,6 @@
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { hash } from 'bcrypt'
-import {
-  ACCESS_TOKEN_DURATION,
-  ACCESS_TOKEN_SECRET,
-} from '../config/environmentVariables.js'
+import { ACCESS_TOKEN_DURATION, ACCESS_TOKEN_SECRET } from '../config.js'
 export { compare } from 'bcrypt'
 
 const { sign } = jwt
@@ -38,7 +35,7 @@ export const validateAccessToken = (token: string): AccessTokenPayload => {
   return decoded as AccessTokenPayload
 }
 
-export const hashPassword = async (password) => {
+export const hashPassword = async (password: string) => {
   const saltRounds = 10
   return hash(password, saltRounds)
 }

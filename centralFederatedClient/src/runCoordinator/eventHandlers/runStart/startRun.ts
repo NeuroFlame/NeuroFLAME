@@ -5,11 +5,11 @@ import { provisionRun } from './provisionRun/provisionRun.js'
 import { reservePort } from './portManagement.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import uploadToFileServer from './uploadToFileServer.js'
-import getConfig from '../../../config/getConfig.js'
 import reportRunError from '../../report/reportRunError.js'
 import reportRunComplete from '../../report/reportRunComplete.js'
 import { logger } from '../../../logger.js'
-import { scheduleNvflareWatcher, defaultCentralRootFromEnvOrGuess } from './runWatcher.js'
+import { scheduleNvflareWatcher } from './runWatcher.js'
+import { BASE_DIR, FQDN, HOSTING_PORT_END, HOSTING_PORT_START } from '../../../config.js'
 
 interface StartRunArgs {
   imageName: string
@@ -28,11 +28,12 @@ export default async function startRun({
 }: StartRunArgs) {
   logger.info(`Starting run ${runId} for consortium ${consortiumId}`)
 
-  const config = await getConfig()
-  const pathBaseDir = (config as any).baseDir ?? defaultCentralRootFromEnvOrGuess()
-  const pathRun = path.join(pathBaseDir, 'runs', consortiumId, runId)
+  const pathRun = path.join(BASE_DIR, 'runs', consortiumId, runId)
   const pathCentralNodeRunKit = path.join(pathRun, 'runKits', 'centralNode')
-  const { FQDN, hostingPortRange } = config as any
+  const hostingPortRange = {
+    start: HOSTING_PORT_START,
+    end: HOSTING_PORT_END,
+  }
 
   try {
     const { port: reservedFedLearnPort, server: fedLearnServer } = await reservePort(hostingPortRange)
@@ -55,7 +56,7 @@ export default async function startRun({
     await uploadToFileServer({
       consortiumId,
       runId,
-      pathBaseDirectory: pathBaseDir,
+      pathBaseDirectory: BASE_DIR,
     })
 
     // Close the reserved listeners before launching the container
@@ -63,14 +64,14 @@ export default async function startRun({
     adminServer.close()
 
     const runScopedStartup = path.join(
-      pathBaseDir,
+      BASE_DIR,
       'runs', consortiumId, runId,
       'runKits', 'centralNode', 'admin', 'startup'
     );
 
     void scheduleNvflareWatcher({
       tag: 'RUN',
-      root: pathBaseDir,
+      root: BASE_DIR,
       consortiumId,
       runId,
       logger,

@@ -7,7 +7,7 @@
   "scripts": {
     "compile": "tsc",
     "start": "npm run compile && node ./dist/index.js --",
-    "start-configured": "npm run compile && node ./dist/index.js -- --config=../configs/vault1.json"
+    "start-configured": "npm run compile && node ./dist/index.js"
   },
   "author": "",
   "license": "ISC",

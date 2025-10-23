@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js --",
-    "start-configured": "npm run compile && node ./dist/index.js -- --config=../configs/fileServer.json",
+    "start": "npm run compile && node ./dist/index.js",
     "zip-test": "npm run compile && node ./dist/unzipIt.js -- "
   },
   "author": "",
@@ -16,6 +15,7 @@
     "@types/multer": "^1.4.11",
     "@types/node-fetch": "^2.6.11",
     "axios": "^1.6.8",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
     "fs-extra": "^11.2.0",
     "multer": "^1.4.5-lts.1",

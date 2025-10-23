@@ -11,9 +11,8 @@ The system consists of several independent components:
 ---
 
 ### **Configuration and Environment Setup**
-- Components rely on clearly defined **configuration files**.
+- Components rely on clearly defined **configuration files** and **.env files**.
 - The **Electron App** uses a default configuration stored in `app_data` unless explicitly launched with a custom configuration file.
-- Use `npm run start-configured` for development instead of `npm run start`.
 - A script initializes configurations by copying defaults and replacing placeholders.
 
 ---
@@ -21,13 +20,13 @@ The system consists of several independent components:
 ### **Component Interactions**
 - **Desktop App ↔ Edge Federated Client**: Uses Apollo GraphQL for structured communication.
 - **Desktop App ↔ Central API**: Handles UI-driven interactions.
-- **Edge Federated Client ↔ Central API**:  
-  - Listens for events via GraphQL subscriptions.  
+- **Edge Federated Client ↔ Central API**:
+  - Listens for events via GraphQL subscriptions.
   - Reports run errors, completion status, and updates to the Central API.
 - **Vault Federated Clients**: Do not expose an API but behave similarly to Edge Clients.
-- **Central Federated Client**:  
-  - Listens for events via GraphQL subscriptions.  
-  - Handles provisioning.  
+- **Central Federated Client**:
+  - Listens for events via GraphQL subscriptions.
+  - Handles provisioning.
   - Reports errors, completion status, and updates to the Central API.
   - Runs the central node in computation runs
 - **File Server**: Acts as a pass-through for distributing run kits.
@@ -42,12 +41,12 @@ The system consists of several independent components:
 ---
 
 ### **Run Process**
-1. **Provisioning**:  
+1. **Provisioning**:
    - A new run is provisioned using minimal JSON metadata sent to the Central Federated Client.
    - A container executes the provisioning script.
    - The resulting **run kit** is distributed via the File Server.
 
-2. **Execution**:  
+2. **Execution**:
    - Edge nodes and the central node receive an event to download run kits and launch computations.
    - The system monitors execution, logs statuses, and reports errors.
 

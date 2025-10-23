@@ -6,3 +6,4 @@ configs/*.json
 *.log
 .DS_Store
 centralFederatedClient/.nf-admin311-venv/
+*.env
