@@ -34,7 +34,7 @@ interface Context {
   error: string
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend('re_MbGcduit_5KeApqi5A9k1wkfcscAmpiSb')
 export default {
   Query: {
     getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
