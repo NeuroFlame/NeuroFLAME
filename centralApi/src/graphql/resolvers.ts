@@ -27,6 +27,7 @@ import {
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
+import GraphQLJSON from 'graphql-type-json'
 
 interface Context {
   userId: string
@@ -36,6 +37,7 @@ interface Context {
 
 const resend = new Resend(RESEND_API_KEY)
 export default {
+  JSON: GraphQLJSON,
   Query: {
     getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
       const consortiums = await Consortium.find()
@@ -201,6 +203,7 @@ export default {
             status: run.status,
             createdAt: run.createdAt,
             lastUpdated: run.lastUpdated,
+            meta: (run as any).meta ?? null, 
           }
         })
       } catch (error) {
@@ -283,6 +286,7 @@ export default {
             timestamp: error.timestamp,
             message: error.message,
           })),
+          meta: (run as any).meta ?? null, 
         }
       } catch (e) {
         logger.error(`Error fetching run details: ${JSON.stringify(e)}`)
@@ -579,6 +583,106 @@ export default {
       pubsub.publish('RUN_DETAILS_CHANGED', {
         runId: run._id.toString(),
       })
+
+      return true
+    },
+
+    reportRunDraining: async (
+      _: unknown,
+      { runId, meta }: { runId: string; meta?: any },
+      context: Context
+    ): Promise<boolean> => {
+      logger.info('reportRunDraining', runId)
+
+      if (!context.userId) throw new Error('User not authenticated')
+      if (!context.roles?.includes('central')) throw new Error('User not authorized')
+
+      const run = await Run.findById(runId).lean()
+      if (!run) throw new Error(`Run with id ${runId} not found`)
+
+      // Decide whether to FLIP the status → "Winding Down"
+      // Do this only once as we transition out of Starting/In Progress.
+      const canFlipFrom = new Set(['Starting', 'In Progress'])
+      const shouldFlip = canFlipFrom.has(run.status)
+
+      // Shallow-merge meta to avoid losing previously reported fields
+      const mergedMeta =
+        meta != null ? { ...(run as any).meta, ...meta } : (run as any).meta
+
+      const update: any = {
+        $set: {
+          lastUpdated: Date.now(),
+          ...(mergedMeta != null ? { meta: mergedMeta } : {}),
+        },
+      }
+      if (shouldFlip) {
+        update.$set.status = 'Winding Down'
+      }
+
+      await Run.updateOne({ _id: runId }, update)
+
+      const consortium = await Consortium.findById(run.consortium).lean()
+      if (consortium) {
+        const newStatus = shouldFlip ? 'Winding Down' : run.status
+
+        pubsub.publish('RUN_EVENT', {
+          consortiumId: consortium._id.toString(),
+          consortiumTitle: consortium.title,
+          runId,
+          status: newStatus,
+          timestamp: Date.now(),
+        })
+
+        pubsub.publish('CONSORTIUM_LATEST_RUN_CHANGED', {
+          consortiumId: consortium._id.toString(),
+        })
+
+        pubsub.publish('RUN_DETAILS_CHANGED', {
+          runId,
+        })
+      }
+
+      return true
+    },
+
+    reportRunMeta: async (
+      _: unknown,
+      { runId, meta }: { runId: string; meta: any },
+      context: Context
+    ): Promise<boolean> => {
+      if (!context.userId) throw new Error('User not authenticated')
+      if (!context.roles?.includes('central')) throw new Error('User not authorized')
+
+      const run = await Run.findById(runId).lean()
+      if (!run) throw new Error(`Run with id ${runId} not found`)
+
+      // Merge meta instead of overwriting
+      const mergedMeta = { ...(run as any).meta, ...meta }
+
+      await Run.updateOne(
+        { _id: runId },
+        { $set: { meta: mergedMeta, lastUpdated: Date.now() } }
+      )
+
+      const consortium = await Consortium.findById(run.consortium).lean()
+      if (consortium) {
+        // Keep current status; this call is meta-only
+        pubsub.publish('RUN_EVENT', {
+          consortiumId: consortium._id.toString(),
+          consortiumTitle: consortium.title,
+          runId,
+          status: run.status,
+          timestamp: Date.now(),
+        })
+
+        pubsub.publish('CONSORTIUM_LATEST_RUN_CHANGED', {
+          consortiumId: consortium._id.toString(),
+        })
+
+        pubsub.publish('RUN_DETAILS_CHANGED', {
+          runId,
+        })
+      }
 
       return true
     },

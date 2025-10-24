@@ -10,6 +10,7 @@ const GET_RUN_LIST_QUERY = gql`
       createdAt
       lastUpdated
       status
+      meta
     }
   }
 `

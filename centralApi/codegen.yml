@@ -4,3 +4,6 @@ generates:
     plugins:
       - "typescript"
       - "typescript-operations"
+    config:
+      scalars:
+        JSON: any

@@ -1,5 +1,5 @@
 import { ApolloClient, gql, NormalizedCacheObject } from '@apollo/client'
-import { Query } from './generated/graphql' // Import generated types
+import { Query } from './generated/graphql'
 
 // Define the GraphQL query for fetching the consortium list
 const GET_CONSORTIUM_LIST_QUERY = gql`

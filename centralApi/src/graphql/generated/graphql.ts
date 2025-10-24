@@ -12,6 +12,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  JSON: { input: any; output: any; }
 };
 
 export type Computation = {
@@ -77,7 +78,9 @@ export type Mutation = {
   leaderSetMemberInactive: Scalars['Boolean']['output'];
   login: LoginOutput;
   reportRunComplete: Scalars['Boolean']['output'];
+  reportRunDraining: Scalars['Boolean']['output'];
   reportRunError: Scalars['Boolean']['output'];
+  reportRunMeta: Scalars['Boolean']['output'];
   reportRunReady: Scalars['Boolean']['output'];
   reportRunStatus: Scalars['Boolean']['output'];
   requestPasswordReset: Scalars['Boolean']['output'];
@@ -189,8 +192,20 @@ export type MutationReportRunCompleteArgs = {
 };
 
 
+export type MutationReportRunDrainingArgs = {
+  meta?: InputMaybe<Scalars['JSON']['input']>;
+  runId: Scalars['String']['input'];
+};
+
+
 export type MutationReportRunErrorArgs = {
   errorMessage: Scalars['String']['input'];
+  runId: Scalars['String']['input'];
+};
+
+
+export type MutationReportRunMetaArgs = {
+  meta: Scalars['JSON']['input'];
   runId: Scalars['String']['input'];
 };
 
@@ -295,6 +310,7 @@ export type RunDetails = {
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
   members: Array<PublicUser>;
+  meta?: Maybe<Scalars['JSON']['output']>;
   runErrors: Array<RunError>;
   runId: Scalars['String']['output'];
   status: Scalars['String']['output'];
@@ -323,6 +339,7 @@ export type RunListItem = {
   consortiumTitle: Scalars['String']['output'];
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
+  meta?: Maybe<Scalars['JSON']['output']>;
   runId: Scalars['String']['output'];
   status: Scalars['String']['output'];
 };

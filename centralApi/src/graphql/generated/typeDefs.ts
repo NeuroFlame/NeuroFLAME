@@ -1,4 +1,6 @@
-export const typeDefs = `type PublicUser {
+export const typeDefs = `scalar JSON
+
+type PublicUser {
   id: String!
   username: String!
   vault: Vault
@@ -94,6 +96,7 @@ type RunListItem {
   status: String!
   lastUpdated: String!
   createdAt: String!
+  meta: JSON 
 }
 
 type RunError {
@@ -111,7 +114,8 @@ type RunDetails {
   createdAt: String!
   members: [PublicUser!]!  
   studyConfiguration: StudyConfiguration!
-  runErrors: [RunError!]!  
+  runErrors: [RunError!]! 
+  meta: JSON  
 }
 
 type Query {
@@ -130,6 +134,8 @@ type Mutation {
   reportRunError(runId: String!, errorMessage: String!): Boolean!
   reportRunComplete(runId: String!): Boolean!
   reportRunStatus(runId: String!, status: String!): Boolean!
+  reportRunDraining(runId: String!, meta: JSON): Boolean!
+  reportRunMeta(runId: String!, meta: JSON!): Boolean!
   # used by desktop App
   login(username: String!, password: String!): LoginOutput!
   startRun(input: StartRunInput!): StartRunOutput!

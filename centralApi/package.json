@@ -21,6 +21,7 @@
     "bcrypt": "^5.1.1",
     "graphql": "^16.8.1",
     "graphql-subscriptions": "^2.0.0",
+    "graphql-type-json": "^0.3.2",
     "graphql-ws": "^5.16.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.2",

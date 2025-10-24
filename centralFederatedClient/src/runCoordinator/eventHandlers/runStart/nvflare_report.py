@@ -9,6 +9,7 @@ What it does:
 - Detects "Draining" like the standalone watcher when admin is unreachable (see --drain-window).
 - Also detects "Draining" directly if job/system-info text explicitly says so.
 - Exits after 3 consecutive "unreachable admin" polls (exit code from --unreach-exit if provided, else 124).
+- Retries session creation with configurable timeout/backoff to avoid racing a slow Admin boot.
 """
 
 import argparse
@@ -44,6 +45,7 @@ VALUE_FLAGS = {
     "--force-host", "--force-admin-port", "--preflight-interval",
     "--poll", "--drain-window", "--unreach-exit", "--admin-log-tail",
     "--admin-username", "--admin-password",
+    "--connect-timeout", "--connect-retries", "--connect-backoff",
 }
 
 def sanitize_argv(argv: List[str]) -> List[str]:
@@ -105,16 +107,62 @@ def kit_fingerprint(startup_dir: str) -> Dict[str, Any]:
 
 # ------------------------- NVFLARE session ---------------------------
 
-def new_session_or_raise(username: str, startup_dir: str, debug: bool=False):
-    """Create a secure NVFLARE admin session. Works on NVFLARE 2.6.2."""
+def _read_admin_targets(startup_dir: str) -> Dict[str, Any]:
+    """Best-effort peek at fed_admin.json to show where we will connect."""
+    fed = os.path.join(startup_dir, "fed_admin.json")
+    d = read_json(fed) or {}
+    out = {}
+    # Common places admin endpoints appear; this is best-effort and 2.6.2 tolerant.
+    for k in ("servers", "admin", "endpoints", "target", "flare"):
+        if k in d:
+            out[k] = d[k]
+    return out
+
+def new_session_or_raise(username: str, startup_dir: str, *, timeout_s: float, retries: int, backoff: float, debug: bool=False):
+    """Create a secure NVFLARE admin session with retries. Works on NVFLARE 2.6.2."""
     try:
         from nvflare.fuel.flare_api.flare_api import new_secure_session  # type: ignore
+        from nvflare.fuel.flare_api import api_spec as flare_spec  # for NoConnection
     except Exception as ex:
         raise RuntimeError(f"nvflare import failed: {type(ex).__name__}: {ex}") from ex
+
     ws = admin_workspace_from_startup(startup_dir)
     if debug:
         eprint(f"[debug] connect username={username} workspace={ws}")
-    return new_secure_session(username, ws, debug=False, timeout=15.0)
+        eprint(f"[debug] connect timeout={timeout_s}s retries={retries} backoff={backoff}")
+
+        try:
+            targets = _read_admin_targets(startup_dir)
+            if targets:
+                eprint(f"[debug] connect targets: {json.dumps(targets, default=str)[:800]}")
+        except Exception:
+            pass
+
+    attempt = 0
+    delay = 0.8
+    while True:
+        attempt += 1
+        try:
+            # new_secure_session internally tries to connect using the startup kit info.
+            sess = new_secure_session(username, ws, debug=False, timeout=timeout_s)
+            if debug:
+                eprint(f"[debug] session established on attempt {attempt}")
+            return sess
+        except flare_spec.NoConnection as ex:
+            if attempt >= max(1, retries):
+                raise
+            if debug:
+                eprint(f"[debug] NoConnection on attempt {attempt}/{retries}: {ex}; retrying after {delay:.1f}s")
+            time.sleep(delay)
+            delay = min(delay * max(1.1, backoff), 8.0)
+        except Exception as ex:
+            # Other exceptions during connect — retry a few times too
+            if attempt >= max(1, retries):
+                raise
+            if debug:
+                eprint(f"[debug] connect error on attempt {attempt}/{retries}: {type(ex).__name__}: {ex}; retrying after {delay:.1f}s")
+            time.sleep(delay)
+            delay = min(delay * max(1.1, backoff), 8.0)
 
 # -------------------- client & job extraction ------------------------
 
@@ -183,7 +231,6 @@ def _extract_status_and_round(meta: Dict[str, Any]) -> (Optional[str], Optional[
                 rnd = meta[k]
                 break
         if rnd is None:
-            # drill into common sub-objects
             for k in ("training", "runtime", "progress", "stats", "controller", "aggregator"):
                 d = meta.get(k)
                 if isinstance(d, dict):
@@ -250,7 +297,6 @@ def poll_once(sess, show_clients: bool, fields: List[str]) -> Dict[str, Any]:
         line.setdefault("deploy_status", {"server": "OK"})
         line.setdefault("status", "UNKNOWN")
 
-    # Clients
     if show_clients:
         line["connected_clients"] = _connected_client_ids(sess)
         line["connected_clients_detailed"] = _connected_client_map(sess)
@@ -259,7 +305,6 @@ def poll_once(sess, show_clients: bool, fields: List[str]) -> Dict[str, Any]:
             if jc:
                 line["job_clients"] = jc
 
-    # extra dotted fields from job meta
     if job_meta and isinstance(job_meta, dict) and fields:
         for f in fields:
             cur = job_meta
@@ -271,7 +316,6 @@ def poll_once(sess, show_clients: bool, fields: List[str]) -> Dict[str, Any]:
                     break
             line[f] = cur
 
-    # Draining wins if detected explicitly in meta
     try:
         if job_meta and _looks_draining_from_meta(job_meta):
             line["status"] = "DRAINING"
@@ -291,19 +335,31 @@ def admin_poll_loop_with_session(
     drain_window: float = 180.0,
 ) -> None:
     username = username_hint or "admin@admin.com"
-    sess = new_session_or_raise(username, startup_dir, debug=debug)
 
-    # consecutive "unreachable Admin" guard
-    consecutive_unreach = 0
+    # pull connect params from parsed args (already sanitized)
     try:
         _argv_ns = globals().get("_PARSED_ARGS")
+        connect_timeout = float(getattr(_argv_ns, "connect_timeout", 30.0))
+        connect_retries = int(getattr(_argv_ns, "connect_retries", 10))
+        connect_backoff = float(getattr(_argv_ns, "connect_backoff", 1.5))
         unreach_exit_code = getattr(_argv_ns, "unreach_exit", None)
     except Exception:
+        connect_timeout, connect_retries, connect_backoff = 30.0, 10, 1.5
         unreach_exit_code = None
     if unreach_exit_code is None:
         unreach_exit_code = 124
 
-    # track last "OK" poll info (to mirror standalone draining semantics)
+    # Try to establish the session with retries
+    sess = new_session_or_raise(
+        username,
+        startup_dir,
+        timeout_s=connect_timeout,
+        retries=connect_retries,
+        backoff=connect_backoff,
+        debug=debug,
+    )
+
+    consecutive_unreach = 0
     last_ok_ts: Optional[float] = None
     last_job_status: Optional[str] = None
     last_clients: List[str] = []
@@ -312,7 +368,6 @@ def admin_poll_loop_with_session(
         while True:
             ts = time.time()
             try:
-                # Build line; collect SI first (for draining text detection)
                 line = {
                     "t": ts,
                     "ts": now_iso(),
@@ -321,7 +376,6 @@ def admin_poll_loop_with_session(
                 }
                 unreachable = False
 
-                # System info (best effort)
                 try:
                     si = sess.get_system_info()
                     try:
@@ -331,7 +385,6 @@ def admin_poll_loop_with_session(
                     if debug:
                         line["system_info"] = si_d if si_d is not None else str(si)
                     if not si_d:
-                        # explicit 'draining' text may appear only in SI string on 2.6.2
                         if _looks_draining_from_si_text(str(si)):
                             line["status"] = "DRAINING"
                 except Exception as ex:
@@ -340,17 +393,10 @@ def admin_poll_loop_with_session(
                     if _UNREACH_PAT.search(str(ex)):
                         unreachable = True
 
-                # Job/clients (best effort; may fail if unreachable)
                 if not unreachable:
                     line.update(poll_once(sess, show_clients=show_clients, fields=fields or []))
-                else:
-                    # For unreachable we still want to show last known clients if any
-                    # but we won't call NVFLARE APIs again here
-                    pass
 
-                # ------------------ Unreachable handling (standalone parity) ------------------
                 if unreachable:
-                    # decide DRAINING vs ADMIN_UNREACHABLE like standalone
                     have_clients = bool(last_clients)
                     was_running = (last_job_status or "").upper().startswith("RUNNING")
                     within_window = (last_ok_ts is not None) and ((ts - last_ok_ts) <= float(drain_window))
@@ -379,7 +425,6 @@ def admin_poll_loop_with_session(
                         else:
                             print(f"[{ts_hms}] ADMIN_UNREACHABLE (~{int(ts - (last_ok_ts or ts))}s) | server: DOWN | clients: {len(last_clients)} ({cid_short})", flush=True)
 
-                    # bump consecutive unreachable and maybe exit
                     consecutive_unreach += 1
                     if consecutive_unreach >= 3:
                         eprint(f"[fatal] Admin unreachable ({consecutive_unreach} consecutive polls). Exiting {unreach_exit_code}.")
@@ -388,13 +433,9 @@ def admin_poll_loop_with_session(
                     time.sleep(max(0.5, float(poll)))
                     continue  # next poll
 
-                # ------------------ Reachable path: normal print ------------------
-                # refresh last-ok state for draining logic
                 last_ok_ts = ts
                 last_clients = line.get("connected_clients") or []
                 last_job_status = (line.get("status") or "").upper() or last_job_status
-
-                # successful reachability resets counter
                 consecutive_unreach = 0
 
                 print(json.dumps(line, default=str), flush=True)
@@ -442,10 +483,15 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     gopt.add_argument("--fields", nargs="*", default=[], help="Extra dotted fields copied from job meta into output.")
     gopt.add_argument("--drain-window", type=float, default=180.0, help="Seconds after last OK during which unreachable is labeled DRAINING.")
 
+    gcon = p.add_argument_group("connection")
+    gcon.add_argument("--connect-timeout", type=float, default=45.0, help="Seconds to wait per connect attempt (default: 45)")
+    gcon.add_argument("--connect-retries", type=int, default=12, help="Number of connect attempts before failing (default: 12)")
+    gcon.add_argument("--connect-backoff", type=float, default=1.6, help="Exponential backoff multiplier between attempts (default: 1.6)")
+
     # Accept legacy flags (ignored) to keep existing launchers working
     compat = p.add_argument_group("compat (accepted but ignored)")
     compat.add_argument("--unreach-exit", type=int, help="If set, use this as exit code on consecutive unreachable timeout")
-    compat.add_argument("--drain-window-legacy", type=float, help=argparse.SUPPRESS)  # placeholder for older launchers
+    compat.add_argument("--drain-window-legacy", type=float, help=argparse.SUPPRESS)
     compat.add_argument("--resilient", action="store_true", help=argparse.SUPPRESS)
     compat.add_argument("--use-internal-admin", action="store_true", help=argparse.SUPPRESS)
     compat.add_argument("--force-host", help=argparse.SUPPRESS)

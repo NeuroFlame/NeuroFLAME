@@ -21,6 +21,7 @@ export interface IRun extends Document {
   runErrors: IRunError[] // Array of error objects
   lastUpdated: string // String representing the numeric timestamp
   createdAt: string // String representing the numeric timestamp
+  meta?: any   // Optional meta field of any type
 }
 
 // Create the Run schema
@@ -52,6 +53,7 @@ const runSchema: Schema = new Schema({
 
   createdAt: { type: String, default: Date.now },
   lastUpdated: { type: String, default: Date.now },
+  meta: { type: Schema.Types.Mixed, default: null }, 
 })
 
 // Create the model

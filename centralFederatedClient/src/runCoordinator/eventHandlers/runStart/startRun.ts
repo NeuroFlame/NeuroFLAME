@@ -81,7 +81,7 @@ export default async function startRun({
       pretty: true,
       showClients: true,
       resilient: true,
-      startDelaySec: 20,
+      startDelaySec: 15,
 
       // 1) use the run-scoped startup we just built
       startupOverride: runScopedStartup,
@@ -95,7 +95,8 @@ export default async function startRun({
         // pass IDs so Python can prioritize same-consortium fallbacks
         '--consortium', consortiumId,
         '--run', runId,
-        '--insecure'
+        '--insecure',
+        '--debug'
       ],
 
       env: {
