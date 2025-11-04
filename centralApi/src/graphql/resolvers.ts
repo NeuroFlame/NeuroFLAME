@@ -77,7 +77,7 @@ export default {
           .populate('readyMembers', 'id username')
           .populate(
             'studyConfiguration.computation',
-            'title imageName imageDownloadUrl notes owner',
+            'title imageName imageDownloadUrl notes owner hasLocalParameters',
           )
           .exec()
 
@@ -123,6 +123,7 @@ export default {
                   imageDownloadUrl: computation.imageDownloadUrl,
                   notes: computation.notes,
                   owner: computation.owner,
+                  hasLocalParameters: computation.hasLocalParameters,
                 }
               : null,
           },
@@ -141,6 +142,7 @@ export default {
       imageDownloadUrl: string
       notes: string
       owner: string
+      hasLocalParameters?: boolean
     }> => {
       try {
         const computation = await Computation.findById(computationId)
@@ -148,7 +150,7 @@ export default {
           throw new Error('Computation not found')
         }
 
-        const { title, imageName, imageDownloadUrl, notes, owner } = computation
+        const { title, imageName, imageDownloadUrl, notes, owner, hasLocalParameters } = computation
 
         return {
           title,
@@ -156,6 +158,7 @@ export default {
           imageDownloadUrl,
           notes,
           owner,
+          hasLocalParameters,
         }
       } catch (error) {
         logger.error('Error in getComputationDetails:', error)
@@ -234,7 +237,7 @@ export default {
           })
           .populate(
             'studyConfiguration.computation',
-            'title imageName imageDownloadUrl notes owner',
+            'title imageName imageDownloadUrl notes owner hasLocalParameters',
           )
           .lean()
           .exec()
@@ -273,6 +276,7 @@ export default {
                 run.studyConfiguration.computation.imageDownloadUrl,
               notes: run.studyConfiguration.computation.notes,
               owner: run.studyConfiguration.computation.owner,
+              hasLocalParameters: run.studyConfiguration.computation.hasLocalParameters || false,
             },
           },
           runErrors: run.runErrors.map((error: any) => ({
@@ -784,11 +788,13 @@ export default {
         imageName,
         imageDownloadUrl,
         notes,
+        hasLocalParameters,
       }: {
         title: string
         imageName: string
         imageDownloadUrl: string
         notes: string
+        hasLocalParameters?: boolean
       },
       context: Context,
     ): Promise<boolean> => {
@@ -810,6 +816,7 @@ export default {
         imageDownloadUrl,
         notes,
         owner: context.userId,
+        hasLocalParameters,
       })
 
       return true
@@ -822,12 +829,14 @@ export default {
         imageName,
         imageDownloadUrl,
         notes,
+        hasLocalParameters,
       }: {
         computationId: string
         title?: string
         imageName?: string
         imageDownloadUrl?: string
         notes?: string
+        hasLocalParameters?: boolean
       },
       context: Context,
     ): Promise<boolean> => {
@@ -859,11 +868,21 @@ export default {
       }
 
       // Prepare the update payload
-      const updatePayload: { [key: string]: string } = {}
-      if (title) updatePayload.title = title
-      if (imageName) updatePayload.imageName = imageName
-      if (imageDownloadUrl) updatePayload.imageDownloadUrl = imageDownloadUrl
-      if (notes) updatePayload.notes = notes
+      type UpdatePayload = Partial<{
+        title: string
+        imageName: string
+        imageDownloadUrl: string
+        notes: string
+        hasLocalParameters: boolean
+      }>
+
+      const updatePayload: UpdatePayload = {}
+
+      if (title !== undefined) updatePayload.title = title
+      if (imageName !== undefined) updatePayload.imageName = imageName
+      if (imageDownloadUrl !== undefined) updatePayload.imageDownloadUrl = imageDownloadUrl
+      if (notes !== undefined) updatePayload.notes = notes
+      if (hasLocalParameters !== undefined) updatePayload.hasLocalParameters = hasLocalParameters
 
       // Perform the update operation
       try {

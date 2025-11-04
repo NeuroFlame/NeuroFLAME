@@ -79,6 +79,8 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null)
   const [isLeader, setIsLeader] = useState(false)
 
+  console.log(studyConfiguration);
+
   // Fetch consortium details function
   const fetchConsortiumDetails = useCallback(async () => {
     if (!consortiumId) return

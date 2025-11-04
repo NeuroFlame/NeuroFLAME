@@ -16,6 +16,7 @@ export type Scalars = {
 
 export type Computation = {
   __typename?: 'Computation';
+  hasLocalParameters: Scalars['Boolean']['output'];
   imageDownloadUrl: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
   notes: Scalars['String']['output'];
@@ -104,6 +105,7 @@ export type MutationAdminChangeUserRolesArgs = {
 
 
 export type MutationComputationCreateArgs = {
+  hasLocalParameters: Scalars['Boolean']['input'];
   imageDownloadUrl: Scalars['String']['input'];
   imageName: Scalars['String']['input'];
   notes: Scalars['String']['input'];
@@ -113,6 +115,7 @@ export type MutationComputationCreateArgs = {
 
 export type MutationComputationEditArgs = {
   computationId: Scalars['String']['input'];
+  hasLocalParameters: Scalars['Boolean']['input'];
   imageDownloadUrl: Scalars['String']['input'];
   imageName: Scalars['String']['input'];
   notes: Scalars['String']['input'];

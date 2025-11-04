@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Grid from '@mui/material/Grid2'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Typography,
+  DialogActions, TextField, Typography, Tabs, Tab,
 } from '@mui/material'
 import { Members } from './Members/Members'
 import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
@@ -18,6 +18,7 @@ import ComputationDisplay from './ComputationDisplay/ComputationDisplay'
 import ConsortiumLeaderNotes from './ConsortiumLeaderNotes/ConsortiumLeaderNotes'
 import Computation from './Computation/Computation'
 import ComputationParameters from './ComputationParameters/ComputationParameters'
+import ComputationLocalParameters from './ComputationLocalParameters/ComputationLocalParameters'
 import { useNavigate, useParams } from 'react-router-dom'
 
 function ConsortiumDeleteModal({
@@ -86,10 +87,17 @@ export function ConsortiumDetailsPage() {
     deleteConsortium,
     isLeader,
   } = useConsortiumDetailsContext()
+
   const { userId } = useUserState()
   const navigate = useNavigate()
-
   const isActive = activeMembers.some((member) => member.id === userId)
+
+  const hasComputation = !!studyConfiguration?.computation
+  // NOTE: using the misspelled key per your generated types
+  const supportsLocal = !!studyConfiguration?.computation?.hasLocalParameters
+
+  // Tabs only used when supportsLocal === true
+  const [tab, setTab] = useState<'global' | 'local'>('global')
 
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -116,7 +124,7 @@ export function ConsortiumDetailsPage() {
         <Grid size={{ sm: 6, md: 4 }}>
           <TitleAndDescription title={title} description={description} />
 
-          {isLeader && studyConfiguration?.computation && <StartRunButton />}
+          {isLeader && hasComputation && <StartRunButton />}
           {isActive && <DirectorySelect />}
 
           <Members
@@ -167,7 +175,46 @@ export function ConsortiumDetailsPage() {
 
           <LatestRun />
           <Computation computation={studyConfiguration?.computation} />
-          {studyConfiguration?.computation && <ComputationParameters />}
+
+          {/* Parameters area: two simple cases */}
+          {hasComputation && (
+            <Box borderRadius={2} marginBottom={0} bgcolor='white'>
+              {supportsLocal ? (
+                <>
+                  <Tabs
+                    value={tab}
+                    onChange={(_e, v) => setTab(v)}
+                    variant='fullWidth'
+                    textColor='inherit'
+                    TabIndicatorProps={{ sx: { backgroundColor: '#0066ff' } }}
+                    sx={{
+                      '& .MuiTab-root.Mui-selected': { color: '#0066ff' },
+                      '& .MuiTab-root': {
+                        color: 'inherit',
+                        '&:hover': { color: '#0066ff' },
+                        '&:focus': { color: '#0066ff' },
+                      },
+                    }}
+                  >
+                    <Tab label='Global Settings' value='global' />
+                    <Tab label='Local Settings' value='local' />
+                  </Tabs>
+
+                  <Box role='tabpanel' hidden={tab !== 'global'} id='tabpanel-global' aria-labelledby='tab-global'>
+                    {tab === 'global' && <ComputationParameters />}
+                  </Box>
+                  <Box role='tabpanel' hidden={tab !== 'local'} id='tabpanel-local' aria-labelledby='tab-local'>
+                    {tab === 'local' && <ComputationLocalParameters />}
+                  </Box>
+                </>
+              ) : (
+                // Only Global, no tabs
+                <Box>
+                  <ComputationParameters />
+                </Box>
+              )}
+            </Box>
+          )}
         </Grid>
 
         <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
@@ -187,7 +234,7 @@ export function ConsortiumDetailsPage() {
               size='small'
               style={{ marginRight: '0.5rem' }}
             >
-              Consortia
+              Consortia List
             </Button>
             {isLeader && (
               <Button
@@ -196,7 +243,7 @@ export function ConsortiumDetailsPage() {
                 size='small'
                 onClick={() => setDeleteDialogOpen(true)}
               >
-                Delete Consortium
+                Delete
               </Button>
             )}
           </Box>

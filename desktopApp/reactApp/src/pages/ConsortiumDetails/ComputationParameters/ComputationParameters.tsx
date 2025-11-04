@@ -17,7 +17,7 @@ export function ComputationParameters() {
   return (
     <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
       <Typography variant='h6' gutterBottom>
-        Settings{' '}
+        Global Settings{' '}
         <span style={{ fontSize: '12px', color: 'black' }}>
           (parameters.json)
         </span>

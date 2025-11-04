@@ -34,6 +34,38 @@ export const resolvers = {
         throw new Error('Failed to read mount directory')
       }
     },
+    getLocalParams: async (
+      _: any,
+      { consortiumId, mountDir }: { consortiumId: string; mountDir: string },
+      context: any,
+    ): Promise<string> => {
+      // Auth check
+      const { tokenPayload } = context
+      const { userId } = tokenPayload || {}
+      if (!userId) {
+        throw new Error('Not authorized')
+      }
+
+      const configPath = path.join(mountDir, 'local_parameters.json')
+
+      try {
+        const configFile = await fs.readFile(configPath, 'utf-8')
+        return configFile
+      } catch (err: any) {
+        // If the file simply doesn't exist, warn and return a safe default
+        if (err?.code === 'ENOENT') {
+          logger.warn(
+            `local_parameters.json not found at ${configPath} (consortiumId=${consortiumId}, userId=${userId}). Returning default "{}".`
+          )
+          // Return valid, empty JSON so downstream JSON.parse won't explode
+          return '{}'
+        }
+
+        // Anything else is a real error (permissions, I/O, etc.)
+        logger.error(`Error reading ${configPath}:`, err)
+        throw new Error('Failed to read mount directory')
+      }
+    },
   },
 
   Mutation: {
@@ -77,6 +109,21 @@ export const resolvers = {
       } catch (error) {
         logger.error('Error in setMountDir:', error)
         throw new Error('Failed to set mount directory')
+      }
+    },
+    setLocalParams: async (
+      _: any,
+      { consortiumId, mountDir, localParams }: { consortiumId: string; mountDir: string, localParams: string },
+      context: any,
+    ): Promise<boolean> => {
+      try {
+        const configPath = path.join(mountDir, 'local_parameters.json')
+        await fs.writeFile(configPath, localParams)
+
+        return true
+      } catch (error) {
+        logger.error('Error in setLocalParams:', error)
+        throw new Error('Failed to set/save local parameters')
       }
     },
   },

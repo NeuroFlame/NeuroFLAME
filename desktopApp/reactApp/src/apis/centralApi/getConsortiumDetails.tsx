@@ -33,6 +33,7 @@ const GET_CONSORTIUM_DETAILS = gql`
           imageDownloadUrl
           notes
           owner
+          hasLocalParameters
         }
       }
     }
