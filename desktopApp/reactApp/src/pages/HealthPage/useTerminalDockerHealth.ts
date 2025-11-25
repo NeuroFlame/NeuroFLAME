@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { electronApi } from '../../apis/electronApi/electronApi'
-
-export type StatusState = 'checking' | 'ok' | 'down'
-export type TerminalDockerStatus = {
-  cli: { state: StatusState; target: string; details?: string }
-  daemon: { state: StatusState; target: string; details?: string }
-}
+import { TerminalDockerStatus } from './types'
 
 // Permissive matchers
 const CLIENT_OK = [
@@ -35,7 +30,7 @@ const DAEMON_ERRORS = [
 const DEFAULT_TIMEOUT_MS = 8000
 
 export function useTerminalDockerHealth(timeoutMs: number = DEFAULT_TIMEOUT_MS) {
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState<boolean>(false)
   const [status, setStatus] = useState<TerminalDockerStatus>({
     cli: { state: 'checking', target: 'docker version (client)' },
     daemon: { state: 'checking', target: 'docker info (server)' },
@@ -64,22 +59,43 @@ export function useTerminalDockerHealth(timeoutMs: number = DEFAULT_TIMEOUT_MS) 
       if (!line) continue
 
       if (!settledRef.current.cli) {
-        if (CLIENT_OK.some(rx => rx.test(line))) {
+        if (CLIENT_OK.some((rx) => rx.test(line))) {
           settledRef.current.cli = true
-          setStatus(s => ({ ...s, cli: { state: 'ok', target: s.cli.target, details: 'CLI detected' }}))
-        } else if (CLI_NOT_FOUND.some(rx => rx.test(line))) {
+          setStatus((s) => ({ ...s, cli: { state: 'ok', target: s.cli.target, details: 'CLI detected' } }))
+        } else if (CLI_NOT_FOUND.some((rx) => rx.test(line))) {
           settledRef.current.cli = true
-          setStatus(s => ({ ...s, cli: { state: 'down', target: s.cli.target, details: 'docker not found in PATH' }}))
+          setStatus((s) => ({
+            ...s,
+            cli: {
+              state: 'down',
+              target: s.cli.target,
+              details: 'docker not found in PATH',
+            },
+          }))
         }
       }
 
       if (!settledRef.current.daemon) {
-        if (SERVER_OK.some(rx => rx.test(line))) {
+        if (SERVER_OK.some((rx) => rx.test(line))) {
           settledRef.current.daemon = true
-          setStatus(s => ({ ...s, daemon: { state: 'ok', target: s.daemon.target, details: 'Docker Engine reachable' }}))
-        } else if (DAEMON_ERRORS.some(rx => rx.test(line))) {
+          setStatus((s) => ({
+            ...s,
+            daemon: {
+              state: 'ok',
+              target: s.daemon.target,
+              details: 'Docker Engine reachable',
+            },
+          }))
+        } else if (DAEMON_ERRORS.some((rx) => rx.test(line))) {
           settledRef.current.daemon = true
-          setStatus(s => ({ ...s, daemon: { state: 'down', target: s.daemon.target, details: 'Cannot connect to Docker daemon (socket/permissions)' }}))
+          setStatus((s) => ({
+            ...s,
+            daemon: {
+              state: 'down',
+              target: s.daemon.target,
+              details: 'Cannot connect to Docker daemon (socket/permissions)',
+            },
+          }))
         }
       }
     }
@@ -112,7 +128,6 @@ export function useTerminalDockerHealth(timeoutMs: number = DEFAULT_TIMEOUT_MS) 
       if (timersRef.current.cli) clearTimeout(timersRef.current.cli)
       if (timersRef.current.daemon) clearTimeout(timersRef.current.daemon)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const runDockerChecks = useCallback(() => {
@@ -125,33 +140,45 @@ export function useTerminalDockerHealth(timeoutMs: number = DEFAULT_TIMEOUT_MS) 
     })
 
     // CLI (doesn't require daemon)
-    send(`docker version --format "{{.Client.Version}}"`)
-    send(`docker --version`)
+    send('docker version --format "{{.Client.Version}}"')
+    send('docker --version')
 
     // Daemon (requires engine)
-    send(`docker info --format "{{.ServerVersion}}"`)
-    send(`docker info`)
+    send('docker info --format "{{.ServerVersion}}"')
+    send('docker info')
 
     // Timeouts (only mark down if nothing matched)
     timersRef.current.cli = window.setTimeout(() => {
       if (!settledRef.current.cli) {
         settledRef.current.cli = true
-        setStatus(s => ({ ...s, cli: { state: 'down', target: s.cli.target, details: 'timeout waiting for client version' }}))
+        setStatus((s) => ({
+          ...s,
+          cli: {
+            state: 'down',
+            target: s.cli.target,
+            details: 'timeout waiting for client version',
+          },
+        }))
       }
     }, timeoutMs)
 
     timersRef.current.daemon = window.setTimeout(() => {
       if (!settledRef.current.daemon) {
         settledRef.current.daemon = true
-        setStatus(s => ({ ...s, daemon: { state: 'down', target: s.daemon.target, details: 'timeout waiting for daemon response' }}))
+        setStatus((s) => ({
+          ...s,
+          daemon: {
+            state: 'down',
+            target: s.daemon.target,
+            details: 'timeout waiting for daemon response',
+          },
+        }))
       }
     }, timeoutMs)
   }, [send, timeoutMs])
 
   // expose last N lines for your log viewer
-  const getLastLines = useCallback((n: number = 50) => {
-    return bufferRef.current.slice(-n).map((l, i) => `${i}: ${l}`)
-  }, [])
+  const getLastLines = useCallback((n: number = 50) => bufferRef.current.slice(-n).map((l, i) => `${i}: ${l}`), [])
 
   // image probe utility (unchanged)
   const checkImageExists = useCallback((imageName: string, onDone?: (exists: boolean) => void) => {
