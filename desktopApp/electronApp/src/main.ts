@@ -14,6 +14,8 @@ import { useDirectoryDialog } from './dialogs.js'
 import initializeConfig from './configManager.js'
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import os from 'os'
+import path from 'path'
+import { promises as fs } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
 let terminalProcess: TerminalProcess | null = null
@@ -109,6 +111,45 @@ class TerminalProcess {
   }
 }
 
+async function readTail(filePath: string, maxBytes: number): Promise<string> {
+  const handle = await fs.open(filePath, 'r')
+  try {
+    const stats = await handle.stat()
+    const bytesToRead = Math.min(maxBytes, stats.size)
+    const start = Math.max(0, stats.size - bytesToRead)
+    const buffer = Buffer.alloc(bytesToRead)
+    await handle.read(buffer, 0, bytesToRead, start)
+    return buffer.toString('utf8')
+  } finally {
+    await handle.close()
+  }
+}
+
+async function getEdgeClientLogLines(options?: { maxBytes?: number; maxLines?: number }) {
+  const { maxBytes = 200_000, maxLines = 400 } = options ?? {}
+  const config = await getConfig()
+  const fallbackDir = path.join(config.logPath || app.getPath('userData'), 'edgeClient')
+  const logDir = config.edgeClientConfig?.logPath || fallbackDir
+  const logFilePath = path.join(logDir, 'application.log')
+
+  try {
+    const content = await readTail(logFilePath, maxBytes)
+    const lines = content.replace(/\r\n/g, '\n').split('\n').filter((line, idx, arr) => line.length || idx !== arr.length - 1)
+    return {
+      lines: lines.slice(-maxLines),
+      path: logFilePath,
+    }
+  } catch (error) {
+    const message = (error as Error)?.message || 'Failed to read Edge client logs'
+    logger.error(`Edge client log read failure: ${message}`)
+    return {
+      lines: [],
+      path: logFilePath,
+      error: message,
+    }
+  }
+}
+
 // ---- App bootstrap ----------------------------------------------------------
 
 async function appOnReady(): Promise<void> {
@@ -163,7 +204,7 @@ async function appOnReady(): Promise<void> {
     terminalProcess.process.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
       mainWindow?.webContents.send(
         'terminalOutput',
-        `\n[terminal exited: code=${code ?? 'null'} signal=${signal ?? 'null'}]`
+        `\n[terminal exited: code=${code ?? 'null'} signal=${signal ?? 'null'}]`,
       )
     })
 
@@ -200,6 +241,7 @@ ipcMain.handle('getConfig', getConfig)
 ipcMain.handle('openConfig', openConfig)
 ipcMain.handle('saveConfig', async (_e, configString) => await saveConfig(configString))
 ipcMain.handle('applyDefaultConfig', applyDefaultConfig)
+ipcMain.handle('getEdgeClientLogs', (_event, options) => getEdgeClientLogLines(options))
 
 ipcMain.handle('useDirectoryDialog', (_e, pathString) => {
   if (mainWindow) return useDirectoryDialog({ mainWindow, pathString })

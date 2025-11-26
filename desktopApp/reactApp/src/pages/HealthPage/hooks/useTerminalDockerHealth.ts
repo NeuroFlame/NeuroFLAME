@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { electronApi } from '../../apis/electronApi/electronApi'
-import { TerminalDockerStatus } from './types'
+import { electronApi } from '../../../apis/electronApi/electronApi'
+import { TerminalDockerStatus } from '../types'
 
 // Permissive matchers
 const CLIENT_OK = [

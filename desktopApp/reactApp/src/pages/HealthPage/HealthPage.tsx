@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import { electronApi } from '../../apis/electronApi/electronApi'
 import DockerLogs from './DockerLogs'
 import StatusTable from './StatusTable'
-import { useTerminalDockerHealth } from './useTerminalDockerHealth'
+import { useTerminalDockerHealth } from './hooks/useTerminalDockerHealth'
 import { checkGraphQL, checkWs } from './helpers'
 import { EndpointStatus } from './types'
+import EdgeClientLogs from './EdgeClientLogs'
+import { useEdgeClientLogs } from './hooks/useEdgeClientLogs'
 
 export default function HealthPage() {
   const [config, setConfig] = useState<any | null>(null)
@@ -18,8 +20,21 @@ export default function HealthPage() {
     useTerminalDockerHealth()
 
   const [showDockerLogs, setShowDockerLogs] = useState<boolean>(false)
+  const [showEdgeLogs, setShowEdgeLogs] = useState<boolean>(false)
 
   const navigate = useNavigate()
+  const {
+    lines: edgeLogs,
+    loading: edgeLogsLoading,
+    error: edgeLogsError,
+    getLogs: refreshEdgeLogs,
+  } = useEdgeClientLogs()
+
+  useEffect(() => {
+    if (showEdgeLogs) {
+      refreshEdgeLogs()
+    }
+  }, [showEdgeLogs, refreshEdgeLogs])
 
   useEffect(() => {
     let mounted = true
@@ -135,6 +150,15 @@ export default function HealthPage() {
         showLogs={showDockerLogs}
         logs={getLastLines(50)}
         onToggle={() => setShowDockerLogs((s) => !s)}
+      />
+
+      <EdgeClientLogs
+        showLogs={showEdgeLogs}
+        logs={edgeLogs}
+        loading={edgeLogsLoading}
+        error={edgeLogsError}
+        onToggle={() => setShowEdgeLogs((s) => !s)}
+        onRefresh={refreshEdgeLogs}
       />
     </Paper>
   )
