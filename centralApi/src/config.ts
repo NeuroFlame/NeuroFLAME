@@ -1,12 +1,24 @@
-import dotenv from 'dotenv'
+const requireEnv = (name: string): string => {
+  const value = process.env[name]
+  if (!value) {
+    // eslint-disable-next-line no-console
+    console.error(`[CONFIG] Missing required environment variable: ${name}`)
+    process.exit(1)
+  }
+  return value
+}
 
-dotenv.config()
+const requireEnvOptional = (name: string): string | undefined => {
+  return process.env[name]
+}
 
-export const FILE_SERVER_URL = process.env.FILE_SERVER_URL || ''
-export const APOLLO_PORT = Number(process.env.APOLLO_PORT || '')
-export const DATABASE_URI = process.env.DATABASE_URI || ''
-export const LOG_PATH = process.env.LOG_PATH || ''
-export const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-export const COINSTAC_CONFIGURATIONS_FOLDER = process.env.COINSTAC_CONFIGURATIONS_FOLDER || ''
-export const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || ''
-export const ACCESS_TOKEN_DURATION = process.env.ACCESS_TOKEN_DURATION || ''
+export const FILE_SERVER_URL = requireEnv('FILE_SERVER_URL')
+export const APOLLO_PORT = Number(requireEnv('APOLLO_PORT'))
+export const DATABASE_URI = requireEnv('DATABASE_URI')
+export const LOG_PATH = requireEnvOptional('LOG_PATH')
+export const RESEND_API_KEY = requireEnv('RESEND_API_KEY')
+export const COINSTAC_CONFIGURATIONS_FOLDER = requireEnvOptional(
+  'COINSTAC_CONFIGURATIONS_FOLDER',
+)
+export const ACCESS_TOKEN_SECRET = requireEnv('ACCESS_TOKEN_SECRET')
+export const ACCESS_TOKEN_DURATION = requireEnv('ACCESS_TOKEN_DURATION')
