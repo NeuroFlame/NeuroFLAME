@@ -18,19 +18,44 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     osascript <<EOF
 tell application "Terminal"
     activate
-    do script "cd '$SCRIPT_DIR/centralApi' && echo 'Starting Central API...' && node dev-start.js"
-    delay 0.3
-    tell application "System Events" to keystroke "t" using {command down}
-    delay 2.0
-    do script "cd '$SCRIPT_DIR/centralFederatedClient' && echo 'Starting Central Federated Client...' && node dev-start.js" in front window
-    delay 0.3
-    tell application "System Events" to keystroke "t" using {command down}
-    delay 0.3
-    do script "cd '$SCRIPT_DIR/fileServer' && echo 'Starting File Server...' && node dev-start.js" in front window
-    delay 0.3
-    tell application "System Events" to keystroke "t" using {command down}
-    delay 0.3
-    do script "cd '$SCRIPT_DIR/desktopApp/reactApp' && echo 'Starting React App (Webpack)...' && npm start" in front window
+    if (count of windows) is 0 then
+        do script ""
+    end if
+end tell
+tell application "System Events"
+    tell process "Terminal"
+        keystroke "t" using {command down}
+        delay 0.5
+        keystroke "cd '$SCRIPT_DIR/centralApi' && echo 'Starting Central API...' && node dev-start.js"
+        keystroke return
+    end tell
+end tell
+delay 2.0
+tell application "System Events"
+    tell process "Terminal"
+        keystroke "t" using {command down}
+        delay 0.5
+        keystroke "cd '$SCRIPT_DIR/centralFederatedClient' && echo 'Starting Central Federated Client...' && node dev-start.js"
+        keystroke return
+    end tell
+end tell
+delay 0.3
+tell application "System Events"
+    tell process "Terminal"
+        keystroke "t" using {command down}
+        delay 0.5
+        keystroke "cd '$SCRIPT_DIR/fileServer' && echo 'Starting File Server...' && node dev-start.js"
+        keystroke return
+    end tell
+end tell
+delay 0.3
+tell application "System Events"
+    tell process "Terminal"
+        keystroke "t" using {command down}
+        delay 0.5
+        keystroke "cd '$SCRIPT_DIR/desktopApp/reactApp' && echo 'Starting React App (Webpack)...' && npm start"
+        keystroke return
+    end tell
 end tell
 EOF
     
