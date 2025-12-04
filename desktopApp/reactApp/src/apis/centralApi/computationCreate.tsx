@@ -8,8 +8,8 @@ export const computationCreate = async (
   input: MutationComputationCreateArgs,
 ): Promise<void> => {
   const COMPUTATION_CREATE_MUTATION = gql`
-    mutation ComputationCreate($title: String!, $imageDownloadUrl: String!, $imageName: String!, $notes: String!) {
-      computationCreate(title: $title, imageDownloadUrl: $imageDownloadUrl, imageName: $imageName, notes: $notes)
+    mutation ComputationCreate($title: String!, $imageDownloadUrl: String!, $imageName: String!, $notes: String!, $hasLocalParameters: Boolean!) {
+      computationCreate(title: $title, imageDownloadUrl: $imageDownloadUrl, imageName: $imageName, notes: $notes, hasLocalParameters: $hasLocalParameters)
     }
   `
 

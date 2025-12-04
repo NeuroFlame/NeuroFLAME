@@ -30,6 +30,8 @@ export async function subscribeToCentralApi({
   }
 
   logger.info('Subscribing to central API')
+  logger.info(`WebSocket URL: ${wsUrl}`)
+  logger.info(`Access Token: ${accessToken}`)
   // Create a new GraphQL WebSocket client
   client = createClient({
     url: wsUrl,

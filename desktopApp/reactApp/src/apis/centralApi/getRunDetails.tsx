@@ -29,6 +29,7 @@ const GET_RUN_DETAILS = gql`
           imageName
           imageDownloadUrl
           notes
+          hasLocalParameters
         }
         computationParameters
         consortiumLeaderNotes

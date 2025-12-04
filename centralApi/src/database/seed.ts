@@ -8,6 +8,8 @@ import Run from './models/Run.js'
 import User from './models/User.js'
 // eslint-disable-next-line @stylistic/max-len
 import computationNotesSingleRoundRidgeRegressionFreesurfer from './seedContent/computationNotesSingleRoundRidgeRegressionFreesurfer.js'
+import computationNotesSingleRoundClosedformRegressionVBM from './seedContent/computationNotesSingleRoundClosedformRegressionVBM.js'
+import computationNotesSpatiallyConstrainedICA from './seedContent/computationNotesSpatiallyConstrainedICA.js'
 
 const saltRounds = 10
 
@@ -20,6 +22,8 @@ const predefinedIds = {
   user4Id: new mongoose.Types.ObjectId('66289c79aebab67040a20071'),
   user5IdVault: new mongoose.Types.ObjectId('66289c79aebab67040a20072'),
   computation1Id: new mongoose.Types.ObjectId('66289c79aebab67040a21000'),
+  computation2Id: new mongoose.Types.ObjectId('66289c79aebab67040a21001'),
+  computation3Id: new mongoose.Types.ObjectId('66289c79aebab67040a21002'),
   consortium1Id: new mongoose.Types.ObjectId('66289c79aecab67040a22001'),
   run1Id: new mongoose.Types.ObjectId('66289c79aecab67040a23000'),
 }
@@ -73,6 +77,25 @@ const computations = [
     imageDownloadUrl: 'docker pull coinstacteam/nfc-single-round-ridge-regression-freesurfer',
     notes: computationNotesSingleRoundRidgeRegressionFreesurfer,
     owner: predefinedIds.user1Id.toString(),
+    hasLocalParameters: false,
+  },
+  {
+    _id: predefinedIds.computation2Id,
+    title: 'Single Round Closedform Regression VBM',
+    imageName: 'coinstacteam/nfc-single-round-closedform-regression-vbm',
+    imageDownloadUrl: 'docker pull coinstacteam/nfc-single-round-closedform-regression-vbm',
+    notes: computationNotesSingleRoundClosedformRegressionVBM,
+    owner: predefinedIds.user1Id.toString(),
+    hasLocalParameters: false,
+  },
+  {
+    _id: predefinedIds.computation3Id,
+    title: 'Spatially Constrained ICA',
+    imageName: 'coinstacteam/nfc-spatially-constrained-ica',
+    imageDownloadUrl: 'docker pull coinstacteam/nfc-spatially-constrained-ica',
+    notes: computationNotesSpatiallyConstrainedICA,
+    owner: predefinedIds.user1Id.toString(),
+    hasLocalParameters: true,
   },
 ]
 
