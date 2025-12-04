@@ -53,6 +53,7 @@ type Computation {
   imageDownloadUrl: String!
   notes: String!
   owner: String!
+  hasLocalParameters: Boolean!
 }
 
 type StudyConfiguration {
@@ -143,8 +144,8 @@ type Mutation {
   consortiumLeave(consortiumId: String!): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
-  computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!): Boolean!
-  computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!): Boolean!
+  computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
+  computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, password: String!): LoginOutput!
   userChangePassword(password: String!): Boolean!
   adminChangeUserRoles(username: String!, roles: [String!]!): Boolean!

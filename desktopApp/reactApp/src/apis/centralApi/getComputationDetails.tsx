@@ -15,6 +15,7 @@ export const getComputationDetails = async (
         notes
         owner
         title
+        hasLocalParameters
       }
     }
   `

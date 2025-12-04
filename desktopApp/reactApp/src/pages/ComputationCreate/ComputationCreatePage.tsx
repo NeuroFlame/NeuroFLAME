@@ -8,6 +8,7 @@ export default function ComputationCreatePage() {
   const [title, setTitle] = useState('')
   const [imageName, setImageName] = useState('')
   const [imageDownloadUrl, setImageDownloadUrl] = useState('')
+  const [hasLocalParameters, setHasLocalParameters] = useState(false)
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +25,7 @@ export default function ComputationCreatePage() {
         imageName,
         imageDownloadUrl,
         notes,
+        hasLocalParameters,
       })
       setLoading(false)
       navigate(`${navPath}`)
@@ -78,6 +80,15 @@ export default function ComputationCreatePage() {
             onChange={(e) => setImageDownloadUrl(e.target.value)}
             style={{ width: 'calc(100% - 2rem)', marginBottom: '1rem' }}
           />
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <input
+              type='checkbox'
+              checked={hasLocalParameters}
+              onChange={(e) => setHasLocalParameters(e.target.checked)}
+              style={{ marginRight: '0.5rem' }}
+            />
+            Has Local Parameters
+          </label>
           <TextareaAutosize
             minRows={3}
             style={{ width: 'calc(100% - 2rem)', marginBottom: '0.5rem' }}

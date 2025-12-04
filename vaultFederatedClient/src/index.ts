@@ -1,5 +1,5 @@
 import * as runCoordinator from './runCoordinator/runCoordinator.js'
-import { ACCESS_TOKEN, LOG_PATH, WS_URL } from './config.js'
+import { VAULT_ACCESS_TOKEN, VAULT_LOG_PATH, VAULT_WS_URL } from './config.js'
 import { logger, logToPath } from './logger.js'
 
 interface FederatedClientLaunchConfiguration {
@@ -21,12 +21,12 @@ export async function start(
 
 ;(async () => {
   try {
-    if (LOG_PATH) {
-      logToPath(LOG_PATH)
+    if (VAULT_LOG_PATH) {
+      logToPath(VAULT_LOG_PATH)
     }
     await start({
-      wsUrl: WS_URL,
-      accessToken: ACCESS_TOKEN,
+      wsUrl: VAULT_WS_URL,
+      accessToken: VAULT_ACCESS_TOKEN,
     })
   } catch (err) {
     logger.error('Failed to start:', { error: err })

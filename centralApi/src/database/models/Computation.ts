@@ -6,6 +6,7 @@ export interface IComputation extends Document {
   imageDownloadUrl: string;
   notes: string;
   owner: string;
+  hasLocalParameters?: boolean;
 }
 
 const computationSchema: Schema = new Schema({
@@ -14,6 +15,7 @@ const computationSchema: Schema = new Schema({
   imageDownloadUrl: { type: String, required: true },
   notes: { type: String, required: true },
   owner: { type: String, required: false },
+  hasLocalParameters: { type: Boolean, required: false, default: false },
 })
 
 export const Computation: Model<IComputation> =
