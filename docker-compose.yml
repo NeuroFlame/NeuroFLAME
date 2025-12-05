@@ -58,7 +58,7 @@ services:
       - ACCESS_TOKEN=${ACCESS_TOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NjI4OWM3OWFlYmFiNjcwNDBhMjAwNjciLCJyb2xlcyI6WyJjZW50cmFsIl0sImlhdCI6MTcxMzkzODM5Mn0.xtJwKGbAK5veZIcxlFBXbLM2-oT2h6MJkf-D1JllybM}
       - FILE_SERVER_URL=http://fileServer:3002
       - CENTRAL_BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/centralFederatedClientDir
-      - FQDN=${FQDN:-localhost}
+      - FQDN=${FQDN:-host.docker.internal}
       - HOSTING_PORT_START=${HOSTING_PORT_START:-3010}
       - HOSTING_PORT_END=${HOSTING_PORT_END:-3099}
 
