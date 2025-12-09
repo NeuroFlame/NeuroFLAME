@@ -1,7 +1,7 @@
 import { Box, Button, Paper, Typography } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { electronApi } from '../../apis/electronApi/electronApi'
+import { electronApi, Config } from '../../apis/electronApi/electronApi'
 import DockerLogs from './DockerLogs'
 import StatusTable from './StatusTable'
 import { useTerminalDockerHealth } from './hooks/useTerminalDockerHealth'
@@ -11,7 +11,7 @@ import EdgeClientLogs from './EdgeClientLogs'
 import { useEdgeClientLogs } from './hooks/useEdgeClientLogs'
 
 export default function HealthPage() {
-  const [config, setConfig] = useState<any | null>(null)
+  const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<EndpointStatus[]>([])
@@ -57,7 +57,7 @@ export default function HealthPage() {
     }
   }, [config])
 
-  const run = async () => {
+  const run = useCallback(async () => {
     if (!urls) return
     setLoading(true)
     setError(null)
@@ -86,21 +86,22 @@ export default function HealthPage() {
               name: 'unknown',
               target: '',
               ok: false,
-              details: (s as any).reason?.message || 'failed',
+              details: s.status === 'rejected' && s.reason instanceof Error ? s.reason.message : 'failed',
             } as EndpointStatus),
       )
 
       setResults(base)
-    } catch (e: any) {
-      setError(e?.message || 'Failed to run health checks')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to run health checks'
+      setError(message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [urls, runDockerChecks])
 
   useEffect(() => {
     if (ready && urls) run()
-  }, [ready, !!urls])
+  }, [ready, urls, run])
 
   return (
     <Paper style={{ maxWidth: 1100, margin: '1rem auto', padding: '1rem' }}>

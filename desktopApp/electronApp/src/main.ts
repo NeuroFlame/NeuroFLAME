@@ -111,6 +111,10 @@ class TerminalProcess {
   }
 }
 
+// Constants for Edge Client log reading
+const DEFAULT_MAX_BYTES = 200_000
+const DEFAULT_MAX_LINES = 400
+
 async function readTail(filePath: string, maxBytes: number): Promise<string> {
   const handle = await fs.open(filePath, 'r')
   try {
@@ -118,15 +122,34 @@ async function readTail(filePath: string, maxBytes: number): Promise<string> {
     const bytesToRead = Math.min(maxBytes, stats.size)
     const start = Math.max(0, stats.size - bytesToRead)
     const buffer = Buffer.alloc(bytesToRead)
-    await handle.read(buffer, 0, bytesToRead, start)
+    
+    // Explicitly handle read errors
+    try {
+      await handle.read(buffer, 0, bytesToRead, start)
+    } catch (readError) {
+      const message = readError instanceof Error ? readError.message : 'Failed to read file'
+      throw new Error(`Error reading log file: ${message}`)
+    }
+    
     return buffer.toString('utf8')
+  } catch (error) {
+    // Re-throw with context if not already an Error
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(`Unexpected error reading tail of file: ${String(error)}`)
   } finally {
-    await handle.close()
+    try {
+      await handle.close()
+    } catch (closeError) {
+      // Log but don't throw - file might already be closed
+      logger.warn(`Error closing log file handle: ${closeError instanceof Error ? closeError.message : String(closeError)}`)
+    }
   }
 }
 
 async function getEdgeClientLogLines(options?: { maxBytes?: number; maxLines?: number }) {
-  const { maxBytes = 200_000, maxLines = 400 } = options ?? {}
+  const { maxBytes = DEFAULT_MAX_BYTES, maxLines = DEFAULT_MAX_LINES } = options ?? {}
   const config = await getConfig()
   const fallbackDir = path.join(config.logPath || app.getPath('userData'), 'edgeClient')
   const logDir = config.edgeClientConfig?.logPath || fallbackDir
@@ -140,7 +163,7 @@ async function getEdgeClientLogLines(options?: { maxBytes?: number; maxLines?: n
       path: logFilePath,
     }
   } catch (error) {
-    const message = (error as Error)?.message || 'Failed to read Edge client logs'
+    const message = error instanceof Error ? error.message : 'Failed to read Edge client logs'
     logger.error(`Edge client log read failure: ${message}`)
     return {
       lines: [],

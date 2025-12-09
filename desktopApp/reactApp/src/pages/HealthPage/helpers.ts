@@ -26,13 +26,14 @@ export async function checkGraphQL(name: string, url: string): Promise<EndpointS
       latencyMs: Date.now() - start,
       details: ok ? 'introspection ok' : txt.slice(0, 200),
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     return {
       kind: 'graphql',
       name,
       target: url,
       ok: false,
-      details: err?.message,
+      details: message,
     }
   }
 }
@@ -65,13 +66,14 @@ export async function checkHttp(name: string, url: string): Promise<EndpointStat
       latencyMs: Date.now() - start,
       details: `${res.status} ${res.statusText}`,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     return {
       kind: 'http',
       name,
       target: url,
       ok: false,
-      details: err?.message,
+      details: message,
     }
   }
 }
@@ -88,13 +90,14 @@ export async function checkRunResults(name: string, url: string): Promise<Endpoi
       latencyMs: Date.now() - start,
       details: `${res.status} ${res.statusText}`,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     return {
       kind: 'runResults',
       name,
       target: url,
       ok: false,
-      details: err?.message,
+      details: message,
     }
   }
 }

@@ -7,7 +7,7 @@ export function useEdgeClientLogs(initialLines: number = 200, timeoutMs: number 
   const [lines, setLines] = useState<string[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const timerRef = useRef<any>()
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const getLogs = useCallback(async () => {
     setLoading(true)
@@ -17,8 +17,9 @@ export function useEdgeClientLogs(initialLines: number = 200, timeoutMs: number 
       const response = await electronApi.getEdgeClientLogs({ maxLines: initialLines })
       if (response?.error) throw new Error(response.error)
       setLines(response?.lines ?? [])
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load Edge client logs')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load Edge client logs'
+      setError(message)
       setLines([])
     } finally {
       setLoading(false)
@@ -31,10 +32,12 @@ export function useEdgeClientLogs(initialLines: number = 200, timeoutMs: number 
     }, timeoutMs)
 
     return () => {
-      clearInterval(timerRef.current)
-      timerRef.current = null
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
     }
-  }, [])
+  }, [getLogs, timeoutMs])
 
   return {
     lines,

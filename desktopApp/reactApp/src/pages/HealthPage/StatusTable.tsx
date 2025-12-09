@@ -1,3 +1,4 @@
+import React from 'react'
 import { EndpointStatus, StatusState, TerminalDockerStatus } from './types'
 
 const badge = (variant: StatusState | boolean) => {
@@ -32,12 +33,12 @@ const rowStyle: React.CSSProperties = {
   borderBottom: '1px solid #eee',
 }
 
-interface StatusGridProps {
+interface StatusTableProps {
   results: EndpointStatus[];
   dockerStatus: TerminalDockerStatus;
 }
 
-const StatusGrid:React.FC<StatusGridProps> = ({ results, dockerStatus }) => {
+const StatusTable: React.FC<StatusTableProps> = ({ results, dockerStatus }) => {
   const dockerRowsUi = [
     {
       label: 'Docker CLI',
@@ -111,4 +112,4 @@ const StatusGrid:React.FC<StatusGridProps> = ({ results, dockerStatus }) => {
   )
 }
 
-export default StatusGrid
+export default StatusTable

@@ -26,6 +26,15 @@ export const EdgeClientLogs: React.FC<EdgeClientLogsProps> = ({
       >
         {showLogs ? 'Hide Edge Client Logs' : 'Show Edge Client Logs'}
       </Button>
+      {showLogs && (
+        <Button
+          variant='outlined'
+          onClick={onRefresh}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      )}
     </Box>
     {showLogs && (
       <>
