@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('ElectronAPI', {
   terminalOutput: (callback) => ipcRenderer.on('terminalOutput', callback),
   removeTerminalOutputListener: () =>
     ipcRenderer.removeAllListeners('terminalOutput'),
+  getEdgeClientLogs: async (options) =>
+    ipcRenderer.invoke('getEdgeClientLogs', options),
 })
 
 console.log('preload.js loaded')

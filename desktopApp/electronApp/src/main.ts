@@ -14,6 +14,8 @@ import { useDirectoryDialog } from './dialogs.js'
 import initializeConfig from './configManager.js'
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import os from 'os'
+import path from 'path'
+import { promises as fs } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
 let terminalProcess: TerminalProcess | null = null
@@ -109,6 +111,68 @@ class TerminalProcess {
   }
 }
 
+// Constants for Edge Client log reading
+const DEFAULT_MAX_BYTES = 200_000
+const DEFAULT_MAX_LINES = 400
+
+async function readTail(filePath: string, maxBytes: number): Promise<string> {
+  const handle = await fs.open(filePath, 'r')
+  try {
+    const stats = await handle.stat()
+    const bytesToRead = Math.min(maxBytes, stats.size)
+    const start = Math.max(0, stats.size - bytesToRead)
+    const buffer = Buffer.alloc(bytesToRead)
+    
+    // Explicitly handle read errors
+    try {
+      await handle.read(buffer, 0, bytesToRead, start)
+    } catch (readError) {
+      const message = readError instanceof Error ? readError.message : 'Failed to read file'
+      throw new Error(`Error reading log file: ${message}`)
+    }
+    
+    return buffer.toString('utf8')
+  } catch (error) {
+    // Re-throw with context if not already an Error
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(`Unexpected error reading tail of file: ${String(error)}`)
+  } finally {
+    try {
+      await handle.close()
+    } catch (closeError) {
+      // Log but don't throw - file might already be closed
+      logger.warn(`Error closing log file handle: ${closeError instanceof Error ? closeError.message : String(closeError)}`)
+    }
+  }
+}
+
+async function getEdgeClientLogLines(options?: { maxBytes?: number; maxLines?: number }) {
+  const { maxBytes = DEFAULT_MAX_BYTES, maxLines = DEFAULT_MAX_LINES } = options ?? {}
+  const config = await getConfig()
+  const fallbackDir = path.join(config.logPath || app.getPath('userData'), 'edgeClient')
+  const logDir = config.edgeClientConfig?.logPath || fallbackDir
+  const logFilePath = path.join(logDir, 'application.log')
+
+  try {
+    const content = await readTail(logFilePath, maxBytes)
+    const lines = content.replace(/\r\n/g, '\n').split('\n').filter((line, idx, arr) => line.length || idx !== arr.length - 1)
+    return {
+      lines: lines.slice(-maxLines),
+      path: logFilePath,
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to read Edge client logs'
+    logger.error(`Edge client log read failure: ${message}`)
+    return {
+      lines: [],
+      path: logFilePath,
+      error: message,
+    }
+  }
+}
+
 // ---- App bootstrap ----------------------------------------------------------
 
 async function appOnReady(): Promise<void> {
@@ -163,7 +227,7 @@ async function appOnReady(): Promise<void> {
     terminalProcess.process.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
       mainWindow?.webContents.send(
         'terminalOutput',
-        `\n[terminal exited: code=${code ?? 'null'} signal=${signal ?? 'null'}]`
+        `\n[terminal exited: code=${code ?? 'null'} signal=${signal ?? 'null'}]`,
       )
     })
 
@@ -200,6 +264,7 @@ ipcMain.handle('getConfig', getConfig)
 ipcMain.handle('openConfig', openConfig)
 ipcMain.handle('saveConfig', async (_e, configString) => await saveConfig(configString))
 ipcMain.handle('applyDefaultConfig', applyDefaultConfig)
+ipcMain.handle('getEdgeClientLogs', (_event, options) => getEdgeClientLogLines(options))
 
 ipcMain.handle('useDirectoryDialog', (_e, pathString) => {
   if (mainWindow) return useDirectoryDialog({ mainWindow, pathString })
