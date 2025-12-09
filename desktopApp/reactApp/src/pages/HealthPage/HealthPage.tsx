@@ -39,8 +39,11 @@ export default function HealthPage() {
   useEffect(() => {
     let mounted = true
     electronApi.getConfig()
-      .then((cfg) => { if (mounted) setConfig(cfg) })
-      .catch((e) => setError(e?.message || 'Failed to load config'))
+      .then((cfg) => { if (mounted) setConfig(cfg ?? null) })
+      .catch((e) => {
+        const message = e instanceof Error ? e.message : 'Failed to load config'
+        if (mounted) setError(message)
+      })
     return () => { mounted = false }
   }, [])
 
