@@ -32,7 +32,12 @@ services:
     networks:
       - ci_network
     environment:
+      - FILE_SERVER_URL=http://fileServer:3002
+      - APOLLO_PORT=3001
+      - DATABASE_URI=mongodb://admin:secret@mongo:27017/centralDatabase
       - RESEND_API_KEY=${RESEND_API_KEY}
+      - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:-access-token-secret-example}
+      - ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION:-24h}
 
   centralFederatedClient:
     depends_on:
@@ -46,7 +51,16 @@ services:
       - ci_network
     environment:
       - CI=true
+      - HTTP_URL=http://api:3001/graphql
+      - WS_URL=ws://api:3001/graphql
+      # NOTE: ACCESS_TOKEN must be signed with the same ACCESS_TOKEN_SECRET used by the api service
+      # The hardcoded token below was signed with: access-token-secret-example
+      - ACCESS_TOKEN=${ACCESS_TOKEN:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NjI4OWM3OWFlYmFiNjcwNDBhMjAwNjciLCJyb2xlcyI6WyJjZW50cmFsIl0sImlhdCI6MTcxMzkzODM5Mn0.xtJwKGbAK5veZIcxlFBXbLM2-oT2h6MJkf-D1JllybM}
+      - FILE_SERVER_URL=http://fileServer:3002
       - CENTRAL_BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/centralFederatedClientDir
+      - FQDN=${FQDN:-host.docker.internal}
+      - HOSTING_PORT_START=${HOSTING_PORT_START:-3010}
+      - HOSTING_PORT_END=${HOSTING_PORT_END:-3099}
 
   fileServer:
     depends_on:
@@ -58,8 +72,9 @@ services:
     networks:
       - ci_network
     environment:
-      - FILE_SERVER_BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/fileServerDir
       - AUTHENTICATION_URL=http://api:3001/authenticateToken
+      - FILE_SERVER_BASE_DIR=${HOST_PROJECT_DIR}/_devTestDirectories/fileServerDir
+      - FILE_SERVER_PORT=3002
 
   react:
     depends_on:

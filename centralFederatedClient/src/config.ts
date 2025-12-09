@@ -1,13 +1,23 @@
-import dotenv from 'dotenv'
+const requireEnv = (name: string): string => {
+  const value = process.env[name]
+  if (!value) {
+    // eslint-disable-next-line no-console
+    console.error(`[CONFIG] Missing required environment variable: ${name}`)
+    process.exit(1)
+  }
+  return value
+}
 
-dotenv.config()
+const requireEnvOptional = (name: string): string | undefined => {
+  return process.env[name]
+}
 
-export const HTTP_URL = process.env.HTTP_URL || ''
-export const WS_URL = process.env.WS_URL || ''
-export const ACCESS_TOKEN = process.env.ACCESS_TOKEN || ''
-export const FILE_SERVER_URL = process.env.FILE_SERVER_URL || ''
-export const BASE_DIR = process.env.CENTRAL_BASE_DIR || ''
-export const FQDN = process.env.FQDN || ''
-export const LOG_PATH = process.env.LOG_PATH || ''
-export const HOSTING_PORT_START = Number(process.env.HOSTING_PORT_START || '')
-export const HOSTING_PORT_END = Number(process.env.HOSTING_PORT_END || '')
+export const HTTP_URL = requireEnv('HTTP_URL')
+export const WS_URL = requireEnv('WS_URL')
+export const ACCESS_TOKEN = requireEnv('ACCESS_TOKEN')
+export const FILE_SERVER_URL = requireEnv('FILE_SERVER_URL')
+export const BASE_DIR = requireEnv('CENTRAL_BASE_DIR')
+export const FQDN = requireEnv('FQDN')
+export const LOG_PATH = requireEnvOptional('LOG_PATH')
+export const HOSTING_PORT_START = Number(requireEnv('HOSTING_PORT_START'))
+export const HOSTING_PORT_END = Number(requireEnv('HOSTING_PORT_END'))
