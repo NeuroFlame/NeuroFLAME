@@ -21,6 +21,7 @@ export type Computation = {
   notes: Scalars['String']['output'];
   owner: Scalars['String']['output'];
   title: Scalars['String']['output'];
+  hasLocalParameters: Scalars['Boolean']['output'];
 }
 
 export type ComputationListItem = {
@@ -102,6 +103,7 @@ export type MutationComputationCreateArgs = {
   imageName: Scalars['String']['input'];
   notes: Scalars['String']['input'];
   title: Scalars['String']['input'];
+  hasLocalParameters: Scalars['Boolean']['input'];
 }
 
 export type MutationComputationEditArgs = {
@@ -110,6 +112,7 @@ export type MutationComputationEditArgs = {
   imageName: Scalars['String']['input'];
   notes: Scalars['String']['input'];
   title: Scalars['String']['input'];
+  hasLocalParameters: Scalars['Boolean']['input'];
 }
 
 export type MutationConsortiumCreateArgs = {
@@ -324,6 +327,7 @@ export type StudyConfiguration = {
   __typename?: 'StudyConfiguration';
   computation?: Maybe<Computation>;
   computationParameters: Scalars['String']['output'];
+  computationLocalParameters: Scalars['String']['output'];
   consortiumLeaderNotes: Scalars['String']['output'];
 }
 

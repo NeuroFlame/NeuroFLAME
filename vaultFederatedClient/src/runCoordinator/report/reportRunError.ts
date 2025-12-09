@@ -1,4 +1,4 @@
-import { ACCESS_TOKEN, HTTP_URL } from '../../config.js'
+import { VAULT_ACCESS_TOKEN, VAULT_HTTP_URL } from '../../config.js'
 import { logger } from '../../logger.js'
 import fetch from 'node-fetch' // Import node-fetch
 
@@ -30,11 +30,11 @@ export default async function reportRunError({
   errorMessage: string
 }) {
   try {
-    const response = await fetch(HTTP_URL, {
+    const response = await fetch(VAULT_HTTP_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-access-token': ACCESS_TOKEN,
+        'x-access-token': VAULT_ACCESS_TOKEN,
       },
       body: JSON.stringify({
         query: REPORT_RUN_ERROR_MUTATION,
