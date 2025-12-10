@@ -16,6 +16,12 @@ contextBridge.exposeInMainWorld('ElectronAPI', {
     ipcRenderer.removeAllListeners('terminalOutput'),
   getEdgeClientLogs: async (options) =>
     ipcRenderer.invoke('getEdgeClientLogs', options),
+  pullSingularityImage: async (dockerImageName) =>
+    ipcRenderer.invoke('pullSingularityImage', dockerImageName),
+  checkSingularityImageExists: async (dockerImageName) =>
+    ipcRenderer.invoke('checkSingularityImageExists', dockerImageName),
+  getSingularityImagesPath: async () =>
+    ipcRenderer.invoke('getSingularityImagesPath'),
 })
 
 console.log('preload.js loaded')

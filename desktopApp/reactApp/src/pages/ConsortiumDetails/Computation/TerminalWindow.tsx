@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, forwardRef } from 'react'
 import { electronApi } from '../../../apis/electronApi/electronApi'
 import ScrollToBottom from 'react-scroll-to-bottom'
-import { Box, Button, Typography } from '@mui/material'
+import { Box, Button, Typography, CircularProgress } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 const ScrollToBottomWrapper = forwardRef<
@@ -21,6 +21,9 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
   const [isTerminalReady, setTerminalReady] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
   const [imageExists, setImageExists] = useState(false)
+  const [isSingularity, setIsSingularity] = useState(false)
+  const [isPulling, setIsPulling] = useState(false)
+  const [pullError, setPullError] = useState<string | null>(null)
 
   const imageExistsRef = useRef(false)
   useEffect(() => {
@@ -32,9 +35,33 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
     terminalInput,
     terminalOutput,
     removeTerminalOutputListener,
+    getConfig,
+    checkSingularityImageExists,
+    pullSingularityImage,
   } = electronApi
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  // Check if using Singularity
+  useEffect(() => {
+    const checkContainerService = async () => {
+      try {
+        const config = await getConfig()
+        const usingSingularity = config?.edgeClientConfig?.containerService === 'singularity'
+        setIsSingularity(usingSingularity || false)
+        
+        if (usingSingularity) {
+          // Check if Singularity image exists
+          const imageName = command.replace(/^docker\s+pull\s+/i, '')
+          const exists = await checkSingularityImageExists(imageName)
+          setImageExists(exists)
+        }
+      } catch (error) {
+        console.error('Error checking container service:', error)
+      }
+    }
+    checkContainerService()
+  }, [command])
 
   const lineIndicatesImage = (line: string) => MATCHERS.some((rx) => rx.test(line))
 
@@ -65,40 +92,81 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
   }
 
   useEffect(() => {
-    if (!isTerminalReady) {
-      spawnTerminal(setTerminalReady)
-    }
+    // Only set up terminal for Docker
+    if (!isSingularity) {
+      if (!isTerminalReady) {
+        spawnTerminal(setTerminalReady)
+      }
 
-    // IMPORTANT: register listener ONCE with (output, setOutput)
-    // We pass our wrapped setter to get real-time detection.
-    terminalOutput(output, setOutputDetecting)
+      // IMPORTANT: register listener ONCE with (output, setOutput)
+      // We pass our wrapped setter to get real-time detection.
+      terminalOutput(output, setOutputDetecting)
 
-    // Probe whether image already exists (flips `imageExists` from inspect output)
-    const imageName = command.replace(/^docker\s+pull\s+/i, '')
-    terminalInput(`docker image inspect ${imageName}`)
+      // Probe whether image already exists (flips `imageExists` from inspect output)
+      const imageName = command.replace(/^docker\s+pull\s+/i, '')
+      terminalInput(`docker image inspect ${imageName}`)
 
-    return () => {
-      removeTerminalOutputListener()
+      return () => {
+        removeTerminalOutputListener()
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // run once
+  }, [isSingularity]) // run when singularity status changes
 
-  const handleButtonPress = (input: string) => {
-    terminalInput(input)
-    setShowTerminal(true)
+  const handleButtonPress = async (input: string) => {
+    if (isSingularity) {
+      // Handle Singularity pull
+      setIsPulling(true)
+      setPullError(null)
+      try {
+        const imageName = input.replace(/^docker\s+pull\s+/i, '')
+        const result = await pullSingularityImage(imageName)
+        if (result.alreadyExists) {
+          setImageExists(true)
+        } else {
+          setImageExists(true)
+          setOutput([...output, `Singularity image pulled successfully: ${result.imagePath}`])
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to pull Singularity image'
+        setPullError(errorMessage)
+        setOutput([...output, `Error: ${errorMessage}`])
+      } finally {
+        setIsPulling(false)
+        setShowTerminal(true)
+      }
+    } else {
+      // Handle Docker pull (original behavior)
+      terminalInput(input)
+      setShowTerminal(true)
+    }
   }
 
   return (
     <>
-      {!imageExists && !showTerminal && (
+      {!imageExists && !showTerminal && !isPulling && (
         <Button
           variant="contained"
           size="small"
           onClick={() => handleButtonPress(command)}
           style={{ backgroundColor: '#0066FF' }}
+          disabled={isPulling}
         >
-          Run Docker Pull
+          {isSingularity ? 'Run Singularity Pull' : 'Run Docker Pull'}
         </Button>
+      )}
+      
+      {isPulling && (
+        <Box display="flex" alignItems="center" gap={1}>
+          <CircularProgress size={20} />
+          <Typography variant="body2">Pulling Singularity image...</Typography>
+        </Box>
+      )}
+      
+      {pullError && (
+        <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+          Error: {pullError}
+        </Typography>
       )}
 
       {showTerminal && (
@@ -123,7 +191,7 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
                 marginLeft: '0.25rem',
               }}
             >
-              Docker Image Downloaded
+              {isSingularity ? 'Singularity Image Downloaded' : 'Docker Image Downloaded'}
             </Typography>
           </Box>
         )}

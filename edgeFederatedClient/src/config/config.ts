@@ -5,6 +5,7 @@ export interface edgeClientLaunchConfiguration {
   authenticationEndpoint: string
   hostingPort: number
   logPath?: string
+  containerService?: string
 }
 
 // Holds the configuration instance, initially set to null

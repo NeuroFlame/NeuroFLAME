@@ -34,7 +34,8 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      const { pathBaseDirectory } = await getConfig()
+      const config = await getConfig()
+      const { pathBaseDirectory, containerService = 'docker' } = config
 
       const consortiumPath = path.join(pathBaseDirectory, consortiumId)
       const runPath = path.join(consortiumPath, runId)
@@ -97,7 +98,7 @@ export const runStartHandler = {
 
       // Launch the node
       await launchNode({
-        containerService: 'docker',
+        containerService,
         imageName,
         directoriesToMount,
         portBindings: [],

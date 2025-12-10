@@ -23,7 +23,8 @@ export interface Config {
     wsUrl: string,
     pathBaseDirectory: string,
     authenticationEndpoint: string,
-    hostingPort: number
+    hostingPort: number,
+    containerService?: string
   }
 }
 
@@ -50,6 +51,9 @@ interface ElectronAPI {
   terminalInput: (input: any) => Promise<{ input: any }>;
   removeTerminalOutputListener: () => void;
   getEdgeClientLogs: (options?: { maxBytes?: number; maxLines?: number }) => Promise<EdgeClientLogsResponse>;
+  pullSingularityImage: (dockerImageName: string) => Promise<{ imagePath: string; alreadyExists: boolean }>;
+  checkSingularityImageExists: (dockerImageName: string) => Promise<boolean>;
+  getSingularityImagesPath: () => Promise<string>;
 }
 
 declare global {
@@ -71,4 +75,7 @@ export const electronApi = {
   spawnTerminal,
   removeTerminalOutputListener,
   getEdgeClientLogs,
+  pullSingularityImage: window.ElectronAPI.pullSingularityImage,
+  checkSingularityImageExists: window.ElectronAPI.checkSingularityImageExists,
+  getSingularityImagesPath: window.ElectronAPI.getSingularityImagesPath,
 }

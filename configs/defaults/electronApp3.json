@@ -11,6 +11,7 @@
         "wsUrl": "ws://localhost:3001/graphql",
         "pathBaseDirectory": "{{REPO_DIR}}/_devTestDirectories/edgeSite3",
         "authenticationEndpoint": "http://localhost:3001/authenticateToken",
-        "hostingPort": 3005
+        "hostingPort": 3005,
+        "containerService": "docker"
     }
 }

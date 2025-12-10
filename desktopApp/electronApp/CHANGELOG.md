@@ -1,5 +1,16 @@
 # neuroflame
 
+## 0.3.0
+
+### Minor Changes
+
+- minor bump
+
+### Patch Changes
+
+- Updated dependencies
+  - edge-federated-client@1.2.0
+
 ## 0.2.0
 
 ### Minor Changes
