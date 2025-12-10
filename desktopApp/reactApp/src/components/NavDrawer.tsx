@@ -64,6 +64,13 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
         >
           <ListItemText primary='Computations' />
         </ListItem>
+        <ListItem
+          onClick={() => { navSetDrawerOpen(false) }}
+          component={Link}
+          to='/vaults/list'
+        >
+          <ListItemText primary='Vaults' />
+        </ListItem>
       </List>
       <List
         style={{
