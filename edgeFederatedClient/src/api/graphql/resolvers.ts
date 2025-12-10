@@ -63,7 +63,7 @@ export const resolvers = {
 
         // Anything else is a real error (permissions, I/O, etc.)
         logger.error(`Error reading ${configPath}:`, err)
-        throw new Error('Failed to read mount directory')
+        throw new Error('Failed to read local parameters from mount directory')
       }
     },
   },
@@ -117,11 +117,20 @@ export const resolvers = {
       context: any,
     ): Promise<boolean> => {
       try {
+        // Validate JSON format before writing
+        JSON.parse(localParams)
+        
         const configPath = path.join(mountDir, 'local_parameters.json')
         await fs.writeFile(configPath, localParams)
 
         return true
-      } catch (error) {
+      } catch (error: any) {
+        // If JSON parsing failed, provide a specific error message
+        if (error instanceof SyntaxError) {
+          logger.error('Invalid JSON in setLocalParams:', error)
+          throw new Error('Invalid JSON format in local parameters')
+        }
+        
         logger.error('Error in setLocalParams:', error)
         throw new Error('Failed to set/save local parameters')
       }

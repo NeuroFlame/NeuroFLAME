@@ -9,6 +9,7 @@ import { spawnTerminal } from './spawnTerminal'
 import { terminalInput } from './terminalInput'
 import { terminalOutput } from './terminalOutput'
 import { removeTerminalOutputListener } from './removeTerminalOutputListener'
+import { getEdgeClientLogs } from './getEdgeClientLogs'
 
 export interface Config {
   centralServerQueryUrl: string;
@@ -24,6 +25,12 @@ export interface Config {
     authenticationEndpoint: string,
     hostingPort: number
   }
+}
+
+export interface EdgeClientLogsResponse {
+  lines: string[];
+  path: string;
+  error?: string;
 }
 
 interface ElectronAPI {
@@ -42,6 +49,7 @@ interface ElectronAPI {
   terminalOutput: (output: any) => Promise<{ output: any }>;
   terminalInput: (input: any) => Promise<{ input: any }>;
   removeTerminalOutputListener: () => void;
+  getEdgeClientLogs: (options?: { maxBytes?: number; maxLines?: number }) => Promise<EdgeClientLogsResponse>;
 }
 
 declare global {
@@ -62,4 +70,5 @@ export const electronApi = {
   terminalInput,
   spawnTerminal,
   removeTerminalOutputListener,
+  getEdgeClientLogs,
 }

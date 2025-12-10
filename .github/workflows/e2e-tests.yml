@@ -30,6 +30,7 @@ jobs:
         run: ./docker-compose-ci.sh
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET || 'access-token-secret-example' }}
 
       - name: Dump Docker logs & inspect for debugging
         if: failure() # Remove if you want it to always run
