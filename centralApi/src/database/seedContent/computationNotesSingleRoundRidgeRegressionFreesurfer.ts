@@ -20,6 +20,7 @@ This computation performs a ridge regression on the merged datasets with freesur
  "IgnoreSubjectsWithInvalidData" : true
 }
 \`\`\`
+[Link to Settings Helper](https://trendscenter.github.io/nvflare-ssr-csv-helper/build/index.html) 
 
 ### Settings Specification
 
@@ -96,15 +97,15 @@ The key steps of the algorithm include:
 
 *   The data.csv and covariates.csv provided by each site follows the specified format (standardized covariate and dependent variable headers).
     
-*   If the freesurfer data is not in the csv format, please use the code [data\_generator.py](https://github.com/NeuroFlame/nfc-single-round-ridge-regression-freesurfer/blob/main/other_references/data_generator.py) to generate csv file from .aseg freesurfer files.
+*   If the freesurfer data is not in the csv format, please use the code [ASEG to CSV Helper](https://neuroflame.github.io/nvflare-aseg-to-csv/) to generate csv file from .aseg freesurfer files.
     
 *   The computation is run in a federated environment, and each site contributes valid data.
 
 ### Output Description
 
-*   **Output files: global\_regression\_result.json, global\_regression\_result.html, global\_stats.csv, local\_stats\_{siteid}.csv**
+*   **Output files: global_regression_result.json, global_regression_result.html, global_stats.csv, local_stats_{siteid}.csv**
     
-*   The json and files have both global and local output results. The global\_stats.csv has only global results and local\_stats\_{siteid}.csv has local results corresponding to each participating site.
+*   The json and files have both global and local output results. The global_stats.csv has only global results and local_stats_{siteid}.csv has local results corresponding to each participating site.
     
 
 The computation outputs both **site-level** and **global-level** results, which include:
