@@ -9,6 +9,7 @@ interface MembersListDisplayProps {
     isReady: boolean;
     isLeader: boolean;
     isMe: boolean;
+    isVaultUser: boolean;
   }[];
 }
 
@@ -47,6 +48,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
+        isVaultUser
       }, index) => {
         if (isReady && isActive && !isLeader) {
           return (
@@ -56,6 +58,7 @@ export default function MembersListDisplay({
               isLeader={isLeader}
               isActive={isActive}
               isReady={isReady}
+              isVaultUser={isVaultUser}
               index={index}
               direction='column'
             />
@@ -70,6 +73,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
+        isVaultUser
       }, index) => {
         if (!isActive && isReady && !isLeader) {
           return (
@@ -79,6 +83,7 @@ export default function MembersListDisplay({
               isLeader={isLeader}
               isActive={isActive}
               isReady={isReady}
+              isVaultUser={isVaultUser}
               index={index}
               direction='column'
             />
@@ -93,6 +98,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
+        isVaultUser
       }, index) => {
         if (isActive && !isReady && !isLeader) {
           return (
@@ -102,6 +108,7 @@ export default function MembersListDisplay({
               isLeader={isLeader}
               isActive={isActive}
               isReady={isReady}
+              isVaultUser={isVaultUser}
               index={index}
               direction='column'
             />
@@ -116,6 +123,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
+        isVaultUser,
       }, index) => {
         if (!isActive && !isReady && !isLeader) {
           return (
@@ -125,6 +133,7 @@ export default function MembersListDisplay({
               isLeader={isLeader}
               isActive={isActive}
               isReady={isReady}
+              isVaultUser={isVaultUser}
               index={index}
               direction='column'
             />
