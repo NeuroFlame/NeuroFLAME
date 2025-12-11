@@ -1,6 +1,6 @@
 {
   "name": "neuroflame",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "desktop app",
   "main": "build/main.js",
   "type": "module",
@@ -42,7 +42,7 @@
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
   },
-    "build": {
+  "build": {
     "electronVersion": "30.5.1"
   }
 }
