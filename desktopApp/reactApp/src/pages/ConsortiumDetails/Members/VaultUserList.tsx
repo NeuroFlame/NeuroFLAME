@@ -1,10 +1,10 @@
 // VaultUserList.tsx
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { PublicUser } from '../../../apis/centralApi/generated/graphql'
 import { useParams } from 'react-router-dom'
-import ReactMarkdown, { Components } from 'react-markdown'
+import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
   List,
@@ -13,10 +13,11 @@ import {
   Button,
   Divider,
   Box,
+  CircularProgress,
+  Alert,
+  Typography,
 } from '@mui/material'
-
-const slugify = (s: string) =>
-  s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '')
+import { createMarkdownComponents } from '../../../utils/markdownComponents'
 
 interface VaultUserListProps {
   onClose: () => void;
@@ -26,42 +27,35 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
   const { getVaultUserList, leaderAddVaultUser } = useCentralApi()
   const [vaultUserList, setVaultUserList] = useState<PublicUser[]>([])
   const [selectedVaultInfo, setSelectedVaultInfo] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
 
   // React-Markdown custom renderers
-  const markdownComponents: Components = useMemo(
-    () => ({
-      th: ({ children, ...props }) => {
-        const text =
-          Array.isArray(children)
-            ? children
-              .map((c) => (typeof c === 'string' ? c : ''))
-              .join('')
-              .trim()
-            : typeof children === 'string'
-              ? children.trim()
-              : ''
-        const dataCol = slugify(text || 'col')
-        return (
-          <th {...props} data-col={dataCol}>
-            {children}
-          </th>
-        )
-      },
-      table: ({ ...props }) => (
-        <div className='table-wrapper'>
-          <table {...props} />
-        </div>
-      ),
-    }),
-    [],
-  )
+  const markdownComponents = useMemo(() => createMarkdownComponents(), [])
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await getVaultUserList()
+      setVaultUserList(res)
+      setSelectedVaultInfo((prev) =>
+        res.length === 0 ? 0 : Math.min(prev, res.length - 1),
+      )
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch vault users'
+      setError(errorMessage)
+      console.error('Error fetching users:', err)
+    } finally {
+      setLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    getVaultUserList()
-      .then((res) => setVaultUserList(res))
-      .catch((err) => console.error('Error fetching users:', err))
-  }, [])
+    loadUsers()
+  }, [loadUsers])
 
   const handleAdd = async (userId: string) => {
     try {
@@ -70,6 +64,34 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
     } catch (error) {
       console.error('Error adding user:', error)
     }
+  }
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: 'calc(380px - 4rem)',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity='error' sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant='contained' onClick={loadUsers}>
+          Retry
+        </Button>
+      </Box>
+    )
   }
 
   return (
@@ -91,8 +113,15 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             height: 'calc(380px - 4rem)',
           }}
         >
-          <List>
-            {vaultUserList.map(({ id, username, vault }, index) => (
+          {vaultUserList.length === 0 ? (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant='body1' color='text.secondary'>
+                No vault users found
+              </Typography>
+            </Box>
+          ) : (
+            <List>
+              {vaultUserList.map(({ id, username, vault }, index) => (
               <React.Fragment key={id}>
                 <ListItem
                   sx={{
@@ -138,7 +167,8 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
                 <Divider component='li' />
               </React.Fragment>
             ))}
-          </List>
+            </List>
+          )}
         </Box>
         <Box
           sx={{
