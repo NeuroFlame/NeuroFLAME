@@ -227,9 +227,12 @@ function getSingularityBinary(): Promise<string> {
 
 /**
  * Pull and convert Docker image to Singularity format
+ * @param dockerImageName - Docker image name to pull
+ * @param onOutput - Optional callback for streaming output
  */
 export async function pullSingularityImage(
   dockerImageName: string,
+  onOutput?: (output: string) => void,
 ): Promise<{ imagePath: string; alreadyExists: boolean }> {
   const config = await getConfig()
   const imageDirectory = path.join(
@@ -299,12 +302,18 @@ export async function pullSingularityImage(
       const output = data.toString()
       stdout += output
       logger.info(`Singularity pull stdout: ${output.trim()}`)
+      if (onOutput) {
+        onOutput(output)
+      }
     })
 
     pullProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString()
       stderr += output
       logger.info(`Singularity pull stderr: ${output.trim()}`)
+      if (onOutput) {
+        onOutput(output)
+      }
     })
 
     pullProcess.on('error', (error: Error) => {

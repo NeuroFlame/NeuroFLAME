@@ -105,9 +105,9 @@ export const runStartHandler = {
         commandsToRun: ['python', '/workspace/system/entry_edge.py'],
         onContainerExitError: async (containerId, error) => {
           logger.error(`Error in container: ${containerId}`, { error })
-          reportRunError({
+          await reportRunError({
             runId,
-            errorMessage: `Error in container: ${containerId}`,
+            errorMessage: `Error in container ${containerId}: ${error}`,
           })
         },
         onContainerExitSuccess(containerId) {

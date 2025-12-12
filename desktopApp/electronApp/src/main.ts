@@ -272,7 +272,11 @@ ipcMain.handle('getEdgeClientLogs', (_event, options) => getEdgeClientLogLines(o
 
 ipcMain.handle('pullSingularityImage', async (_event, dockerImageName: string) => {
   try {
-    return await pullSingularityImage(dockerImageName)
+    // Stream output to UI via terminalOutput channel (reusing existing mechanism)
+    const onOutput = (output: string) => {
+      mainWindow?.webContents.send('singularityPullOutput', output)
+    }
+    return await pullSingularityImage(dockerImageName, onOutput)
   } catch (error) {
     logger.error(`Error pulling Singularity image: ${error}`)
     throw error

@@ -38,6 +38,8 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
     getConfig,
     checkSingularityImageExists,
     pullSingularityImage,
+    singularityPullOutput,
+    removeSingularityPullOutputListener,
   } = electronApi
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -113,27 +115,50 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSingularity]) // run when singularity status changes
 
+  // Set up Singularity pull output listener when Singularity mode is active
+  useEffect(() => {
+    if (isSingularity) {
+      const handleSingularityOutput = (_event: any, data: string) => {
+        setOutput((prev) => {
+          const lines = data.split('\n').filter(line => line.trim() || line === '')
+          const next = [...prev, ...lines]
+          queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }))
+          return next
+        })
+      }
+      
+      singularityPullOutput(handleSingularityOutput)
+      
+      return () => {
+        removeSingularityPullOutputListener()
+      }
+    }
+  }, [isSingularity])
+
   const handleButtonPress = async (input: string) => {
     if (isSingularity) {
       // Handle Singularity pull
+      setOutput([]) // Clear previous output
+      setShowTerminal(true) // Show output area immediately
       setIsPulling(true)
       setPullError(null)
       try {
         const imageName = input.replace(/^docker\s+pull\s+/i, '')
+        // Output will be streamed via singularityPullOutput listener
         const result = await pullSingularityImage(imageName)
         if (result.alreadyExists) {
           setImageExists(true)
+          setOutput((prev) => [...prev, 'Singularity image already exists.'])
         } else {
           setImageExists(true)
-          setOutput([...output, `Singularity image pulled successfully: ${result.imagePath}`])
+          setOutput((prev) => [...prev, `\nSingularity image pulled successfully: ${result.imagePath}`])
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to pull Singularity image'
         setPullError(errorMessage)
-        setOutput([...output, `Error: ${errorMessage}`])
+        setOutput((prev) => [...prev, `\nError: ${errorMessage}`])
       } finally {
         setIsPulling(false)
-        setShowTerminal(true)
       }
     } else {
       // Handle Docker pull (original behavior)
@@ -157,7 +182,7 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
       )}
       
       {isPulling && (
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box display="flex" alignItems="center" gap={1} sx={{ mb: 1 }}>
           <CircularProgress size={20} />
           <Typography variant="body2">Pulling Singularity image...</Typography>
         </Box>
@@ -169,7 +194,7 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
         </Typography>
       )}
 
-      {showTerminal && (
+      {(showTerminal || isPulling) && (
         <ScrollToBottomWrapper className="terminalWindow">
           {output.map((item, index) => (
             <div key={index} style={{ whiteSpace: 'nowrap' }}>

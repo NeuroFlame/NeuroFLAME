@@ -54,6 +54,8 @@ interface ElectronAPI {
   pullSingularityImage: (dockerImageName: string) => Promise<{ imagePath: string; alreadyExists: boolean }>;
   checkSingularityImageExists: (dockerImageName: string) => Promise<boolean>;
   getSingularityImagesPath: () => Promise<string>;
+  singularityPullOutput: (callback: any) => void;
+  removeSingularityPullOutputListener: () => void;
 }
 
 declare global {
@@ -78,4 +80,6 @@ export const electronApi = {
   pullSingularityImage: window.ElectronAPI.pullSingularityImage,
   checkSingularityImageExists: window.ElectronAPI.checkSingularityImageExists,
   getSingularityImagesPath: window.ElectronAPI.getSingularityImagesPath,
+  singularityPullOutput: window.ElectronAPI.singularityPullOutput,
+  removeSingularityPullOutputListener: window.ElectronAPI.removeSingularityPullOutputListener,
 }

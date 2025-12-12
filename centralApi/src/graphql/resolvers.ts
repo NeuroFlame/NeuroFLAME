@@ -3,7 +3,7 @@ import {
   compare,
   hashPassword,
 } from '../authentication/authentication.js'
-import { FILE_SERVER_URL, RESEND_API_KEY } from '../config.js'
+import { CLIENT_FILE_SERVER_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
 import Run, { IRun } from '../database/models/Run.js'
 import User from '../database/models/User.js'
@@ -1351,7 +1351,7 @@ export default {
           runId,
           imageName,
           consortiumId,
-          downloadUrl: `${FILE_SERVER_URL}/download/${consortiumId}/${runId}/${userId}`,
+          downloadUrl: `${CLIENT_FILE_SERVER_URL}/download/${consortiumId}/${runId}/${userId}`,
           downloadToken: accessToken,
         }
 

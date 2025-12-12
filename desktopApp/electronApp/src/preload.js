@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('ElectronAPI', {
   terminalOutput: (callback) => ipcRenderer.on('terminalOutput', callback),
   removeTerminalOutputListener: () =>
     ipcRenderer.removeAllListeners('terminalOutput'),
+  singularityPullOutput: (callback) => ipcRenderer.on('singularityPullOutput', callback),
+  removeSingularityPullOutputListener: () =>
+    ipcRenderer.removeAllListeners('singularityPullOutput'),
   getEdgeClientLogs: async (options) =>
     ipcRenderer.invoke('getEdgeClientLogs', options),
   pullSingularityImage: async (dockerImageName) =>
