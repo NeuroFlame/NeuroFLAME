@@ -278,92 +278,14 @@ const launchSingularityNode = async ({
 
     // Process error handling is now in the exitPromise
 
-    // Create a promise that resolves when the process exits
-    // This mimics Docker's container.wait() behavior
-    logger.info(`[Singularity] Setting up exit handlers for container ${containerId}`)
-    logger.info(`[Singularity] onContainerExitError callback defined: ${!!onContainerExitError}`)
-    logger.info(`[Singularity] onContainerExitSuccess callback defined: ${!!onContainerExitSuccess}`)
-    
-    const exitPromise = new Promise<void>((resolve) => {
-      instanceProcess.on('close', async (code: number | null) => {
-        logger.info(`[Singularity] Process 'close' event fired for container ${containerId} with code: ${code}`)
-        
-        if (code === null) {
-          logger.error(`[Singularity] Container ${containerId} exited with null code`)
-          if (onContainerExitError) {
-            logger.info(`[Singularity] Calling onContainerExitError for container ${containerId}`)
-            try {
-              await onContainerExitError(containerId, 'Process exited with null code')
-              logger.info(`[Singularity] onContainerExitError completed for container ${containerId}`)
-            } catch (err) {
-              logger.error(`[Singularity] Error in onContainerExitError callback: ${err}`)
-            }
-          } else {
-            logger.warn(`[Singularity] onContainerExitError callback is not defined for container ${containerId}`)
-          }
-          resolve()
-          return
-        }
-
-        if (code !== 0) {
-          const errorMessage = stderr || stdout || `Exit Code: ${code}`
-          logger.error(
-            `[Singularity] Container ${containerId} exited with error code ${code}`,
-          )
-          logger.error(`[Singularity] Error output: ${errorMessage}`)
-          logger.info(`[Singularity] About to call onContainerExitError for container ${containerId}`)
-          if (onContainerExitError) {
-            logger.info(`[Singularity] onContainerExitError callback exists, calling it...`)
-            try {
-              await onContainerExitError(containerId, errorMessage)
-              logger.info(`[Singularity] onContainerExitError callback completed successfully for container ${containerId}`)
-            } catch (err) {
-              logger.error(`[Singularity] Error in onContainerExitError callback: ${err}`)
-              logger.error(`[Singularity] Error stack: ${err instanceof Error ? err.stack : 'No stack trace'}`)
-            }
-          } else {
-            logger.error(`[Singularity] onContainerExitError callback is NOT defined for container ${containerId}!`)
-          }
-        } else {
-          logger.info(`[Singularity] Container ${containerId} exited successfully.`)
-          if (onContainerExitSuccess) {
-            logger.info(`[Singularity] Calling onContainerExitSuccess for container ${containerId}`)
-            try {
-              await onContainerExitSuccess(containerId)
-              logger.info(`[Singularity] onContainerExitSuccess completed for container ${containerId}`)
-            } catch (err) {
-              logger.error(`[Singularity] Error in onContainerExitSuccess callback: ${err}`)
-            }
-          }
-        }
-        logger.info(`[Singularity] Resolving exit promise for container ${containerId}`)
-        resolve()
-      })
-
-      // Also handle process errors
-      instanceProcess.on('error', async (error: Error) => {
-        logger.error(
-          `[Singularity] Failed to start container ${containerId}: ${error.message}`,
-        )
-        if (onContainerExitError) {
-          logger.info(`[Singularity] Calling onContainerExitError for process error on container ${containerId}`)
-          try {
-            await onContainerExitError(containerId, error.message)
-            logger.info(`[Singularity] onContainerExitError completed for process error on container ${containerId}`)
-          } catch (err) {
-            logger.error(`[Singularity] Error in onContainerExitError callback: ${err}`)
-          }
-        } else {
-          logger.warn(`[Singularity] onContainerExitError callback is not defined for container ${containerId}`)
-        }
-        resolve()
-      })
+    // Set up exit handlers (similar to Docker's attachDockerEventHandlers)
+    // Don't await - let it run in the background like Docker does
+    attachSingularityEventHandlers({
+      instanceProcess,
+      containerId,
+      onContainerExitSuccess,
+      onContainerExitError,
     })
-
-    // Wait for process to exit (similar to Docker's container.wait())
-    logger.info(`[Singularity] Waiting for container ${containerId} to exit...`)
-    await exitPromise
-    logger.info(`[Singularity] Container ${containerId} exit promise resolved, returning containerId`)
 
     return containerId
   } catch (error) {
@@ -372,6 +294,62 @@ const launchSingularityNode = async ({
     )
     throw error
   }
+}
+
+const attachSingularityEventHandlers = async ({
+  instanceProcess,
+  containerId,
+  onContainerExitSuccess,
+  onContainerExitError,
+}: {
+  instanceProcess: ReturnType<typeof spawn>
+  containerId: string
+  onContainerExitSuccess?: (containerId: string) => void
+  onContainerExitError?: (containerId: string, error: string) => void
+}) => {
+  // Track output as it comes in (similar to how Docker captures logs)
+  let capturedStdout = ''
+  let capturedStderr = ''
+
+  instanceProcess.stdout?.on('data', (data: Buffer) => {
+    capturedStdout += data.toString()
+  })
+
+  instanceProcess.stderr?.on('data', (data: Buffer) => {
+    capturedStderr += data.toString()
+  })
+
+  // Wait for process to exit (similar to Docker's container.wait())
+  instanceProcess.on('close', (code: number | null) => {
+    if (code === null) {
+      logger.error(`Container ${containerId} exited with null code`)
+      onContainerExitError &&
+        onContainerExitError(containerId, 'Process exited with null code')
+      return
+    }
+
+    if (code !== 0) {
+      const errorMessage = capturedStderr || capturedStdout || `Exit Code: ${code}`
+      logger.error(
+        `Container ${containerId} exited with error code ${code}`,
+      )
+      logger.error(`Error output: ${errorMessage}`)
+      onContainerExitError &&
+        onContainerExitError(containerId, errorMessage)
+    } else {
+      logger.info(`Container ${containerId} exited successfully.`)
+      onContainerExitSuccess && onContainerExitSuccess(containerId)
+    }
+  })
+
+  // Handle process errors
+  instanceProcess.on('error', (error: Error) => {
+    logger.error(
+      `Failed to start Singularity container: ${error.message}`,
+    )
+    onContainerExitError &&
+      onContainerExitError(containerId, error.message)
+  })
 }
 
 const detectSingularityOrApptainer = async (): Promise<string> => {
