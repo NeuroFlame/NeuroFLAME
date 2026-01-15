@@ -54,6 +54,7 @@ export default {
         members: (consortium.members as any[]).map((member) => ({
           id: member._id.toString(),
           username: member.username,
+          vault: member.vault,
         })),
       }))
     },
@@ -72,7 +73,7 @@ export default {
       try {
         const consortium = await Consortium.findById(consortiumId)
           .populate('leader', 'id username')
-          .populate('members', 'id username')
+          .populate('members', 'id username vault')
           .populate('activeMembers', 'id username')
           .populate('readyMembers', 'id username')
           .populate(
@@ -103,6 +104,7 @@ export default {
         const transformUser = (user: any): PublicUser => ({
           id: user.id,
           username: user.username,
+          vault: user.vault,
         })
 
         return {

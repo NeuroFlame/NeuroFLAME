@@ -42,6 +42,7 @@ export const useMembers = ({
       isActive: isActiveMember(member),
       isReady: isReadyMember(member),
       isMe: member.id === userId,
+      isVaultUser: !!member.vault,
     }))
     .sort((a, b) => {
       if (a.isLeader) return -1

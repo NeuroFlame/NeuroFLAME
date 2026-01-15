@@ -15,6 +15,10 @@ const GET_CONSORTIUM_DETAILS = gql`
       members {
         id
         username
+        vault {
+          name,
+          description
+        }
       }
       activeMembers {
         id
