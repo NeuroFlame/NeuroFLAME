@@ -1,6 +1,7 @@
 # neuroflame
 
-## 0.3.0
+
+## 0.4.0
 
 ### Minor Changes
 
@@ -9,7 +10,18 @@
 ### Patch Changes
 
 - Updated dependencies
-  - edge-federated-client@1.2.0
+  - edge-federated-client@1.3.0
+
+## 0.3.0
+
+### Minor Changes
+
+- Add vault list page and vault user management features:
+  - New vault list page at `/vaults/list` for browsing all vault users
+  - Enhanced vault user display in consortium details with markdown rendering
+  - Lock icon indicator for vault users in member lists
+  - Improved error handling and loading states
+  - Shared markdown components utility
 
 ## 0.2.0
 

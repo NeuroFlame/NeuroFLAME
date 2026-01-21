@@ -22,6 +22,7 @@ interface MembersDisplayProps {
     isReady: boolean;
     isLeader: boolean;
     isMe: boolean;
+    isVaultUser: boolean;
   }[];
   setMemberActive: (memberId: string, isActive: boolean) => void;
   setMemberReady: (memberId: string, isReady: boolean) => void;

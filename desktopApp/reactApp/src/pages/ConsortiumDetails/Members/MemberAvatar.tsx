@@ -4,6 +4,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import Shield from '../../../assets/shield.svg'
 import GreyShield from '../../../assets/grey_shield.svg'
 import Crown from '../../../assets/crown.svg'
+import Lock from '../../../assets/lock.svg'
 
 const UserColor: string[] = [
   '#2FA84F', // green
@@ -41,6 +42,7 @@ interface MemberAvatarProps {
   isLeader: boolean;
   isActive: boolean;
   isReady: boolean;
+  isVaultUser?: boolean;
   index: number;
   direction?: string | null;
   nameSize?: string
@@ -52,6 +54,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
     isLeader,
     isActive,
     isReady,
+    isVaultUser,
     index,
     direction,
     nameSize,
@@ -99,6 +102,21 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
               left: '0px',
               zIndex: '3',
               rotate: '-25deg',
+            }}
+          />
+        )}
+        {isVaultUser && (
+          <img
+            src={Lock}
+            style={{
+              position: 'absolute',
+              borderRadius: '6px',
+              width: '13px',
+              height: '16px',
+              top: '-3px',
+              left: '-2px',
+              zIndex: '3',
+              padding: 0,
             }}
           />
         )}

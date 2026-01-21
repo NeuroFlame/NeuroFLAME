@@ -10,6 +10,7 @@ import User from './models/User.js'
 import computationNotesSingleRoundRidgeRegressionFreesurfer from './seedContent/computationNotesSingleRoundRidgeRegressionFreesurfer.js'
 import computationNotesSingleRoundClosedformRegressionVBM from './seedContent/computationNotesSingleRoundClosedformRegressionVBM.js'
 import computationNotesSpatiallyConstrainedICA from './seedContent/computationNotesSpatiallyConstrainedICA.js'
+import vaultDescriptionCobreFreeSurfer from './seedContent/vaultDescriptionCobreFreeSurfer.js'
 
 const saltRounds = 10
 
@@ -59,12 +60,12 @@ const users = [
   },
   {
     _id: predefinedIds.user5IdVault,
-    username: 'vaultUser1',
+    username: 'CobreFS',
     hash: await bcrypt.hash('vaultPassword1', saltRounds),
     roles: ['vault'],
     vault: {
-      name: 'TRENDS VBM Vault 1',
-      description: 'TRENDS VBM vault 1 description',
+      name: 'TReNDS Cobre FreeSurfer Regression Vault',
+      description: vaultDescriptionCobreFreeSurfer,
     },
   },
 ]

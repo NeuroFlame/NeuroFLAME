@@ -16,6 +16,7 @@ import ComputationDetailsPage from './ComputationDetails/ComputationDetailsPage'
 import ComputationCreatePage from './ComputationCreate/ComputationCreatePage'
 import AdminPage from './Admin/AdminPage'
 import ConsortiumWizard from './ConsortiumWizard/ConsortiumWizard'
+import VaultListPage from './VaultList/VaultListPage'
 import HealthPage from './HealthPage/HealthPage'
 
 export default function AppRoutes() {
@@ -45,6 +46,7 @@ export default function AppRoutes() {
         path='/run/results/:consortiumId/:runId'
         element={<RunResults />}
       />
+      <Route path='/vaults/list' element={<VaultListPage />} />
       <Route path='/appConfig' element={<AppConfig />} />
       <Route path='/appHealth' element={<HealthPage />} />
       <Route path='/admin' element={<AdminPage />} />
