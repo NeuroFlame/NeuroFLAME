@@ -32,7 +32,7 @@ services:
     networks:
       - ci_network
     environment:
-      - FILE_SERVER_URL=http://fileServer:3002
+      - CLIENT_FILE_SERVER_URL=http://fileServer:3002
       - APOLLO_PORT=3001
       - DATABASE_URI=mongodb://admin:secret@mongo:27017/centralDatabase
       - RESEND_API_KEY=${RESEND_API_KEY}

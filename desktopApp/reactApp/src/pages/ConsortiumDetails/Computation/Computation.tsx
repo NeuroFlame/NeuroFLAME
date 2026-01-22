@@ -7,8 +7,9 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 import ComputationSelect from './ComputationSelect/ComputationSelect'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import TerminalWindow from './TerminalWindow'
+import { electronApi } from '../../../apis/electronApi/electronApi'
 
 interface ComputationDisplayProps {
   computation: Maybe<ComputationType> | undefined;
@@ -17,6 +18,20 @@ interface ComputationDisplayProps {
 export default function Computation({ computation }: ComputationDisplayProps) {
   const { isLeader, refetch } = useConsortiumDetailsContext()
   const [copied, setCopied] = useState(false)
+  const [isSingularity, setIsSingularity] = useState(false)
+
+  useEffect(() => {
+    const checkContainerService = async () => {
+      try {
+        const config = await electronApi.getConfig()
+        const usingSingularity = config?.edgeClientConfig?.containerService === 'singularity'
+        setIsSingularity(usingSingularity || false)
+      } catch (error) {
+        console.error('Error checking container service:', error)
+      }
+    }
+    checkContainerService()
+  }, [])
 
   if (!computation) {
     return (
@@ -71,52 +86,56 @@ export default function Computation({ computation }: ComputationDisplayProps) {
         )}
       </Box>
       <Box>
-        <Box
-          marginTop={2}
-          marginBottom={1}
-          display='flex'
-          flexDirection='column'
-          alignItems='flex-start'
-        >
-          <Typography>
-            Image Download:
-          </Typography>
-          <Box display='flex' alignItems='center' marginBottom='1rem'>
-            <Typography
-              component='code'
-              sx={{
-                bgcolor: '#f5f5f5',
-                padding: '4px 8px',
-                borderRadius: 1,
-                fontFamily: 'monospace',
-                fontSize: '0.875rem',
-                width: 'calc(100% - 2rem)',
-                lineBreak: 'anywhere',
-              }}
-            >
-              {imageDownloadUrl}
-            </Typography>
-            <IconButton
-              onClick={handleCopy}
-              size='small'
-              aria-label='copy download URL'
-              sx={{ marginLeft: 1 }}
-            >
-              <ContentCopyIcon fontSize='small' />
-            </IconButton>
-            {copied && (
-              <Typography fontSize='0.75rem' color='green' marginLeft={1}>
-                Copied!
-              </Typography>
-            )}
-          </Box>
+        {!isSingularity && (
           <Box
-            sx={{
-              width: '100%',
-            }}
+            marginTop={2}
+            marginBottom={1}
+            display='flex'
+            flexDirection='column'
+            alignItems='flex-start'
           >
-            <TerminalWindow command={imageDownloadUrl} />
+            <Typography>
+              Image Download:
+            </Typography>
+            <Box display='flex' alignItems='center' marginBottom='1rem'>
+              <Typography
+                component='code'
+                sx={{
+                  bgcolor: '#f5f5f5',
+                  padding: '4px 8px',
+                  borderRadius: 1,
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  width: 'calc(100% - 2rem)',
+                  lineBreak: 'anywhere',
+                }}
+              >
+                {imageDownloadUrl}
+              </Typography>
+              <IconButton
+                onClick={handleCopy}
+                size='small'
+                aria-label='copy download URL'
+                sx={{ marginLeft: 1 }}
+              >
+                <ContentCopyIcon fontSize='small' />
+              </IconButton>
+              {copied && (
+                <Typography fontSize='0.75rem' color='green' marginLeft={1}>
+                  Copied!
+                </Typography>
+              )}
+            </Box>
           </Box>
+        )}
+        <Box
+          sx={{
+            width: '100%',
+            marginTop: isSingularity ? 2 : 0,
+            marginBottom: 1,
+          }}
+        >
+          <TerminalWindow command={imageDownloadUrl} />
         </Box>
         <HashLink
           id='compnotes-anchor'

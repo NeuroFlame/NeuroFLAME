@@ -34,7 +34,8 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      const { pathBaseDirectory } = await getConfig()
+      const config = await getConfig()
+      const { pathBaseDirectory, containerService = 'docker' } = config
 
       const consortiumPath = path.join(pathBaseDirectory, consortiumId)
       const runPath = path.join(consortiumPath, runId)
@@ -97,17 +98,26 @@ export const runStartHandler = {
 
       // Launch the node
       await launchNode({
-        containerService: 'docker',
+        containerService,
         imageName,
         directoriesToMount,
         portBindings: [],
         commandsToRun: ['python', '/workspace/system/entry_edge.py'],
         onContainerExitError: async (containerId, error) => {
-          logger.error(`Error in container: ${containerId}`, { error })
-          reportRunError({
-            runId,
-            errorMessage: `Error in container: ${containerId}`,
-          })
+          logger.error(`[runStart] onContainerExitError called for container: ${containerId}`, { error })
+          logger.info(`[runStart] runId: ${runId}`)
+          logger.info(`[runStart] About to call reportRunError with errorMessage: Error in container ${containerId}: ${error}`)
+          try {
+            const result = await reportRunError({
+              runId,
+              errorMessage: `Error in container ${containerId}: ${error}`,
+            })
+            logger.info(`[runStart] reportRunError completed successfully, result: ${result}`)
+          } catch (err) {
+            logger.error(`[runStart] Error calling reportRunError: ${err}`)
+            logger.error(`[runStart] Error stack: ${err instanceof Error ? err.stack : 'No stack trace'}`)
+            throw err
+          }
         },
         onContainerExitSuccess(containerId) {
           logger.info(`Container exited successfully: ${containerId}`)

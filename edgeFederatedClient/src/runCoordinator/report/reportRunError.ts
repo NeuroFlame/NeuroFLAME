@@ -33,16 +33,21 @@ export default async function reportRunError({
   runId: string
   errorMessage: string
 }) {
+  logger.info(`[reportRunError] Called with runId: ${runId}, errorMessage: ${errorMessage}`)
   try {
     const config = await getConfig()
     const { httpUrl } = config
+    logger.info(`[reportRunError] Using httpUrl: ${httpUrl}`)
     const accessToken = inMemoryStore.get('accessToken')
+    logger.info(`[reportRunError] Access token exists: ${!!accessToken}`)
 
     if (!accessToken) {
       logger.error('No access token found. Aborting reportRunError operation.')
       throw new Error('Access token is missing.')
     }
 
+    logger.info(`[reportRunError] Sending GraphQL mutation to ${httpUrl}`)
+    logger.info(`[reportRunError] Mutation variables: runId=${runId}, errorMessage=${errorMessage}`)
     const response = await fetch(httpUrl, {
       method: 'POST',
       headers: {
@@ -54,6 +59,7 @@ export default async function reportRunError({
         variables: { runId, errorMessage },
       }),
     })
+    logger.info(`[reportRunError] Received response status: ${response.status} ${response.statusText}`)
 
     // Check for non-OK HTTP status
     if (!response.ok) {

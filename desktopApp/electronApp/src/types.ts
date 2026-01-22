@@ -5,6 +5,7 @@ export type EdgeClientConfig = {
   authenticationEndpoint: string
   hostingPort: number
   logPath?: string
+  containerService?: string
 }
 
 export type Config = {

@@ -35,19 +35,19 @@ export async function launchNode({
   onContainerExitSuccess,
   onContainerExitError,
 }: LaunchNodeArgs) {
-  if (containerService === 'docker') {
-    await launchDockerNode({
-      imageName,
-      directoriesToMount,
-      portBindings,
-      commandsToRun,
-      onContainerExitSuccess,
-      onContainerExitError,
-    })
-  } else if (containerService === 'singularity') {
-    // Placeholder for singularity command handling
-    logger.info('Singularity handling not implemented.')
+  // Central client only supports Docker
+  if (containerService !== 'docker') {
+    throw new Error(`Central client only supports Docker, not ${containerService}`)
   }
+  
+  await launchDockerNode({
+    imageName,
+    directoriesToMount,
+    portBindings,
+    commandsToRun,
+    onContainerExitSuccess,
+    onContainerExitError,
+  })
 }
 
 const launchDockerNode = async ({
@@ -174,3 +174,4 @@ const doesImageExist = async (imageName: string) => {
     )
   }
 }
+

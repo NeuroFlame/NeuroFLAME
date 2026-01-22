@@ -12,7 +12,7 @@ const requireEnvOptional = (name: string): string | undefined => {
   return process.env[name]
 }
 
-export const FILE_SERVER_URL = requireEnv('FILE_SERVER_URL')
+export const CLIENT_FILE_SERVER_URL = requireEnv('CLIENT_FILE_SERVER_URL')
 export const APOLLO_PORT = Number(requireEnv('APOLLO_PORT'))
 export const DATABASE_URI = requireEnv('DATABASE_URI')
 export const LOG_PATH = requireEnvOptional('LOG_PATH')

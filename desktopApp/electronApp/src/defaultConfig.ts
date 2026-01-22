@@ -16,6 +16,7 @@ export const defaultConfig: Config = {
     authenticationEndpoint: 'http://54.144.192.206:3001/authenticateToken',
     hostingPort: 3003,
     logPath: '',
+    containerService: 'docker',
   },
 }
 
@@ -35,5 +36,6 @@ export const testConfig: Config = {
     authenticationEndpoint: 'http://localhost:3001/authenticateToken',
     hostingPort: 3003,
     logPath: '',
+    containerService: 'docker',
   },
 }

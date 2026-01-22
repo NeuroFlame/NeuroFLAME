@@ -12,6 +12,7 @@
     "pathBaseDirectory": "{{REPO_DIR}}/_devTestDirectories/edgeSite1",
     "authenticationEndpoint": "http://localhost:3001/authenticateToken",
     "hostingPort": 3003,
-    "logPath": "C:\\Users\\dylan\\AppData\\Roaming\\neuroflame\\logs\\edgeClient"
+    "logPath": "C:\\Users\\dylan\\AppData\\Roaming\\neuroflame\\logs\\edgeClient",
+    "containerService": "docker"
   }
 }
