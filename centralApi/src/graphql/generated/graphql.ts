@@ -36,6 +36,7 @@ export type ConsortiumDetails = {
   activeMembers: Array<PublicUser>;
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   readyMembers: Array<PublicUser>;
@@ -47,6 +48,7 @@ export type ConsortiumListItem = {
   __typename?: 'ConsortiumListItem';
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   title: Scalars['String']['output'];
@@ -125,6 +127,7 @@ export type MutationComputationEditArgs = {
 
 export type MutationConsortiumCreateArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
 };
 
@@ -137,6 +140,7 @@ export type MutationConsortiumDeleteArgs = {
 export type MutationConsortiumEditArgs = {
   consortiumId: Scalars['String']['input'];
   description: Scalars['String']['input'];
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
 };
 

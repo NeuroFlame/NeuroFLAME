@@ -3,6 +3,8 @@ import Grid from '@mui/material/Grid2'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField, Typography, Tabs, Tab,
+  Switch,
+  FormControlLabel,
 } from '@mui/material'
 import { Members } from './Members/Members'
 import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
@@ -83,9 +85,12 @@ export function ConsortiumDetailsPage() {
       leader,
       title,
       description,
+      isPrivate,
     },
+    status,
     deleteConsortium,
     isLeader,
+    updateConsortiumPrivacy,
   } = useConsortiumDetailsContext()
 
   const { userId } = useUserState()
@@ -116,6 +121,10 @@ export function ConsortiumDetailsPage() {
       setDeleteDialogOpen(false)
       navigate('/consortium/list')
     }
+  }
+
+  const handlePrivacyChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    updateConsortiumPrivacy(checked).catch(() => {})
   }
 
   return (
@@ -219,6 +228,19 @@ export function ConsortiumDetailsPage() {
 
         <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
           <Box className='consortium-links'>
+            {isLeader && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPrivate}
+                    onChange={handlePrivacyChange}
+                    color='primary'
+                    disabled={status.loading}
+                  />
+                }
+                label='Private'
+              />
+            )}
             <Button
               onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}
               color='success'

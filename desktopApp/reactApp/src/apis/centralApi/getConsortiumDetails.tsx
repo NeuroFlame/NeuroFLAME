@@ -40,6 +40,7 @@ const GET_CONSORTIUM_DETAILS = gql`
           hasLocalParameters
         }
       }
+      isPrivate
     }
   }
 `

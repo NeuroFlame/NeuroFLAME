@@ -41,6 +41,7 @@ export type ConsortiumDetails = {
   readyMembers: Array<PublicUser>;
   studyConfiguration: StudyConfiguration;
   title: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
 }
 
 export type ConsortiumListItem = {
@@ -118,12 +119,14 @@ export type MutationComputationEditArgs = {
 export type MutationConsortiumCreateArgs = {
   description: Scalars['String']['input'];
   title: Scalars['String']['input'];
+  isPrivate: Scalars['Boolean']['input'];
 }
 
 export type MutationConsortiumEditArgs = {
   consortiumId: Scalars['String']['input'];
   description: Scalars['String']['input'];
   title: Scalars['String']['input'];
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
 export type MutationConsortiumJoinArgs = {

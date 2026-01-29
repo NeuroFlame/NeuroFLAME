@@ -37,8 +37,36 @@ interface Context {
 const resend = new Resend(RESEND_API_KEY)
 export default {
   Query: {
-    getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
-      const consortiums = await Consortium.find()
+    getConsortiumList: async (
+      _: unknown,
+      _args: unknown,
+      context: Context,
+    ): Promise<ConsortiumListItem[]> => {
+      const { userId, roles } = context
+      const isAdmin = roles?.includes('admin')
+
+      const filter: Record<string, unknown> = (() => {
+        if (isAdmin) return {}
+        if (!userId) {
+          return {
+            $or: [
+              { isPrivate: { $exists: false } },
+              { isPrivate: false },
+            ],
+          }
+        }
+
+        return {
+          $or: [
+            { isPrivate: { $exists: false } },
+            { isPrivate: false },
+            { isPrivate: true, leader: userId },
+            { isPrivate: true, members: userId },
+          ],
+        }
+      })()
+
+      const consortiums = await Consortium.find(filter)
         .populate('leader')
         .populate('members')
         .lean() // Use lean() for better performance and to get plain JavaScript objects
@@ -56,6 +84,7 @@ export default {
           username: member.username,
           vault: member.vault,
         })),
+        isPrivate: consortium.isPrivate ?? false,
       }))
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
@@ -69,6 +98,7 @@ export default {
     getConsortiumDetails: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
+      context: Context,
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
@@ -84,6 +114,21 @@ export default {
 
         if (!consortium) {
           throw new Error('Consortium not found')
+        }
+
+        if (consortium.isPrivate) {
+          const { userId, roles } = context
+          const isAdmin = roles?.includes('admin')
+
+          if (!isAdmin) {
+            if (!userId) throw new Error('Access denied: This consortium is private')
+            const leaderId = consortium.leader._id.toString()
+            const isLeader = leaderId === userId
+            const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
+            if (!isLeader && !isMember) {
+              throw new Error('Access denied: This consortium is private')
+            }
+          }
         }
 
         const {
@@ -129,6 +174,7 @@ export default {
                 }
               : null,
           },
+          isPrivate: consortium.isPrivate ?? false,
         }
       } catch (error) {
         logger.error('Error in getConsortiumDetails:', error)
@@ -327,7 +373,10 @@ export default {
       }
 
       // create a token
-      const tokens = generateTokens({ userId: user._id })
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+      })
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -395,7 +444,10 @@ export default {
         user.resetTokenExpiry = undefined
         await user.save()
 
-        const tokens = generateTokens({ userId: user._id })
+        const tokens = generateTokens({
+          userId: user._id,
+          roles: user.roles,
+        })
         const { accessToken } = tokens as { accessToken: string }
 
         return {
@@ -751,7 +803,7 @@ export default {
     },
     consortiumCreate: async (
       _: unknown,
-      { title, description }: { title: string; description: string },
+      { title, description, isPrivate = false }: { title: string; description: string; isPrivate: boolean },
       context: Context,
     ): Promise<any> => {
       if (!title) {
@@ -779,6 +831,7 @@ export default {
           computationParameters: '',
           computation: null,
         },
+        isPrivate,
       })
 
       return consortium._id.toString()
@@ -904,7 +957,8 @@ export default {
         consortiumId,
         title,
         description,
-      }: { consortiumId: string; title?: string; description?: string },
+        isPrivate,
+      }: { consortiumId: string; title?: string; description?: string; isPrivate?: boolean },
       context: Context,
     ): Promise<boolean> => {
       // Check if the title is provided and validate it against existing consortia
@@ -924,9 +978,15 @@ export default {
       }
 
       // Prepare the update payload
-      const updatePayload: { [key: string]: string } = {}
+      const updatePayload: { [key: string]: string | boolean } = {}
       if (title) updatePayload.title = title
       if (description) updatePayload.description = description
+      if (isPrivate !== undefined) {
+        const consortium = await Consortium.findById(consortiumId)
+        if (consortium && consortium.leader.toString() === context.userId) {
+          updatePayload.isPrivate = isPrivate
+        }
+      }
 
       // Perform the update operation
       try {
@@ -1111,7 +1171,10 @@ export default {
           hash: hashedPassword,
         })
 
-        const tokens = generateTokens({ userId: user._id })
+        const tokens = generateTokens({
+          userId: user._id,
+          roles: user.roles,
+        })
         const { accessToken } = tokens as { accessToken: string }
 
         return {
