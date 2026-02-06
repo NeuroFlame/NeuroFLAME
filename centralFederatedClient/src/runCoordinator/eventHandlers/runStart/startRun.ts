@@ -8,9 +8,13 @@ import reportRunComplete from '../../report/reportRunComplete.js'
 import { logger } from '../../../logger.js'
 import { BASE_DIR, FQDN, HOSTING_PORT_END, HOSTING_PORT_START } from '../../../config.js'
 
+export type MemberRole = 'contributor' | 'observer'
+export type UserRolesMap = Record<string, MemberRole>
+
 interface StartRunArgs {
   imageName: string
   userIds: string[]
+  userRoles?: UserRolesMap
   consortiumId: string
   runId: string
   computationParameters: string
@@ -19,6 +23,7 @@ interface StartRunArgs {
 export default async function startRun({
   imageName,
   userIds,
+  userRoles = {},
   consortiumId,
   runId,
   computationParameters,
@@ -50,6 +55,7 @@ export default async function startRun({
     await provisionRun({
       imageName,
       userIds,
+      userRoles,
       pathRun,
       computationParameters,
       fedLearnPort,

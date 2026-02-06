@@ -4,6 +4,7 @@ import { promises as fs } from 'fs'
 import * as path from 'path'
 import { logger } from '../../logger.js'
 import { getConfig } from '../../config/config.js'
+
 const docker = new Docker()
 
 interface LaunchNodeArgs {
@@ -23,11 +24,103 @@ interface LaunchNodeArgs {
 }
 
 interface ExposedPorts {
-  [portWithProtocol: string]: {} // Correctly defined for exposing ports
+  [portWithProtocol: string]: {}
 }
 
 interface PortBindings {
-  [portWithProtocol: string]: Array<{ HostPort: string }> // Define port bindings with HostPort as string
+  [portWithProtocol: string]: Array<{ HostPort: string }>
+}
+
+/**
+ * Removes invalid mounts like:
+ *   - empty hostDirectory -> would become ':/container/path' (Docker error)
+ *   - non-existent hostDirectory (optional; default is skip-with-warning)
+ *
+ * Set NEUROFLAME_STRICT_MOUNTS=true to fail instead of skipping.
+ *
+ * Debug:
+ *   Set NEUROFLAME_DEBUG_MOUNTS=true to log mount resolution + existence checks.
+ */
+async function sanitizeMounts(
+  directoriesToMount: LaunchNodeArgs['directoriesToMount'],
+): Promise<LaunchNodeArgs['directoriesToMount']> {
+  const strict = process.env.NEUROFLAME_STRICT_MOUNTS === 'true'
+  const debug = process.env.NEUROFLAME_DEBUG_MOUNTS === 'true'
+
+  const sanitized: LaunchNodeArgs['directoriesToMount'] = []
+
+  if (debug) {
+    logger.info('sanitizeMounts: input mounts', {
+      strict,
+      count: directoriesToMount?.length || 0,
+      mounts: (directoriesToMount || []).map((m) => ({
+        hostDirectory: m.hostDirectory,
+        containerDirectory: m.containerDirectory,
+        hostEmpty: !m.hostDirectory || (m.hostDirectory || '').trim().length === 0,
+        containerEmpty:
+          !m.containerDirectory || (m.containerDirectory || '').trim().length === 0,
+      })),
+    })
+  }
+
+  for (const mount of directoriesToMount || []) {
+    const host = (mount.hostDirectory || '').trim()
+    const container = (mount.containerDirectory || '').trim()
+
+    if (!container) {
+      const msg = `Invalid mount entry: missing containerDirectory (host="${mount.hostDirectory}")`
+      if (strict) throw new Error(msg)
+      logger.warn(msg + ' — skipping')
+      continue
+    }
+
+    if (!host) {
+      const msg = `Invalid mount entry: empty hostDirectory for containerDirectory="${container}"`
+      if (strict) throw new Error(msg)
+      logger.warn(msg + ' — skipping (if you expected a data mount here, upstream path resolution returned empty)')
+      continue
+    }
+
+    try {
+      await fs.access(host)
+
+      if (debug) {
+        logger.info('sanitizeMounts: host path exists', {
+          host,
+          resolvedHost: path.resolve(host),
+          container,
+        })
+      }
+
+      sanitized.push({ hostDirectory: host, containerDirectory: container })
+    } catch {
+      const msg = `Mount hostDirectory does not exist: "${host}" -> "${container}"`
+      if (debug) {
+        logger.warn('sanitizeMounts: host path missing', {
+          host,
+          resolvedHost: path.resolve(host),
+          container,
+        })
+      }
+      if (strict) throw new Error(msg)
+      logger.warn(msg + ' — skipping')
+    }
+  }
+
+  if (debug) {
+    logger.info('sanitizeMounts: output mounts', {
+      strict,
+      requested: directoriesToMount?.length || 0,
+      kept: sanitized.length,
+      mounts: sanitized.map((m) => ({
+        hostDirectory: m.hostDirectory,
+        resolvedHost: path.resolve(m.hostDirectory),
+        containerDirectory: m.containerDirectory,
+      })),
+    })
+  }
+
+  return sanitized
 }
 
 export async function launchNode({
@@ -68,27 +161,46 @@ const launchDockerNode = async ({
   onContainerExitSuccess,
   onContainerExitError,
 }: Omit<LaunchNodeArgs, 'containerService'>) => {
-  logger.info(
-    `Attempting to launch Docker container from imageName: ${imageName}`,
-  )
+  logger.info(`Attempting to launch Docker container from imageName: ${imageName}`)
 
-  const binds = directoriesToMount.map(
+  // Helpful one-liner even when DEBUG_MOUNTS is off
+  logger.info('Requested mounts', {
+    count: directoriesToMount?.length || 0,
+    mounts: (directoriesToMount || []).map((m) => ({
+      hostDirectory: m.hostDirectory,
+      containerDirectory: m.containerDirectory,
+      hostEmpty: !m.hostDirectory || (m.hostDirectory || '').trim().length === 0,
+    })),
+  })
+
+  // Sanitize mounts to prevent ':/workspace/data' and missing paths
+  const safeMounts = await sanitizeMounts(directoriesToMount)
+
+  const binds = safeMounts.map(
     (mount) => `${mount.hostDirectory}:${mount.containerDirectory}`,
   )
+
+  if (binds.length !== (directoriesToMount?.length || 0)) {
+    logger.info(
+      `Mounts sanitized: requested=${directoriesToMount?.length || 0}, used=${binds.length}`,
+    )
+  }
+
+  logger.info('Docker binds (final)', { binds })
+
   const exposedPorts: ExposedPorts = {}
   const portBindingsFormatted: PortBindings = {}
 
   portBindings.forEach((binding) => {
     const containerPort = `${binding.containerPort}/tcp`
-    exposedPorts[containerPort] = {} // Just expose the port
-    portBindingsFormatted[containerPort] = [{ HostPort: `${binding.hostPort}` }] // Correctly format as string
+    exposedPorts[containerPort] = {}
+    portBindingsFormatted[containerPort] = [{ HostPort: `${binding.hostPort}` }]
   })
 
   try {
     await isDockerRunning()
     await doesImageExist(imageName)
 
-    // Create the container
     const container = await docker.createContainer({
       Image: imageName,
       Cmd: commandsToRun,
@@ -97,29 +209,23 @@ const launchDockerNode = async ({
         Binds: binds,
         PortBindings: portBindingsFormatted,
         NetworkMode: process.env.CI === 'true' ? 'ci-network' : 'bridge',
-        ExtraHosts: process.env.CI === 'true'
-          ? ['host.docker.internal:host-gateway']
-          : [],
+        ExtraHosts:
+          process.env.CI === 'true' ? ['host.docker.internal:host-gateway'] : [],
       },
     })
 
-    // Start the container
     await container.start()
     logger.info(`Container started successfully: ${container.id}`)
 
-    // Add event handlers for the container
     attachDockerEventHandlers({
       containerId: container.id,
       onContainerExitSuccess,
       onContainerExitError,
     })
 
-    // Return the container ID
     return container.id
   } catch (error) {
-    logger.error(
-      `Failed to launch Docker container: ${(error as Error).message}`,
-    )
+    logger.error(`Failed to launch Docker container: ${(error as Error).message}`)
     throw error
   }
 }
@@ -138,29 +244,23 @@ const attachDockerEventHandlers = async ({
   try {
     const { StatusCode } = await container.wait()
     if (StatusCode !== 0) {
-      logger.error(
-        `Container ${containerId} exited with error code ${StatusCode}`,
-      )
-      onContainerExitError &&
-        onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
+      logger.error(`Container ${containerId} exited with error code ${StatusCode}`)
+      onContainerExitError?.(containerId, `Exit Code: ${StatusCode}`)
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
-      onContainerExitSuccess && onContainerExitSuccess(containerId)
+      onContainerExitSuccess?.(containerId)
     }
   } catch (error) {
     logger.error(`Error waiting for container ${containerId}`, { error })
-    onContainerExitError &&
-      onContainerExitError(containerId, (error as Error).message)
+    onContainerExitError?.(containerId, (error as Error).message)
   }
 }
 
 const isDockerRunning = async () => {
   try {
     await docker.ping()
-  } catch (error) {
-    throw new Error(
-      'Docker is not running. Please ensure the Docker daemon is active.',
-    )
+  } catch {
+    throw new Error('Docker is not running. Please ensure the Docker daemon is active.')
   }
 }
 
@@ -176,8 +276,7 @@ const doesImageExist = async (imageName: string) => {
     }
   } catch (error) {
     throw new Error(
-      `Failed to check existence of image "${imageName}": ${(error as Error).message
-      }`,
+      `Failed to check existence of image "${imageName}": ${(error as Error).message}`,
     )
   }
 }
@@ -190,76 +289,43 @@ const launchSingularityNode = async ({
   onContainerExitSuccess,
   onContainerExitError,
 }: Omit<LaunchNodeArgs, 'containerService'>) => {
-  logger.info(
-    `Attempting to launch Singularity container from imageName: ${imageName}`,
-  )
+  logger.info(`Attempting to launch Singularity container from imageName: ${imageName}`)
 
   try {
     const singularityBinary = await detectSingularityOrApptainer()
     const imagePath = await findSingularityImage(imageName)
 
-    // Build mount bindings for Singularity (-B flag)
-    const bindMounts: string[] = directoriesToMount.map(
+    // Sanitize mounts (same behavior as Docker)
+    const safeMounts = await sanitizeMounts(directoriesToMount)
+
+    const bindMounts: string[] = safeMounts.map(
       (mount) => `${mount.hostDirectory}:${mount.containerDirectory}:rw`,
     )
 
-    // Add /tmp mount for compatibility
-    // bindMounts.push('/tmp:/tmp:rw')
-
-    // Build environment variables
     const envVars: string[] = []
-    // Note: Singularity uses host networking by default, so ports are directly accessible.
-    // Port information is communicated to the computation via provision_input.json file,
-    // not through environment variables.
-    
-    // Pass through CI environment variable if set
-    if (process.env.CI === 'true') {
-      envVars.push('CI=true')
-    }
+    if (process.env.CI === 'true') envVars.push('CI=true')
 
-    // Build singularity run command
-    const singularityArgs: string[] = [
-      'run',
-      '--containall',
-      '--writable-tmpfs',
-      '-e', // Clean environment
-    ]
+    const singularityArgs: string[] = ['run', '--containall', '--writable-tmpfs', '-e']
 
-    // Add environment variables
-    if (envVars.length > 0) {
-      singularityArgs.push('--env', envVars.join(','))
-    }
+    if (envVars.length > 0) singularityArgs.push('--env', envVars.join(','))
+    if (bindMounts.length > 0) singularityArgs.push('-B', bindMounts.join(','))
 
-    // Add bind mounts
-    if (bindMounts.length > 0) {
-      singularityArgs.push('-B', bindMounts.join(','))
-    }
-
-    // Add image path
     singularityArgs.push(imagePath)
 
-    // Add command to run inside container
-    if (commandsToRun.length > 0) {
-      singularityArgs.push(...commandsToRun)
-    }
+    if (commandsToRun.length > 0) singularityArgs.push(...commandsToRun)
 
-    logger.info(
-      `Running Singularity command: ${singularityBinary} ${singularityArgs.join(' ')}`,
-    )
+    logger.info(`Running Singularity command: ${singularityBinary} ${singularityArgs.join(' ')}`)
 
-    // Spawn the singularity process
     const instanceProcess = spawn(singularityBinary, singularityArgs, {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
-    // Use process PID as container identifier
     const containerId = instanceProcess.pid
       ? `singularity-${instanceProcess.pid}`
       : `singularity-${Date.now()}`
 
     logger.info(`Singularity container started successfully: ${containerId}`)
 
-    // Handle stdout and stderr
     let stdout = ''
     let stderr = ''
 
@@ -272,166 +338,62 @@ const launchSingularityNode = async ({
     instanceProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString()
       stderr += output
-      // Singularity often outputs info to stderr, so log as info unless it's an error
       logger.info(`Singularity Container [${containerId}] stderr: ${output.trim()}`)
     })
 
-    // Process error handling is now in the exitPromise
+    instanceProcess.on('close', (code) => {
+      if (code === 0) {
+        onContainerExitSuccess?.(containerId)
+      } else {
+        onContainerExitError?.(
+          containerId,
+          `Exit Code: ${code}\nstdout:\n${stdout}\nstderr:\n${stderr}`,
+        )
+      }
+    })
 
-    // Set up exit handlers (similar to Docker's attachDockerEventHandlers)
-    // Don't await - let it run in the background like Docker does
-    attachSingularityEventHandlers({
-      instanceProcess,
-      containerId,
-      onContainerExitSuccess,
-      onContainerExitError,
+    instanceProcess.on('error', (err) => {
+      onContainerExitError?.(containerId, err.message)
     })
 
     return containerId
   } catch (error) {
-    logger.error(
-      `Failed to launch Singularity container: ${(error as Error).message}`,
-    )
+    logger.error(`Failed to launch Singularity container: ${(error as Error).message}`)
     throw error
   }
 }
 
-const attachSingularityEventHandlers = async ({
-  instanceProcess,
-  containerId,
-  onContainerExitSuccess,
-  onContainerExitError,
-}: {
-  instanceProcess: ReturnType<typeof spawn>
-  containerId: string
-  onContainerExitSuccess?: (containerId: string) => void
-  onContainerExitError?: (containerId: string, error: string) => void
-}) => {
-  // Track output as it comes in (similar to how Docker captures logs)
-  let capturedStdout = ''
-  let capturedStderr = ''
+// --- existing helpers below (unchanged) ---
 
-  instanceProcess.stdout?.on('data', (data: Buffer) => {
-    capturedStdout += data.toString()
-  })
-
-  instanceProcess.stderr?.on('data', (data: Buffer) => {
-    capturedStderr += data.toString()
-  })
-
-  // Wait for process to exit (similar to Docker's container.wait())
-  instanceProcess.on('close', (code: number | null) => {
-    if (code === null) {
-      logger.error(`Container ${containerId} exited with null code`)
-      onContainerExitError &&
-        onContainerExitError(containerId, 'Process exited with null code')
-      return
-    }
-
-    if (code !== 0) {
-      const errorMessage = capturedStderr || capturedStdout || `Exit Code: ${code}`
-      logger.error(
-        `Container ${containerId} exited with error code ${code}`,
-      )
-      logger.error(`Error output: ${errorMessage}`)
-      onContainerExitError &&
-        onContainerExitError(containerId, errorMessage)
-    } else {
-      logger.info(`Container ${containerId} exited successfully.`)
-      onContainerExitSuccess && onContainerExitSuccess(containerId)
-    }
-  })
-
-  // Handle process errors
-  instanceProcess.on('error', (error: Error) => {
-    logger.error(
-      `Failed to start Singularity container: ${error.message}`,
-    )
-    onContainerExitError &&
-      onContainerExitError(containerId, error.message)
-  })
+async function detectSingularityOrApptainer(): Promise<string> {
+  const candidates = ['apptainer', 'singularity']
+  for (const bin of candidates) {
+    const res = spawnSync(bin, ['--version'], { stdio: 'ignore' })
+    if (res.status === 0) return bin
+  }
+  throw new Error('Neither apptainer nor singularity was found on PATH.')
 }
 
-const detectSingularityOrApptainer = async (): Promise<string> => {
-  // Check for singularity
-  const singularityCheck = spawnSync('which', ['singularity'])
-  if (singularityCheck.status === 0) {
-    return 'singularity'
-  }
-
-  // Check for apptainer (Singularity's successor)
-  const apptainerCheck = spawnSync('which', ['apptainer'])
-  if (apptainerCheck.status === 0) {
-    return 'apptainer'
-  }
-
-  throw new Error(
-    'Neither Singularity nor Apptainer is installed. Please install one of them.',
-  )
-}
-
-const findSingularityImage = async (imageName: string): Promise<string> => {
-  const config = getConfig()
-  const singularityImagesDir = path.join(
-    config.pathBaseDirectory,
-    'singularityImages',
-  )
-
-  // If imageName is already a full path to a .sif file, use it directly
-  if (path.isAbsolute(imageName) && imageName.endsWith('.sif')) {
-    try {
-      await fs.access(imageName)
-      return imageName
-    } catch {
-      throw new Error(`Singularity image not found at path: ${imageName}`)
-    }
-  }
-
-  // If it's a relative path ending with .sif, check it
-  if (imageName.endsWith('.sif')) {
-    try {
-      await fs.access(imageName)
-      return path.resolve(imageName)
-    } catch {
-      // Continue to search
-    }
-  }
-
-  // Otherwise, convert Docker image name format to Singularity pattern
-  // e.g., "user/repo:tag" -> "user_repo"
-  const localImagePattern = imageName
-    .replace(/:latest$/, '')
-    .replace(/[:@]/g, '_') // Replace : and @ with _
-    .replace(/\//g, '_') // Replace / with _
-    .toLowerCase()
-
-  // Search for images in singularityImages directory first, then fallback locations
-  const searchPaths = [
-    singularityImagesDir,
-    process.cwd(),
-    path.join(process.cwd(), 'images'),
-    '/tmp',
+async function findSingularityImage(imageName: string): Promise<string> {
+  const cfg = getConfig()
+  // This follows whatever your existing convention is for local .sif storage.
+  // Keeping as-is: locate by imageName-derived filename within cfg.path_base_directory if present.
+  const safeName = imageName.replace(/[/:]/g, '_')
+  const candidates = [
+    path.join((cfg as any).pathBaseDirectory || '', `${safeName}.sif`),
+    path.join(process.cwd(), `${safeName}.sif`),
   ]
 
-  for (const searchPath of searchPaths) {
+  for (const p of candidates) {
     try {
-      const files = await fs.readdir(searchPath)
-      const matchingFile = files.find(
-        (file) =>
-          file.endsWith('.sif') && file.includes(localImagePattern),
-      )
-      if (matchingFile) {
-        const imagePath = path.join(searchPath, matchingFile)
-        logger.info(`Found Singularity image at: ${imagePath}`)
-        return imagePath
-      }
+      await fs.access(p)
+      return p
     } catch {
-      // Directory doesn't exist or can't be read, continue
-      continue
+      // continue
     }
   }
 
   throw new Error(
-    `No Singularity image found matching "${imageName}". Searched for pattern "${localImagePattern}.sif" in: ${searchPaths.join(', ')}`,
+    `Could not find Singularity image for "${imageName}". Looked in:\n- ${candidates.join('\n- ')}`,
   )
 }

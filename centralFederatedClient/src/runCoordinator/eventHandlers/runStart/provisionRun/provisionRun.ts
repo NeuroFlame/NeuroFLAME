@@ -2,10 +2,12 @@ import path from 'path'
 import fs from 'fs'
 import { launchNode } from '../../../nodeManager/launchNode.js'
 import { prepareHostingDirectory } from './prepareHostingDirectory.js'
+import { type UserRolesMap } from '../startRun.js'
 
 interface provisionRunArgs {
   imageName: string
   userIds: string[]
+  userRoles?: UserRolesMap
   pathRun: string
   computationParameters: string
   fedLearnPort: number
@@ -16,6 +18,7 @@ interface provisionRunArgs {
 export async function provisionRun({
   imageName,
   userIds,
+  userRoles = {},
   computationParameters,
   pathRun,
   fedLearnPort,
@@ -30,6 +33,7 @@ export async function provisionRun({
   // make the input
   const provisionInput = {
     user_ids: userIds,
+    user_roles: userRoles,
     computation_parameters: computationParameters,
     fed_learn_port: fedLearnPort,
     admin_port: adminPort,

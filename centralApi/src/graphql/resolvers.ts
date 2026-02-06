@@ -444,13 +444,32 @@ export default {
         lastUpdated: Date.now(),
       })
 
+      const activeUserIds = consortium.activeMembers.map((m) => m.toString())
+      const readySet = new Set(consortium.readyMembers.map((m) => m.toString()))
+
+      const userRolesMap: Record<string, 'contributor' | 'observer'> = {}
+      for (const uid of activeUserIds) {
+        userRolesMap[uid] = readySet.has(uid) ? 'contributor' : 'observer'
+      }
+
+      // Guardrail: require at least one contributor
+      const contributorCount = Object.values(userRolesMap).filter((r) => r === 'contributor').length
+      if (contributorCount === 0) {
+        throw new Error('No ready contributors (activeMembers ∩ readyMembers is empty).')
+      }
+
+      const userRoles = Object.entries(userRolesMap).map(([userId, role]) => ({
+        userId,
+        role,
+      }))
+
       pubsub.publish('RUN_START_CENTRAL', {
         runId: run._id.toString(),
         imageName: consortium.studyConfiguration.computation.imageName,
-        userIds: consortium.activeMembers.map((member) => member.toString()),
+        userIds: activeUserIds,
+        userRoles,
         consortiumId: consortium._id.toString(),
-        computationParameters:
-          consortium.studyConfiguration.computationParameters,
+        computationParameters: consortium.studyConfiguration.computationParameters,
       })
 
       pubsub.publish('RUN_EVENT', {

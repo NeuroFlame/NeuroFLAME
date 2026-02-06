@@ -330,6 +330,12 @@ export type RunListItem = {
   status: Scalars['String']['output'];
 };
 
+export type RunMemberRole = {
+  __typename?: 'RunMemberRole';
+  role: Scalars['String']['output'];
+  userId: Scalars['String']['output'];
+};
+
 export type RunStartCentralPayload = {
   __typename?: 'RunStartCentralPayload';
   computationParameters: Scalars['String']['output'];
@@ -337,6 +343,7 @@ export type RunStartCentralPayload = {
   imageName: Scalars['String']['output'];
   runId: Scalars['String']['output'];
   userIds: Array<Scalars['String']['output']>;
+  userRoles: Array<RunMemberRole>;
 };
 
 export type RunStartEdgePayload = {

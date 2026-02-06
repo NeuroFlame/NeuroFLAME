@@ -27,10 +27,16 @@ input StartRunInput {
   consortiumId: String!
 }
 
+type RunMemberRole {
+  userId: String!
+  role: String!  # "contributor" | "observer"
+}
+
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
   userIds: [String!]!  
+  userRoles: [RunMemberRole!]!
   consortiumId: String!
   computationParameters: String!
 }

@@ -60,6 +60,12 @@ export type LoginOutput = {
   username: Scalars['String']['output'];
 }
 
+export type RunMemberRole = {
+  __typename?: 'RunMemberRole';
+  userId: Scalars['String']['output'];
+  role: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   adminChangeUserPassword: Scalars['Boolean']['output'];
@@ -303,6 +309,7 @@ export type RunStartCentralPayload = {
   imageName: Scalars['String']['output'];
   runId: Scalars['String']['output'];
   userIds: Array<Scalars['String']['output']>;
+  userRoles: Array<RunMemberRole>;
 }
 
 export type RunStartEdgePayload = {
