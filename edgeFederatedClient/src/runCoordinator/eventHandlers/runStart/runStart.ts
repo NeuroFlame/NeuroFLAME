@@ -1,5 +1,4 @@
-// startRun.ts  (a.k.a. runStart.ts)
-// NeuroFLAME edgeFederatedClient/src/runCoordinator/eventHandlers/runStart/startRun.ts
+// NeuroFLAME edgeFederatedClient/src/runCoordinator/eventHandlers/runStart/runStart.ts
 
 import { getConfig } from '../../../config/config.js'
 import downloadFile from './downloadFile.js'
