@@ -49,6 +49,17 @@ check_cmd() {
   fi
 }
 
+has_unreleased_changesets() {
+  local file
+  shopt -s nullglob
+  for file in "$ROOT_DIR"/.changeset/*.md; do
+    if [ "$(basename "$file")" != "README.md" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --yes) YES=true ;;
@@ -82,7 +93,7 @@ echo "== NeuroFLAME Release Helper =="
 echo "Repo: $ROOT_DIR"
 echo
 echo "Planned steps:"
-echo "1) changeset version (unless skipped)"
+echo "1) create changeset if needed, then changeset version (unless skipped)"
 echo "2) commit + push version changes"
 echo "3) changeset publish (optional)"
 echo "4) build React app + edge client + electron app"
@@ -91,7 +102,21 @@ echo
 
 if [ "$SKIP_VERSION" != true ]; then
   if confirm "Run version bump with changesets now?"; then
-    npx changeset version
+    if has_unreleased_changesets; then
+      npx changeset version
+    else
+      echo "No unreleased changesets found."
+      if confirm "Create a new changeset now?"; then
+        npx changeset
+        if has_unreleased_changesets; then
+          npx changeset version
+        else
+          echo "No changeset was created. Skipping version bump."
+        fi
+      else
+        echo "Skipped changeset creation and version bump."
+      fi
+    fi
   else
     echo "Skipped version bump."
   fi
