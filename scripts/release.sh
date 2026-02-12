@@ -19,7 +19,7 @@ Options:
   --skip-version   Skip `changeset version`.
   --publish-npm    Run `changeset publish`.
   --deploy-gh      Publish Electron artifacts to GitHub release.
-  --allow-dirty    Skip clean working tree check.
+  --allow-dirty    Skip tracked-file clean check.
   --help           Show this help message.
 
 Examples:
@@ -73,8 +73,8 @@ check_cmd npm
 check_cmd npx
 check_cmd git
 
-if [ "$ALLOW_DIRTY" != true ] && [ -n "$(git status --porcelain)" ]; then
-  echo "Working tree is not clean. Commit/stash changes or rerun with --allow-dirty."
+if [ "$ALLOW_DIRTY" != true ] && [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "Tracked files are not clean. Commit/stash changes or rerun with --allow-dirty."
   exit 1
 fi
 
