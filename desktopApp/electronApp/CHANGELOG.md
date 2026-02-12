@@ -1,5 +1,15 @@
 # neuroflame
 
+## 0.5.0
+
+### Minor Changes
+
+- singularity release
+
+### Patch Changes
+
+- Updated dependencies
+  - edge-federated-client@1.4.0
 
 ## 0.4.0
 
