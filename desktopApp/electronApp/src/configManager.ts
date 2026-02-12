@@ -21,6 +21,7 @@ async function initializeConfig(): Promise<Config> {
       pathBaseDirectory:
         config.edgeClientConfig.pathBaseDirectory ||
         defaultEdgeClientBasePath,
+      containerService: config.edgeClientConfig.containerService || 'docker',
     },
   }
 

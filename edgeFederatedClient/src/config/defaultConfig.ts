@@ -7,4 +7,5 @@ export default {
   authenticationEndpoint: 'http://localhost:4000/authenticateToken',
   hostingPort: 4001,
   logPath: '',
+  containerService: 'docker',
 }
