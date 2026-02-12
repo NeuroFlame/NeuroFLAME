@@ -9,8 +9,8 @@ npm run release
 
 Optional flags:
 ```bash
-# Also publish npm packages
-npm run release -- --publish-npm
+# Skip npm publish (publish is default)
+npm run release -- --skip-publish
 
 # Also publish Electron artifacts to GitHub Releases
 npm run release -- --deploy-gh

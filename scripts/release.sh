@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 
 YES=false
 SKIP_VERSION=false
-PUBLISH_NPM=false
+PUBLISH_NPM=true
 DEPLOY_GH=false
 ALLOW_DIRTY=false
 
@@ -17,14 +17,15 @@ Usage: npm run release -- [options]
 Options:
   --yes            Skip interactive confirmations.
   --skip-version   Skip `changeset version`.
-  --publish-npm    Run `changeset publish`.
+  --publish-npm    Publish npm packages (default behavior).
+  --skip-publish   Skip `changeset publish`.
   --deploy-gh      Publish Electron artifacts to GitHub release.
   --allow-dirty    Skip tracked-file clean check.
   --help           Show this help message.
 
 Examples:
   npm run release
-  npm run release -- --publish-npm
+  npm run release -- --skip-publish
   npm run release -- --publish-npm --deploy-gh --yes
 EOF
 }
@@ -65,6 +66,7 @@ while [ "$#" -gt 0 ]; do
     --yes) YES=true ;;
     --skip-version) SKIP_VERSION=true ;;
     --publish-npm) PUBLISH_NPM=true ;;
+    --skip-publish) PUBLISH_NPM=false ;;
     --deploy-gh) DEPLOY_GH=true ;;
     --allow-dirty) ALLOW_DIRTY=true ;;
     --help)
@@ -95,7 +97,7 @@ echo
 echo "Planned steps:"
 echo "1) create changeset if needed, then changeset version (unless skipped)"
 echo "2) commit + push version changes"
-echo "3) changeset publish (optional)"
+echo "3) changeset publish (default; skip with --skip-publish)"
 echo "4) build React app + edge client + electron app"
 echo "5) electron dist (and optional GitHub release publish)"
 echo
@@ -137,7 +139,7 @@ if [ "$PUBLISH_NPM" = true ]; then
     echo "Skipped npm publish."
   fi
 else
-  echo "Skipping npm publish (enable with --publish-npm)."
+  echo "Skipping npm publish (--skip-publish)."
 fi
 
 echo
