@@ -2,6 +2,23 @@
 
 Follow these exact steps, starting from the root of the repository, to correctly install dependencies and build the desktop application components:
 
+### Guided one-command flow
+```bash
+npm run release
+```
+
+Optional flags:
+```bash
+# Also publish npm packages
+npm run release -- --publish-npm
+
+# Also publish Electron artifacts to GitHub Releases
+npm run release -- --deploy-gh
+
+# Fully non-interactive run
+npm run release -- --publish-npm --deploy-gh --yes
+```
+
 ### 1. Desktop App (React App)
 ```bash
 cd desktopApp/reactApp

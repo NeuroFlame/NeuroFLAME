@@ -11,6 +11,7 @@
         "neostandard": "^0.12.2"
     },
     "scripts": {
-        "lint": "eslint ."
+        "lint": "eslint .",
+        "release": "bash ./scripts/release.sh"
     }
 }
