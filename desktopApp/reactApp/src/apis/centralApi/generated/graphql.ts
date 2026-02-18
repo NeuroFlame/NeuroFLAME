@@ -228,6 +228,7 @@ export type PublicUser = {
   id: Scalars['String']['output'];
   username: Scalars['String']['output'];
   vault?: Maybe<Vault>;
+  vaultStatus?: Maybe<VaultStatus>;
 }
 
 export type Query = {
@@ -357,4 +358,23 @@ export type Vault = {
   __typename?: 'Vault';
   description: Scalars['String']['output'];
   name: Scalars['String']['output'];
+}
+
+export type VaultRunningComputation = {
+  __typename?: 'VaultRunningComputation';
+  runId: Scalars['String']['output'];
+  consortiumId: Scalars['String']['output'];
+  consortiumTitle?: Maybe<Scalars['String']['output']>;
+  runStartedAt: Scalars['String']['output'];
+  runningFor: Scalars['Int']['output'];
+}
+
+export type VaultStatus = {
+  __typename?: 'VaultStatus';
+  status: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+  uptime: Scalars['Int']['output'];
+  websocketConnected: Scalars['Boolean']['output'];
+  lastHeartbeat: Scalars['String']['output'];
+  runningComputations: Array<VaultRunningComputation>;
 }

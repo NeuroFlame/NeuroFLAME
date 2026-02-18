@@ -297,14 +297,108 @@ export default {
     },
     getVaultUserList: async (): Promise<PublicUser[]> => {
       const users = await User.find({ roles: 'vault' }).exec()
+
+      // Get consortium titles for any running computations
+      const consortiumIds = new Set<string>()
+      users.forEach((user) => {
+        user.vaultStatus?.runningComputations?.forEach((comp) => {
+          consortiumIds.add(comp.consortiumId)
+        })
+      })
+
+      const consortiums = await Consortium.find({
+        _id: { $in: Array.from(consortiumIds) },
+      })
+        .select('_id title')
+        .lean()
+      const consortiumMap = new Map(
+        consortiums.map((c) => [c._id.toString(), c.title]),
+      )
+
       return users.map((user) => ({
         id: user._id.toString(),
         username: user.username,
         vault: user.vault,
+        vaultStatus: user.vaultStatus
+          ? {
+              status: user.vaultStatus.status,
+              version: user.vaultStatus.version,
+              uptime: user.vaultStatus.uptime,
+              websocketConnected: user.vaultStatus.websocketConnected,
+              lastHeartbeat: user.vaultStatus.lastHeartbeat.toISOString(),
+              runningComputations: user.vaultStatus.runningComputations.map(
+                (comp) => ({
+                  runId: comp.runId,
+                  consortiumId: comp.consortiumId,
+                  consortiumTitle: consortiumMap.get(comp.consortiumId) || null,
+                  runStartedAt: comp.startedAt.toISOString(),
+                  runningFor: Math.floor(
+                    (Date.now() - comp.startedAt.getTime()) / 1000,
+                  ),
+                }),
+              ),
+            }
+          : null,
       }))
     },
   },
   Mutation: {
+    // Vault heartbeat - updates vault status
+    vaultHeartbeat: async (
+      _: unknown,
+      {
+        heartbeat,
+      }: {
+        heartbeat: {
+          status: string
+          version: string
+          uptime: number
+          websocketConnected: boolean
+          runningComputations: Array<{
+            runId: string
+            consortiumId: string
+            startedAt: string
+          }>
+        }
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      // Authenticate the user
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      // Authorize - must be a vault user
+      if (!context.roles.includes('vault')) {
+        throw new Error('User not authorized - not a vault user')
+      }
+
+      // Update the user's vault status
+      await User.findByIdAndUpdate(context.userId, {
+        vaultStatus: {
+          status: heartbeat.status,
+          version: heartbeat.version,
+          uptime: heartbeat.uptime,
+          websocketConnected: heartbeat.websocketConnected,
+          lastHeartbeat: new Date(),
+          runningComputations: heartbeat.runningComputations.map((comp) => ({
+            runId: comp.runId,
+            consortiumId: comp.consortiumId,
+            startedAt: new Date(comp.startedAt),
+          })),
+        },
+      })
+
+      logger.debug('Vault heartbeat received', {
+        context: {
+          userId: context.userId,
+          status: heartbeat.status,
+          runningComputations: heartbeat.runningComputations.length,
+        },
+      })
+
+      return true
+    },
     login: async (
       _,
       {

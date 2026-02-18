@@ -1,7 +1,7 @@
 import { ApolloClient, gql, NormalizedCacheObject } from '@apollo/client'
 import { Query } from './generated/graphql' // Import generated types
 
-// Define the GraphQL query for fetching the computation list
+// Define the GraphQL query for fetching the vault user list
 export const GET_VAULT_USER_LIST = gql`
   query GetVaultUserList {
     getVaultUserList {
@@ -10,6 +10,20 @@ export const GET_VAULT_USER_LIST = gql`
       vault {
         name
         description
+      }
+      vaultStatus {
+        status
+        version
+        uptime
+        websocketConnected
+        lastHeartbeat
+        runningComputations {
+          runId
+          consortiumId
+          consortiumTitle
+          runStartedAt
+          runningFor
+        }
       }
     }
   }

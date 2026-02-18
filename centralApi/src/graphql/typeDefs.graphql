@@ -2,11 +2,44 @@ type PublicUser {
   id: String!
   username: String!
   vault: Vault
+  vaultStatus: VaultStatus
 }
 
 type Vault {
   name: String!
   description: String!
+}
+
+# Vault heartbeat status - reported by vault services
+type VaultRunningComputation {
+  runId: String!
+  consortiumId: String!
+  consortiumTitle: String
+  runStartedAt: String!
+  runningFor: Int!
+}
+
+type VaultStatus {
+  status: String!
+  version: String!
+  uptime: Int!
+  websocketConnected: Boolean!
+  lastHeartbeat: String!
+  runningComputations: [VaultRunningComputation!]!
+}
+
+input VaultRunningComputationInput {
+  runId: String!
+  consortiumId: String!
+  startedAt: String!
+}
+
+input VaultHeartbeatInput {
+  status: String!
+  version: String!
+  uptime: Int!
+  websocketConnected: Boolean!
+  runningComputations: [VaultRunningComputationInput!]!
 }
 
 type ConsortiumListItem {
@@ -126,6 +159,8 @@ type Query {
 }
 
 type Mutation {
+  # used by vault federated clients
+  vaultHeartbeat(heartbeat: VaultHeartbeatInput!): Boolean!
   # used by federated clients
   reportRunReady(runId: String!): Boolean!
   reportRunError(runId: String!, errorMessage: String!): Boolean!

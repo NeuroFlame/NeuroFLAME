@@ -1,0 +1,31 @@
+# Vault Federated Client Dockerfile
+# Runs on data provider servers to participate in federated computations
+
+FROM node:20-alpine
+
+# Install Docker CLI for container management
+# The vault needs to launch computation containers
+RUN apk add --no-cache docker-cli
+
+WORKDIR /app
+
+# Copy package files
+COPY vaultFederatedClient/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source and compile
+COPY vaultFederatedClient/tsconfig.json ./
+COPY vaultFederatedClient/src ./src
+RUN npm run compile
+
+# Health check - verifies process is running and responsive
+# Checks every 30s, fails after 3 consecutive failures
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD node -e "require('fs').accessSync('/tmp/vault-heartbeat'); const age = Date.now() - require('fs').statSync('/tmp/vault-heartbeat').mtimeMs; process.exit(age > 60000 ? 1 : 0)" || exit 1
+
+# Run as non-root for security (but needs docker group access)
+# Note: Container must be run with docker socket mounted and appropriate group
+
+CMD ["node", "dist/index.js"]

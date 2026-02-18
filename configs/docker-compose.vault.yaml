@@ -1,0 +1,70 @@
+# Docker Compose configuration for Vault Federated Client
+#
+# This is an example deployment configuration for running a vault service.
+# Copy this file and customize for your environment.
+#
+# Prerequisites:
+# - Docker and Docker Compose installed
+# - Access to the NeuroFLAME central API
+# - Dataset directory with your data
+# - Valid vault user credentials (access token)
+#
+# Usage:
+#   1. Copy this file: cp docker-compose.vault.yaml docker-compose.yaml
+#   2. Create .env file with your configuration (see below)
+#   3. Run: docker-compose up -d
+#
+# Required .env variables:
+#   VAULT_HTTP_URL=https://your-central-api.example.com/graphql
+#   VAULT_WS_URL=wss://your-central-api.example.com/graphql
+#   VAULT_ACCESS_TOKEN=your-jwt-token
+#   VAULT_BASE_DIR=/path/to/vault/working/directory
+#   VAULT_DATASET_DIR=/path/to/your/dataset
+#
+# Optional .env variables:
+#   VAULT_LOG_PATH=/var/log/vault
+
+services:
+  vault:
+    image: neuroflame/vault:latest
+    container_name: neuroflame-vault
+    restart: unless-stopped
+    
+    environment:
+      - VAULT_HTTP_URL=${VAULT_HTTP_URL}
+      - VAULT_WS_URL=${VAULT_WS_URL}
+      - VAULT_ACCESS_TOKEN=${VAULT_ACCESS_TOKEN}
+      - VAULT_BASE_DIR=/vault/work
+      - VAULT_DATASET_DIR=/vault/data
+      - VAULT_LOG_PATH=/vault/logs
+    
+    volumes:
+      # Mount Docker socket to allow launching computation containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+      # Working directory for run artifacts (runKits, results)
+      - ${VAULT_BASE_DIR}:/vault/work
+      
+      # Your dataset directory (read-only recommended)
+      - ${VAULT_DATASET_DIR}:/vault/data:ro
+      
+      # Persistent logs
+      - vault-logs:/vault/logs
+    
+    # Resource limits (adjust based on expected computation load)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  vault-logs:
+    driver: local

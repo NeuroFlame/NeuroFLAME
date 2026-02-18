@@ -1,2 +1,0 @@
-- [ ] create guide for starting the platform locally
-- [ ] revisit/refactor configurations and default configuration handling
