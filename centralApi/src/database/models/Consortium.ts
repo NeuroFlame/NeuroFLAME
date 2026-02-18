@@ -13,6 +13,7 @@ interface IConsortium extends Document {
   activeMembers: mongoose.Types.ObjectId[] // Array of User references
   readyMembers: mongoose.Types.ObjectId[] // Array of User references
   studyConfiguration: IStudyConfiguration
+  isPrivate: boolean
 }
 
 // Create the Consortium schema
@@ -24,6 +25,7 @@ const consortiumSchema: Schema = new Schema({
   activeMembers: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
   readyMembers: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
   studyConfiguration: { type: studyConfigurationSchema, required: true }, // Make sure studyConfiguration is always present
+  isPrivate: { type: Boolean, required: false, default: false },
 })
 
 // Create the model
