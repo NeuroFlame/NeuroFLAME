@@ -113,7 +113,7 @@ export default {
           .exec()
 
         if (!consortium) {
-          throw new Error('Consortium not found')
+          throw new Error('Consortium not found or inaccessible')
         }
 
         if (consortium.isPrivate) {
@@ -121,12 +121,12 @@ export default {
           const isAdmin = roles?.includes('admin')
 
           if (!isAdmin) {
-            if (!userId) throw new Error('Access denied: This consortium is private')
+            if (!userId) throw new Error('Consortium not found or inaccessible')
             const leaderId = consortium.leader._id.toString()
             const isLeader = leaderId === userId
             const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
             if (!isLeader && !isMember) {
-              throw new Error('Access denied: This consortium is private')
+              throw new Error('Consortium not found or inaccessible')
             }
           }
         }
@@ -178,7 +178,7 @@ export default {
         }
       } catch (error) {
         logger.error('Error in getConsortiumDetails:', error)
-        throw new Error(`Failed to fetch consortium details: ${error.message}`)
+        throw new Error('Failed to fetch consortium details')
       }
     },
     getComputationDetails: async (
@@ -961,6 +961,17 @@ export default {
       }: { consortiumId: string; title?: string; description?: string; isPrivate?: boolean },
       context: Context,
     ): Promise<boolean> => {
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      const isAdmin = context.roles?.includes('admin')
+      const isLeader = consortium.leader.toString() === context.userId
+      if (!isAdmin && !isLeader) {
+        throw new Error('User not authorized to edit this consortium')
+      }
+
       // Check if the title is provided and validate it against existing consortia
       if (title) {
         const otherConsortium = await Consortium.findOne({
@@ -973,7 +984,7 @@ export default {
       }
 
       // Ensure at least one field is provided for update
-      if (!title && !description) {
+      if (!title && !description && isPrivate === undefined) {
         throw new Error('No fields provided to update')
       }
 
@@ -981,12 +992,7 @@ export default {
       const updatePayload: { [key: string]: string | boolean } = {}
       if (title) updatePayload.title = title
       if (description) updatePayload.description = description
-      if (isPrivate !== undefined) {
-        const consortium = await Consortium.findById(consortiumId)
-        if (consortium && consortium.leader.toString() === context.userId) {
-          updatePayload.isPrivate = isPrivate
-        }
-      }
+      if (isPrivate !== undefined) updatePayload.isPrivate = isPrivate
 
       // Perform the update operation
       try {
@@ -1005,10 +1011,24 @@ export default {
       { consortiumId }: { consortiumId: string },
       context: Context,
     ): Promise<boolean> => {
-      const { userId } = context
+      const { userId, roles } = context
       if (!userId) {
         throw new Error('User not authenticated')
       }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      const isAdmin = roles?.includes('admin')
+      const isExistingMember = consortium.members
+        .map((memberId) => memberId.toString())
+        .includes(userId)
+      if (consortium.isPrivate && !isAdmin && !isExistingMember) {
+        throw new Error('This consortium is private and cannot be joined directly')
+      }
+
       await Consortium.findByIdAndUpdate(consortiumId, {
         $addToSet: { members: userId, activeMembers: userId },
       })
