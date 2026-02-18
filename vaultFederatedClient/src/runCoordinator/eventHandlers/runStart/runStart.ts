@@ -1,9 +1,9 @@
-import { VAULT_BASE_IDR, VAULT_DATASET_DIR } from '../../../config.js'
+import { VAULT_BASE_DIR, VAULT_DATASET_DIR } from '../../../config.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import path from 'path'
 import { unzipFile } from './unzipFile.js'
-import fs from 'fs/promises'
+import { promises as fs } from 'fs'
 import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
 
@@ -34,7 +34,7 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      const consortiumPath = path.join(VAULT_BASE_IDR, consortiumId)
+      const consortiumPath = path.join(VAULT_BASE_DIR, consortiumId)
       const runPath = path.join(consortiumPath, runId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')
@@ -91,6 +91,8 @@ export const runStartHandler = {
       await launchNode({
         containerService: 'docker',
         imageName,
+        runId,
+        consortiumId,
         directoriesToMount,
         portBindings: [],
         commandsToRun: ['python', '/workspace/system/entry_edge.py'],

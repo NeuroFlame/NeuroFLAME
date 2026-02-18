@@ -1,0 +1,62 @@
+# Docker Compose deployment for Vault Federated Client
+# 
+# Usage:
+#   1. Copy this file and .env.example to your deployment directory
+#   2. Edit .env with your actual values
+#   3. Run: docker-compose up -d
+#
+# Prerequisites:
+#   - Docker and Docker Compose installed
+#   - Docker socket accessible (for launching computation containers)
+#   - Dataset directory prepared with your data
+
+services:
+  vault:
+    build:
+      context: ../..
+      dockerfile: dockerfiles/Dockerfile-vaultFederatedClient
+    container_name: neuroflame-vault
+    
+    # Restart policy - automatically restart on crash
+    # "unless-stopped" restarts always except when explicitly stopped
+    restart: unless-stopped
+    
+    environment:
+      - VAULT_HTTP_URL=${VAULT_HTTP_URL}
+      - VAULT_WS_URL=${VAULT_WS_URL}
+      - VAULT_ACCESS_TOKEN=${VAULT_ACCESS_TOKEN}
+      - VAULT_BASE_DIR=/vault/workdir
+      - VAULT_DATASET_DIR=/vault/data
+      - VAULT_LOG_PATH=/vault/logs
+    
+    volumes:
+      # Mount Docker socket for launching computation containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+      # Working directory for run kits and results
+      - vault-workdir:/vault/workdir
+      
+      # Your dataset - mount read-only for safety
+      - ${HOST_DATASET_PATH}:/vault/data:ro
+      
+      # Logs directory for persistence
+      - vault-logs:/vault/logs
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    
+    # Resource limits (adjust based on your computations)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+volumes:
+  vault-workdir:
+  vault-logs:
