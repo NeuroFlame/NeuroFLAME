@@ -408,6 +408,7 @@ async function ensureSingularityImage(dockerImage, imagesDirectory) {
   }
 
   await new Promise((resolve, reject) => {
+    console.log('Singularity image not found in cache. Pull/conversion from Docker can take 20+ minutes on first run.')
     const pullProcess = spawn(
       singularityBinary,
       ['pull', imagePath, `docker://${dockerImage}`],
