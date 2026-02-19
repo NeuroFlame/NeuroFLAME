@@ -28,10 +28,11 @@ const FIXED_TIMEOUT_MS = 8 * 60 * 60 * 1000
 const ALT_DATA_MOUNT_OUT = '/nfPreData'
 
 function parseArgs(argv) {
-  const args = {}
+  const args = { _: [] }
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     if (!arg.startsWith('--')) {
+      args._.push(arg)
       continue
     }
     const key = arg.slice(2)
@@ -81,6 +82,106 @@ function note(text) {
   return style(text, '2')
 }
 
+function normalizeHelpTopic(helpArg) {
+  if (helpArg === true || helpArg === 'true') {
+    return 'usage'
+  }
+  if (typeof helpArg !== 'string') {
+    return null
+  }
+  const normalized = helpArg.trim().toLowerCase()
+  if (!normalized) {
+    return 'usage'
+  }
+  if (['comp', 'computation', 'options', 'inputs', 'input'].includes(normalized)) {
+    return 'computation'
+  }
+  return 'usage'
+}
+
+function truncateText(text, maxLength = 180) {
+  if (typeof text !== 'string') {
+    return ''
+  }
+  if (text.length <= maxLength) {
+    return text
+  }
+  return `${text.slice(0, maxLength - 3)}...`
+}
+
+function formatInlineValue(valueLike) {
+  if (valueLike === undefined) {
+    return 'n/a'
+  }
+  if (typeof valueLike === 'string') {
+    return valueLike
+  }
+  try {
+    return JSON.stringify(valueLike)
+  } catch {
+    return String(valueLike)
+  }
+}
+
+function getSortedInputSpecEntries(compspec) {
+  const inputSpec = compspec?.computation?.input
+  if (!inputSpec || typeof inputSpec !== 'object') {
+    return []
+  }
+  return Object.entries(inputSpec).sort((a, b) => {
+    const aOrder = Number.isFinite(a[1]?.order) ? a[1].order : Number.MAX_SAFE_INTEGER
+    const bOrder = Number.isFinite(b[1]?.order) ? b[1].order : Number.MAX_SAFE_INTEGER
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder
+    }
+    return a[0].localeCompare(b[0])
+  })
+}
+
+function printComputationInputHelp(preprocessId, preprocess, compspec) {
+  const entries = getSortedInputSpecEntries(compspec)
+  const title = compspec?.meta?.name || preprocessId
+  const description = truncateText(compspec?.meta?.description || '', 260)
+
+  console.log([
+    style('NFPREPROCESSOR-COMP(1)', '1;37'),
+    note('Computation option reference'),
+    '',
+    section('COMPUTATION'),
+    `  ${value(preprocessId)} (${preprocess.image})`,
+    `  Name: ${title}`,
+    description ? `  ${description}` : null,
+    '',
+    section('INPUT OPTIONS'),
+    entries.length ? null : '  No declared input options in compspec.',
+  ].filter(Boolean).join('\n'))
+
+  for (const [key, spec] of entries) {
+    const details = []
+    details.push(`  ${flag(key)}${spec?.label ? ` - ${spec.label}` : ''}`)
+    details.push(`    type: ${value(formatInlineValue(spec?.type || 'unknown'))}`)
+    if (Object.prototype.hasOwnProperty.call(spec || {}, 'default')) {
+      details.push(`    default: ${value(formatInlineValue(spec.default))}`)
+    }
+    if (Object.prototype.hasOwnProperty.call(spec || {}, 'min') || Object.prototype.hasOwnProperty.call(spec || {}, 'max')) {
+      details.push(`    range: ${value(`${formatInlineValue(spec?.min)} .. ${formatInlineValue(spec?.max)}${spec?.step !== undefined ? ` (step ${formatInlineValue(spec.step)})` : ''}`)}`)
+    }
+    if (Array.isArray(spec?.values)) {
+      details.push(`    values: ${value(formatInlineValue(spec.values))}`)
+    }
+    if (spec?.group) {
+      details.push(`    group: ${value(formatInlineValue(spec.group))}`)
+    }
+    if (spec?.source) {
+      details.push(`    source: ${value(formatInlineValue(spec.source))}`)
+    }
+    if (spec?.tooltip) {
+      details.push(`    help: ${truncateText(spec.tooltip, 220)}`)
+    }
+    console.log(details.join('\n'))
+  }
+}
+
 function printUsage() {
   console.log([
     style('NFPREPROCESSOR(1)', '1;37'),
@@ -92,6 +193,7 @@ function printUsage() {
     section('SYNOPSIS'),
     `  ${flag('nfpreprocessor')} [${flag('--pre-run')} ${value('<json-file>')}] [${flag('--covariates-csv')} ${value('<file>')}]`,
     `                 [${flag('--workspace')} ${value('<dir>')}] [${flag('--dry-run')}] [${flag('--hard-links')}] [${flag('--singularity')}]`,
+    `  ${flag('nfpreprocessor')} ${flag('--help')} ${value('comp')} [${value('<computation-id>')}]`,
     '',
     section('DESCRIPTION'),
     '  Run legacy preprocessing containers with a simplified guided workflow.',
@@ -111,12 +213,21 @@ function printUsage() {
     '      Use hard links instead of symlink+alternate mount staging.',
     `  ${flag('--singularity')}`,
     '      Use singularity/apptainer runtime and cached .sif image.',
+    `  ${flag('--help')} ${value('comp')} [${value('<computation-id>')}]`,
+    '      List available computation ids, or print option reference for one id.',
     '',
     section('OPERATION'),
     `  1. Run in a directory containing data and ${value('covariates.csv')}.`,
     `  2. Tool creates/uses ${value('nfPreRun.json')}.`,
     '  3. If pre-run exists, choose reuse or regenerate (old file archived).',
     `  4. Run output is written to ${value('nfPreOutput/<computation>-<timestamp>/')}.`,
+    '',
+    section('DATA FORMAT'),
+    `  ${value('covariates.csv')} header must start with: ${value('filename,covar1,covar2,...')}`,
+    `  ${value('filename')} points to each subject data file path.`,
+    '  Relative filename paths are resolved from the CSV file directory.',
+    '  Absolute filename paths are accepted as-is.',
+    '  Every non-filename column is treated as a covariate value.',
     '',
     section('FILES'),
     `  ${value('nfPreRun.json')}               Active pre-run config`,
@@ -130,6 +241,8 @@ function printUsage() {
     `  ${flag('nfpreprocessor')} ${flag('--pre-run')} ./nfPreRun.json`,
     `  ${flag('nfpreprocessor')} ${flag('--covariates-csv')} ./covariates.csv ${flag('--dry-run')}`,
     `  ${flag('nfpreprocessor')} ${flag('--covariates-csv')} ./covariates.csv ${flag('--singularity')}`,
+    `  ${flag('nfpreprocessor')} ${flag('--help')} comp`,
+    `  ${flag('nfpreprocessor')} ${flag('--help')} comp vbm-pre`,
     '',
     section('NOTES'),
     `  Docker must be installed and running unless ${flag('--singularity')} is used.`,
@@ -841,10 +954,37 @@ async function resolveInputRoot(covariates, preferredRoots) {
 }
 
 async function choosePreprocessor(rl) {
-  const preprocessId = FIXED_PREPROCESS_ID
-  console.log(`Computation: ${preprocessId} (${PREPROCESSORS[preprocessId].image})`)
-  await rl.question('Press Enter to continue: ')
-  return preprocessId
+  const entries = Object.entries(PREPROCESSORS)
+  if (!entries.length) {
+    throw new Error('No preprocessors are configured.')
+  }
+
+  const defaultIndex = Math.max(0, entries.findIndex(([id]) => id === FIXED_PREPROCESS_ID))
+  console.log('Available computations:')
+  entries.forEach(([id, conf], idx) => {
+    const marker = idx === defaultIndex ? ' (default)' : ''
+    console.log(`  ${idx + 1}) ${id} (${conf.image})${marker}`)
+  })
+
+  while (true) {
+    const entered = await rl.question(`Select computation [${defaultIndex + 1}]: `)
+    const normalized = entered.trim().toLowerCase()
+    if (!normalized) {
+      return entries[defaultIndex][0]
+    }
+
+    const byIndex = Number.parseInt(normalized, 10)
+    if (Number.isFinite(byIndex) && byIndex >= 1 && byIndex <= entries.length) {
+      return entries[byIndex - 1][0]
+    }
+
+    const byId = entries.find(([id]) => id.toLowerCase() === normalized)
+    if (byId) {
+      return byId[0]
+    }
+
+    console.log('Invalid selection. Enter a number from the list or computation id.')
+  }
 }
 
 async function selectCovariatesCsv(rl, cwd) {
@@ -1012,9 +1152,44 @@ async function runInteractiveMode({ args, cwd }) {
   }
 }
 
+async function runComputationHelpMode({ cwd, requestedPreprocessId = null }) {
+  void cwd
+  if (requestedPreprocessId) {
+    const normalized = requestedPreprocessId.trim().toLowerCase()
+    const match = Object.keys(PREPROCESSORS).find((id) => id.toLowerCase() === normalized)
+    if (!match) {
+      throw new Error(
+        `Unknown computation "${requestedPreprocessId}". Available: ${Object.keys(PREPROCESSORS).join(', ')}`
+      )
+    }
+    const preprocess = PREPROCESSORS[match]
+    const compspec = await readJson(preprocess.compspecPath)
+    printComputationInputHelp(match, preprocess, compspec)
+    return
+  }
+
+  const ids = Object.keys(PREPROCESSORS)
+  console.log([
+    style('NFPREPROCESSOR-COMP(1)', '1;37'),
+    note('Available computation ids'),
+    '',
+    section('COMPUTATIONS'),
+    ...ids.map((id) => `  ${value(id)} (${PREPROCESSORS[id].image})`),
+    '',
+    section('USAGE'),
+    `  ${flag('nfpreprocessor')} ${flag('--help')} ${value('comp')} ${value('<computation-id>')}`,
+  ].join('\n'))
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2))
-  if (args.help || args.h) {
+  const helpTopic = normalizeHelpTopic(args.help || args.h)
+  if (helpTopic === 'computation') {
+    const requestedPreprocessId = args._[0] || null
+    await runComputationHelpMode({ cwd: process.cwd(), requestedPreprocessId })
+    return
+  }
+  if (helpTopic === 'usage') {
     printUsage()
     return
   }

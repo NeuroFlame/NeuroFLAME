@@ -36,6 +36,18 @@ Guided behavior:
 - asks whether to run now or exit so you can edit `nfPreRun.json`
 - stores each run in `nfPreOutput/<timestamp>/...`
 
+List available computation ids:
+
+```bash
+nfpreprocessor --help comp
+```
+
+Print input option reference for a specific computation id:
+
+```bash
+nfpreprocessor --help comp vbm-pre
+```
+
 ### Direct mode
 
 ```bash
@@ -64,11 +76,22 @@ Supported input sources:
 - `--pre-run` preferred pre-run file (`nfPreRun.json`)
 - `--covariates-csv` (recommended for first run generation)
 
-Notes for CSV mode:
+### CSV data format
+
+Expected shape:
+
+```csv
+filename,covar1,covar2,...
+subj1.nii.gz,True,28
+subj2.nii.gz,False,35
+```
+
+Rules:
 
 - CSV must have a `filename` column
 - other columns become covariate fields for each subject
 - file paths in `filename` are treated as relative to the CSV location
+- absolute paths in `filename` are also accepted
 
 Preview merged payload without running a container:
 
