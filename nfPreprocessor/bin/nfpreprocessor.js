@@ -522,6 +522,133 @@ function formatStatsLine(stats, startedAtMs) {
   ].join(' | ')
 }
 
+async function getPsRows() {
+  return new Promise((resolve) => {
+    const child = spawn(
+      'ps',
+      ['-axo', 'pid=,ppid=,rss=,%cpu='],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    )
+    let stdout = ''
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString()
+    })
+    child.on('close', () => {
+      const rows = stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => line.split(/\s+/))
+        .filter((parts) => parts.length >= 4)
+        .map((parts) => ({
+          pid: Number(parts[0]),
+          ppid: Number(parts[1]),
+          rssKiB: Number(parts[2]),
+          cpuPerc: Number(parts[3]),
+        }))
+        .filter(
+          (row) =>
+            Number.isFinite(row.pid) &&
+            Number.isFinite(row.ppid) &&
+            Number.isFinite(row.rssKiB) &&
+            Number.isFinite(row.cpuPerc)
+        )
+      resolve(rows)
+    })
+    child.on('error', () => {
+      resolve([])
+    })
+  })
+}
+
+async function getProcessTreeStats(rootPid) {
+  if (!Number.isFinite(rootPid) || rootPid <= 0) {
+    return null
+  }
+  const rows = await getPsRows()
+  if (!rows.length) {
+    return null
+  }
+
+  const byParent = new Map()
+  const byPid = new Map()
+  let hasRoot = false
+  for (const row of rows) {
+    byPid.set(row.pid, row)
+    if (row.pid === rootPid) {
+      hasRoot = true
+    }
+    if (!byParent.has(row.ppid)) {
+      byParent.set(row.ppid, [])
+    }
+    byParent.get(row.ppid).push(row)
+  }
+  if (!hasRoot) {
+    return null
+  }
+
+  const queue = [rootPid]
+  const visited = new Set()
+  let totalCpuPerc = 0
+  let totalRssKiB = 0
+  let processCount = 0
+
+  while (queue.length) {
+    const currentPid = queue.shift()
+    if (visited.has(currentPid)) {
+      continue
+    }
+    visited.add(currentPid)
+
+    const current = byPid.get(currentPid)
+    if (current) {
+      totalCpuPerc += current.cpuPerc
+      totalRssKiB += current.rssKiB
+      processCount += 1
+    }
+
+    const children = byParent.get(currentPid) || []
+    for (const child of children) {
+      if (!visited.has(child.pid)) {
+        queue.push(child.pid)
+      }
+    }
+  }
+
+  return {
+    totalCpuPerc,
+    totalRssKiB,
+    processCount,
+  }
+}
+
+function formatKiB(kib) {
+  if (!Number.isFinite(kib) || kib < 0) {
+    return 'n/a'
+  }
+  const mib = kib / 1024
+  if (mib < 1024) {
+    return `${mib.toFixed(1)} MiB`
+  }
+  const gib = mib / 1024
+  return `${gib.toFixed(2)} GiB`
+}
+
+function formatProcessTreeStatsLine(stats, startedAtMs) {
+  const elapsedSec = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
+  const elapsed = `${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s`
+  if (!stats) {
+    return `Stats | elapsed ${elapsed} | waiting for singularity/apptainer process metrics...`
+  }
+  return [
+    'Stats',
+    `elapsed ${elapsed}`,
+    `CPU ${stats.totalCpuPerc.toFixed(1)}%`,
+    `MEM ${formatKiB(stats.totalRssKiB)}`,
+    `PIDS ${stats.processCount}`,
+  ].join(' | ')
+}
+
 function startStatsDisplay(containerName) {
   if (!process.stdout.isTTY) {
     return () => {}
@@ -540,6 +667,39 @@ function startStatsDisplay(containerName) {
       return
     }
     const line = formatStatsLine(stats, startedAtMs)
+    process.stdout.write(`\r\x1b[2K${line}`)
+    ticker = setTimeout(tick, 1000)
+  }
+
+  tick().catch(() => {})
+
+  return () => {
+    cancelled = true
+    if (ticker) {
+      clearTimeout(ticker)
+    }
+    process.stdout.write('\r\x1b[2K')
+  }
+}
+
+function startProcessTreeStatsDisplay(rootPid) {
+  if (!process.stdout.isTTY || !Number.isFinite(rootPid) || rootPid <= 0) {
+    return () => {}
+  }
+
+  let cancelled = false
+  const startedAtMs = Date.now()
+  let ticker
+
+  const tick = async () => {
+    if (cancelled) {
+      return
+    }
+    const stats = await getProcessTreeStats(rootPid)
+    if (cancelled) {
+      return
+    }
+    const line = formatProcessTreeStatsLine(stats, startedAtMs)
     process.stdout.write(`\r\x1b[2K${line}`)
     ticker = setTimeout(tick, 1000)
   }
@@ -931,7 +1091,9 @@ async function main() {
         mountRoot: workspace,
         alternateDataMountRoot: staging.useAlternateDataMount ? inputRoot : null,
       })
-    const stopStatsDisplay = useSingularity ? () => {} : startStatsDisplay(containerName)
+    const stopStatsDisplay = useSingularity
+      ? startProcessTreeStatsDisplay(container.pid)
+      : startStatsDisplay(containerName)
 
     let response
     let socket
@@ -1085,7 +1247,9 @@ async function main() {
       mountRoot: workspace,
       alternateDataMountRoot: staging.useAlternateDataMount ? inputRoot : null,
     })
-  const stopStatsDisplay = useSingularity ? () => {} : startStatsDisplay(containerName)
+  const stopStatsDisplay = useSingularity
+    ? startProcessTreeStatsDisplay(container.pid)
+    : startStatsDisplay(containerName)
 
   let response
   let socket
