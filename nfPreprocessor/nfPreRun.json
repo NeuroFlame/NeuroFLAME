@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "preprocessId": "vbm-pre",
+  "createdAt": "2026-02-19T01:25:17.478Z",
+  "sources": {
+    "covariatesCsv": "/Users/ross/coins/NeuroFLAME/nfPreprocessor/test/data/covariates.csv",
+    "inputRoot": "/Users/ross/coins/NeuroFLAME/nfPreprocessor/test/data"
+  },
+  "input": {
+    "standalone": true,
+    "options_smoothing_x_mm": 10,
+    "options_smoothing_y_mm": 10,
+    "options_smoothing_z_mm": 10,
+    "options_reorient_params_x_mm": 5,
+    "options_reorient_params_y_mm": 5,
+    "options_reorient_params_z_mm": 5,
+    "options_reorient_params_pitch": 5,
+    "options_reorient_params_roll": 5,
+    "options_reorient_params_yaw": 5,
+    "options_BIAS_REGULARISATION": 0.0001,
+    "options_FWHM_GAUSSIAN_SMOOTH_BIAS": 60,
+    "options_affine_regularization": "mni",
+    "options_warping_regularization": [
+      0,
+      0.001,
+      0.5,
+      0.05,
+      0.2
+    ],
+    "options_sampling_distance": 3,
+    "options_mrf_weighting": 1,
+    "options_cleanup": 1,
+    "options_smoothing_implicit_masking": true,
+    "regression_resample_voxel_size": 4,
+    "regression_file_input_type": "swc1",
+    "covariates": {
+      "A00063430.nii.gz": {
+        "isControl": "True",
+        "age": "28",
+        "sex": "M",
+        "site": "HGM"
+      }
+    }
+  }
+}
