@@ -1,0 +1,32 @@
+{
+  "name": "nfpreprocessor",
+  "version": "0.1.0",
+  "description": "NeuroFLAME legacy preprocessing runner",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "nfpreprocessor": "./bin/nfpreprocessor.js"
+  },
+  "scripts": {
+    "start": "node ./bin/nfpreprocessor.js",
+    "build:standalone": "pkg . --out-path dist"
+  },
+  "pkg": {
+    "assets": [
+      "specs/*.json"
+    ],
+    "targets": [
+      "node18-macos-arm64",
+      "node18-macos-x64",
+      "node18-linux-x64",
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
