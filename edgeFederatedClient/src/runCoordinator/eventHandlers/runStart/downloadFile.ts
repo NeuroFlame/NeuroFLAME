@@ -3,6 +3,22 @@ import fs from 'fs'
 import path from 'path'
 import { logger } from '../../../logger.js'
 
+
+function normalizeUrlForDocker(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl)
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1') {
+      // In Docker on macOS, localhost from inside a container points to the container itself.
+      // host.docker.internal resolves to the host network interface.
+      u.hostname = 'host.docker.internal'
+      return u.toString()
+    }
+    return rawUrl
+  } catch {
+    return rawUrl
+  }
+}
+
 interface DownloadFileParams {
   url: string;
   accessToken: string;
@@ -16,12 +32,14 @@ export default async function downloadFile({
   pathOutputDir,
   outputFilename,
 }: DownloadFileParams): Promise<void> {
+  let normalizedUrl = url;
   try {
-    logger.info(`Attempting to download from URL: ${url}`)
+    normalizedUrl = normalizeUrlForDocker(url)
+    logger.info(`Attempting to download from URL: ${normalizedUrl}`)
 
     const response = await axios({
       method: 'POST',
-      url,
+      url: normalizedUrl,
       headers: {
         'x-access-token': accessToken,
       },
@@ -72,7 +90,8 @@ export default async function downloadFile({
     if (axios.isAxiosError(error)) {
       logger.error(`Failed to download file: ${error.message}`, JSON.stringify({
         message: error.message,
-        url: error.config?.url,
+        url: normalizedUrl,
+        originalUrl: error.config?.url,
         method: error.config?.method,
         statusCode: error.response?.status,
         statusText: error.response?.statusText,

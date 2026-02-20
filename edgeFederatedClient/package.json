@@ -32,9 +32,8 @@
     "@types/cors": "^2.8.17",
     "@types/dockerode": "^3.3.28",
     "@types/jsonwebtoken": "^8.5.9",
-    "@types/node": "^24.2.0",
+    "@types/node": "^18.19.130",
     "@types/unzipper": "^0.10.9",
-    "@types/ws": "^8.5.10",
     "typescript": "^5.9.2"
   }
 }

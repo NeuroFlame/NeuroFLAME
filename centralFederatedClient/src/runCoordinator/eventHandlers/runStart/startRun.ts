@@ -1,12 +1,14 @@
 import path from 'path'
+import fs from 'fs'
 import { provisionRun } from './provisionRun/provisionRun.js'
 import { reservePort } from './portManagement.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import uploadToFileServer from './uploadToFileServer.js'
+import { uploadResultsToFileServer } from './uploadResultsToFileServer.js'
 import reportRunError from '../../report/reportRunError.js'
 import reportRunComplete from '../../report/reportRunComplete.js'
 import { logger } from '../../../logger.js'
-import { BASE_DIR, FQDN, HOSTING_PORT_END, HOSTING_PORT_START } from '../../../config.js'
+import { BASE_DIR, FQDN, HOSTING_PORT_END, HOSTING_PORT_START, FILE_SERVER_URL, ACCESS_TOKEN } from '../../../config.js'
 
 export type MemberRole = 'contributor' | 'observer'
 export type UserRolesMap = Record<string, MemberRole>
@@ -32,6 +34,7 @@ export default async function startRun({
 
   const pathRun = path.join(BASE_DIR, 'runs', consortiumId, runId)
   const pathCentralNodeRunKit = path.join(pathRun, 'runKits', 'centralNode')
+  const pathRunOutput = path.join(pathRun, 'output')
   const hostingPortRange = {
     start: HOSTING_PORT_START,
     end: HOSTING_PORT_END,
@@ -63,6 +66,9 @@ export default async function startRun({
       FQDN,
     })
 
+    // Ensure output directory exists (mounted into /workspace/output)
+    await fs.promises.mkdir(pathRunOutput, { recursive: true })
+
     // Upload run data to the file server
     logger.info(`Uploading runKits for run ${runId}`)
     await uploadToFileServer({
@@ -84,13 +90,30 @@ export default async function startRun({
           hostDirectory: pathCentralNodeRunKit,
           containerDirectory: '/workspace/runKit/',
         },
+        {
+          hostDirectory: pathRunOutput,
+          containerDirectory: '/workspace/output',
+        },
       ],
       portBindings: [
         { hostPort: fedLearnPort, containerPort: fedLearnPort },
         { hostPort: adminPort, containerPort: adminPort },
       ],
       commandsToRun: ['python', '/workspace/system/entry_central.py'],
-      onContainerExitSuccess: () => reportRunComplete({ runId }),
+      env: {
+        NEUROFLAME_FILESERVER_URL: FILE_SERVER_URL,
+        NEUROFLAME_CONSORTIUM_ID: consortiumId,
+        NEUROFLAME_RUN_ID: runId,
+        NEUROFLAME_ACCESS_TOKEN: ACCESS_TOKEN,
+      },
+      onContainerExitSuccess: async () => {
+        try {
+          await uploadResultsToFileServer({ consortiumId, runId, pathRunOutput })
+        } catch (e) {
+          logger.error('Failed to upload results to fileServer', { error: e, runId, consortiumId })
+        }
+        return reportRunComplete({ runId })
+      },
       onContainerExitError: (_, error) =>
         reportRunError({ runId, errorMessage: error }),
     })

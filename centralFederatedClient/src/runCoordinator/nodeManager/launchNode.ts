@@ -14,6 +14,7 @@ interface LaunchNodeArgs {
     containerPort: number
   }>
   commandsToRun: string[]
+  env?: Record<string, string>
   onContainerExitSuccess?: (containerId: string) => void
   onContainerExitError?: (containerId: string, error: string) => void
 }
@@ -32,6 +33,7 @@ export async function launchNode({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  env,
   onContainerExitSuccess,
   onContainerExitError,
 }: LaunchNodeArgs) {
@@ -45,6 +47,7 @@ export async function launchNode({
     directoriesToMount,
     portBindings,
     commandsToRun,
+  env,
     onContainerExitSuccess,
     onContainerExitError,
   })
@@ -55,6 +58,7 @@ const launchDockerNode = async ({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  env,
   onContainerExitSuccess,
   onContainerExitError,
 }: Omit<LaunchNodeArgs, 'containerService'>) => {
@@ -82,6 +86,7 @@ const launchDockerNode = async ({
     const container = await docker.createContainer({
       Image: imageName,
       Cmd: commandsToRun,
+      Env: env ? Object.entries(env).map(([k, v]) => `${k}=${v}`) : undefined,
       ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: binds,

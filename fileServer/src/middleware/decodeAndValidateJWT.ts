@@ -14,7 +14,13 @@ const decodeAndValidateJWT = async (
   try {
     const response = await axios.post(AUTHENTICATION_URL, { token })
     if (response.status === 200 && response.data?.decodedAccessToken) {
-      res.locals.tokenPayload = response.data.decodedAccessToken
+      const decoded = response.data.decodedAccessToken
+
+      // Make decoded token available in BOTH places:
+      //  - res.locals.tokenPayload: used by existing middleware (e.g. isCentralUser)
+      //  - req.decodedToken: used by some routes
+      res.locals.tokenPayload = decoded
+      ;(req as any).decodedToken = decoded
       next()
     } else {
       res.status(401).send('Invalid token')

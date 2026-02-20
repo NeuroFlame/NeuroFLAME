@@ -3,11 +3,14 @@
 import { getConfig } from '../../../config/config.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
+import { launchObserverClientLocal } from '../../nodeManager/launchObserverClientLocal.js'
 import path from 'path'
 import { unzipFile } from './unzipFile.js'
-import fs from 'fs/promises'
+import * as fs from 'node:fs/promises'
 import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
+import inMemoryStore from '../../../inMemoryStore.js'
+import { ensureObserverRuntime } from '../../../runtime/runtimeManager.js'
 
 export const RUN_START_SUBSCRIPTION = `
   subscription runStartSubscription {
@@ -24,6 +27,83 @@ export const RUN_START_SUBSCRIPTION = `
 type ParticipantRole = 'contributor' | 'observer' | 'unknown'
 
 const RUNSTART_DEBUG = process.env.NEUROFLAME_RUNSTART_DEBUG === 'true'
+
+const RESULTS_DEBUG = (process.env.NEUROFLAME_RESULTS_DEBUG || '').toLowerCase() === 'true'
+const RESULTS_MAX_ATTEMPTS = Number(process.env.NEUROFLAME_RESULTS_MAX_ATTEMPTS || '30')
+const RESULTS_RETRY_DELAY_MS = Number(process.env.NEUROFLAME_RESULTS_RETRY_DELAY_MS || '2000')
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function deriveFileServerOrigin(downloadUrl: string): string {
+  try {
+    const u = new URL(downloadUrl)
+    // If server told us localhost, it won't work from inside Docker; use host.docker.internal.
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1') {
+      u.hostname = 'host.docker.internal'
+    }
+    return u.origin
+  } catch {
+    // Fallback: assume localhost on host
+    return 'http://host.docker.internal:3002'
+  }
+}
+
+async function downloadAndUnzipResults({
+  consortiumId,
+  runId,
+  downloadUrl,
+  runRootDir,
+}: {
+  consortiumId: string
+  runId: string
+  downloadUrl: string
+  runRootDir: string
+}): Promise<void> {
+  const accessToken = inMemoryStore.get('accessToken')
+  if (!accessToken) {
+    throw new Error('Missing accessToken in inMemoryStore; cannot download results')
+  }
+
+  const origin = deriveFileServerOrigin(downloadUrl)
+  const resultsUrl = `${origin}/download_results/${consortiumId}/${runId}`
+
+  const resultsDir = path.join(runRootDir, 'results')
+  const zipName = 'results.zip'
+
+  for (let attempt = 1; attempt <= RESULTS_MAX_ATTEMPTS; attempt++) {
+    logger.info(`[receive_results] downloading results.zip (attempt ${attempt}/${RESULTS_MAX_ATTEMPTS})`)
+    try {
+      await downloadFile({
+        url: resultsUrl,
+        accessToken,
+        pathOutputDir: resultsDir,
+        outputFilename: zipName,
+      })
+
+      await unzipFile({ directory: resultsDir, fileName: zipName })
+
+      // best-effort cleanup
+      try {
+        await fs.unlink(path.join(resultsDir, zipName))
+      } catch {}
+
+      logger.info(`[receive_results] results downloaded + unzipped into ${resultsDir}`)
+      return
+    } catch (err) {
+      const msg = (err as Error)?.message || String(err)
+      if (RESULTS_DEBUG) {
+        logger.error('[receive_results] attempt failed', { attempt, resultsUrl, msg })
+      }
+      if (attempt < RESULTS_MAX_ATTEMPTS) {
+        await sleep(RESULTS_RETRY_DELAY_MS)
+        continue
+      }
+      throw err
+    }
+  }
+}
 
 async function pathExists(p: string): Promise<boolean> {
   try {
@@ -43,7 +123,6 @@ async function safeReadFile(p: string): Promise<string | null> {
 }
 
 async function listTree(root: string, maxDepth = 4): Promise<string[]> {
-  // Simple bounded tree listing for debugging.
   const out: string[] = []
   async function walk(dir: string, depth: number) {
     if (depth > maxDepth) return
@@ -278,7 +357,33 @@ export const runStartHandler = {
         }
       }
 
-      // Launch container
+      // OBSERVER: launch local NVFlare client (no Docker) and pass results download env
+
+      if (effectiveRole === 'observer') {
+        const rt = await ensureObserverRuntime(pathBaseDirectory)
+
+        logger.info('[runStart] Observer runtime python', { python: rt.pythonPath })
+        process.env.NEUROFLAME_PYTHON = rt.pythonPath
+
+        // downloadUrl is the kit.zip URL; origin should be your fileServer origin
+        const fileServerUrl = new URL(downloadUrl).origin
+
+        const { pid } = await launchObserverClientLocal({
+          runKitPath,
+          consortiumId,
+          runId,
+          role: effectiveRole,
+          fileServerUrl,
+          accessToken: downloadToken,
+          pythonPath: rt.pythonPath, // explicit is best
+        })
+
+        logger.info('[runStart] Observer started (no Docker)', { pid, fileServerUrl })
+        return
+      }
+
+
+      // CONTRIBUTOR: Launch container (existing behavior)
       await launchNode({
         containerService,
         imageName,
@@ -307,8 +412,19 @@ export const runStartHandler = {
             throw err
           }
         },
-        onContainerExitSuccess(containerId) {
+        onContainerExitSuccess: async (containerId) => {
           logger.info(`Container exited successfully: ${containerId}`)
+          try {
+            const runRootDir = runPath
+            await downloadAndUnzipResults({
+              consortiumId: data.runStartEdge.consortiumId,
+              runId: data.runStartEdge.runId,
+              downloadUrl: data.runStartEdge.downloadUrl,
+              runRootDir,
+            })
+          } catch (e) {
+            logger.error('[receive_results] failed', { error: (e as Error).message })
+          }
         },
       })
     } catch (error) {
