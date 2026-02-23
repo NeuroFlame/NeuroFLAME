@@ -1,4 +1,8 @@
-import { VAULT_BASE_DIR, VAULT_DATASET_DIR } from '../../../config.js'
+import {
+  VAULT_BASE_DIR,
+  VAULT_CONTAINER_SERVICE,
+  VAULT_DATASET_DIR,
+} from '../../../config.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import path from 'path'
@@ -89,7 +93,7 @@ export const runStartHandler = {
 
       // Launch the node
       await launchNode({
-        containerService: 'docker',
+        containerService: VAULT_CONTAINER_SERVICE,
         imageName,
         runId,
         consortiumId,
