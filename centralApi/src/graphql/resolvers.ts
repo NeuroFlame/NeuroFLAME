@@ -1325,6 +1325,39 @@ export default {
 
       return true
     },
+    runDelete: async (
+      _: unknown,
+      { runId }: { runId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const run = await Run.findById(runId)
+        .populate('consortium', 'leader')
+
+      if (!run) {
+        throw new Error('Run not found')
+      }
+
+      if ((run as any).consortium.leader.toString() !== userId) {
+        throw new Error('You do not have permission to delete this run')
+      }
+
+      if (run.status !== 'Complete') {
+        throw new Error('You cannot delete uncompleted run')
+      }
+
+      await Run.findByIdAndDelete(runId)
+
+      pubsub.publish('RUN_DETAILS_CHANGED', {
+        runId,
+      })
+
+      return true
+    },
   },
 
   Subscription: {

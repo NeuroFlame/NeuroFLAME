@@ -163,6 +163,7 @@ type Mutation {
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!
   requestPasswordReset(username: String!): Boolean!
   resetPassword(token: String!, newPassword: String!): LoginOutput!
+  runDelete(runId: String!): Boolean!
 }
 
 type Subscription {
