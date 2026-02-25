@@ -226,10 +226,18 @@ export default {
 
       try {
         const run: IRun = await Run.findById(runId)
-          .populate('consortium', 'title')
+          .populate({
+            path: 'consortium',
+            select: 'title leader members activeMembers readyMembers',
+            populate: [
+              { path: 'leader', select: 'id username' },
+              { path: 'activeMembers', select: 'id username' },
+              { path: 'readyMembers', select: 'id username' },
+            ],
+          })
           .populate({
             path: 'members',
-            select: 'id username',
+            select: 'id username vault',
             model: User,
           })
           .populate({
@@ -257,16 +265,37 @@ export default {
           throw new Error('Consortium data is missing or incomplete')
         }
 
+        const transformUser = (user: any): PublicUser => ({
+          id: user._id.toString(),
+          username: user.username,
+        })
+
+        const consortium = run.consortium as unknown as {
+          _id: any
+          title: string
+          leader: any
+          members: any[]
+          activeMembers: any[]
+          readyMembers: any[]
+        }
+
         return {
           runId: run._id.toString(),
-          consortiumId: run.consortium._id.toString(),
-          consortiumTitle: run.consortium.title as string,
+          consortium: {
+            id: consortium._id.toString(),
+            title: consortium.title as string,
+            leader: consortium.leader ? transformUser(consortium.leader) : null,
+            members: (consortium.members || []).map(transformUser),
+            activeMembers: (consortium.activeMembers || []).map(transformUser),
+            readyMembers: (consortium.readyMembers || []).map(transformUser),
+          },
           status: run.status,
           lastUpdated: run.lastUpdated,
           createdAt: run.createdAt,
           members: run.members.map((member: any) => ({
             id: member._id.toString(),
             username: member.username,
+            vault: member.vault,
           })),
           studyConfiguration: {
             consortiumLeaderNotes: run.studyConfiguration.consortiumLeaderNotes,
@@ -1292,6 +1321,39 @@ export default {
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
+      })
+
+      return true
+    },
+    runDelete: async (
+      _: unknown,
+      { runId }: { runId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const run = await Run.findById(runId)
+        .populate('consortium', 'leader')
+
+      if (!run) {
+        throw new Error('Run not found')
+      }
+
+      if ((run as any).consortium.leader.toString() !== userId) {
+        throw new Error('You do not have permission to delete this run')
+      }
+
+      if (run.status !== 'Complete') {
+        throw new Error('You cannot delete uncompleted run')
+      }
+
+      await Run.findByIdAndDelete(runId)
+
+      pubsub.publish('RUN_DETAILS_CHANGED', {
+        runId,
       })
 
       return true

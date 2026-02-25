@@ -14,7 +14,7 @@ type ConsortiumListItem {
   title: String!
   description: String!
   leader: PublicUser!
-  members: [PublicUser!]!  
+  members: [PublicUser!]!
 }
 
 type ComputationListItem {
@@ -30,7 +30,7 @@ input StartRunInput {
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
-  userIds: [String!]!  
+  userIds: [String!]!
   consortiumId: String!
   computationParameters: String!
 }
@@ -67,9 +67,9 @@ type ConsortiumDetails {
   title: String!
   description: String!
   leader: PublicUser!
-  members: [PublicUser!]!  
-  activeMembers: [PublicUser!]!  
-  readyMembers: [PublicUser!]!  
+  members: [PublicUser!]!
+  activeMembers: [PublicUser!]!
+  readyMembers: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
 }
 
@@ -77,7 +77,7 @@ type LoginOutput {
   accessToken: String!
   userId: String!
   username: String!
-  roles: [String!]!  
+  roles: [String!]!
 }
 
 type RunEventPayload {
@@ -103,26 +103,34 @@ type RunError {
   message: String!
 }
 
+type RunDetailConsortium {
+  id: String!
+  title: String!
+  leader: PublicUser!
+  members: [PublicUser!]!
+  activeMembers: [PublicUser!]!
+  readyMembers: [PublicUser!]!
+}
+
 type RunDetails {
   runId: String!
-  consortiumId: String!
-  consortiumTitle: String!
+  consortium: RunDetailConsortium!
   status: String!
   lastUpdated: String!
   createdAt: String!
-  members: [PublicUser!]!  
+  members: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
-  runErrors: [RunError!]!  
+  runErrors: [RunError!]!
 }
 
 type Query {
-  getConsortiumList: [ConsortiumListItem!]!  
-  getComputationList: [ComputationListItem!]!  
+  getConsortiumList: [ConsortiumListItem!]!
+  getComputationList: [ComputationListItem!]!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!
-  getRunList(consortiumId: String): [RunListItem!]!  
+  getRunList(consortiumId: String): [RunListItem!]!
   getRunDetails(runId: String!): RunDetails!
-  getVaultUserList: [PublicUser!]!  
+  getVaultUserList: [PublicUser!]!
 }
 
 type Mutation {
@@ -155,6 +163,7 @@ type Mutation {
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!
   requestPasswordReset(username: String!): Boolean!
   resetPassword(token: String!, newPassword: String!): LoginOutput!
+  runDelete(runId: String!): Boolean!
 }
 
 type Subscription {

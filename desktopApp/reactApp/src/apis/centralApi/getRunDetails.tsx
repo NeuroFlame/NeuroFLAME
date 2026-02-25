@@ -6,14 +6,32 @@ const GET_RUN_DETAILS = gql`
   query GetRunDetails($runId: String!) {
     getRunDetails(runId: $runId) {
       runId
-      consortiumId
-      consortiumTitle
+      consortium {
+        id
+        title
+        leader {
+          id
+          username
+        }
+        activeMembers {
+          id
+          username
+        }
+        readyMembers {
+          id
+          username
+        }
+      }
       createdAt
       lastUpdated
       status
       members {
         id
         username
+        vault {
+          name
+          description
+        }
       }
       runErrors {
         message

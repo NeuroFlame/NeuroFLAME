@@ -86,6 +86,7 @@ export type Mutation = {
   studySetParameters: Scalars['Boolean']['output'];
   userChangePassword: Scalars['Boolean']['output'];
   userCreate: LoginOutput;
+  runDelete: Scalars['Boolean']['output'];
 }
 
 export type MutationAdminChangeUserPasswordArgs = {
@@ -223,6 +224,10 @@ export type MutationUserCreateArgs = {
   username: Scalars['String']['input'];
 }
 
+export type MutationRunDeleteArgs = {
+  runId: Scalars['String']['input'];
+}
+
 export type PublicUser = {
   __typename?: 'PublicUser';
   id: Scalars['String']['output'];
@@ -257,10 +262,19 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 }
 
+export type RunDetailConsortium = {
+  __typename?: 'RunDetailConsortium';
+  id: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+  leader: PublicUser;
+  members: Array<PublicUser>;
+  activeMembers: Array<PublicUser>;
+  readyMembers: Array<PublicUser>;
+}
+
 export type RunDetails = {
   __typename?: 'RunDetails';
-  consortiumId: Scalars['String']['output'];
-  consortiumTitle: Scalars['String']['output'];
+  consortium: RunDetailConsortium;
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
   members: Array<PublicUser>;
