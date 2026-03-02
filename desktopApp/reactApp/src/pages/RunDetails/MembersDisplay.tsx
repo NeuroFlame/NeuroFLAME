@@ -1,16 +1,25 @@
 import { Box, Typography } from '@mui/material'
-import MemberAvatar from './MemberAvatar'
-
-interface Member {
-  id: string; // or number, depending on your data
-  username: string;
-}
+import { useMembers } from './useMembers'
+import MembersListDisplay from '../ConsortiumDetails/Members/MembersListDisplay'
+import { PublicUser } from '../../apis/centralApi/generated/graphql'
 
 interface MembersDisplayProps {
-  members: Member[];
+  members: PublicUser[];
+  activeMembers: PublicUser[];
+  readyMembers: PublicUser[];
+  leader: PublicUser;
 }
 
-export function MembersDisplay({ members }: MembersDisplayProps) {
+export function MembersDisplay({
+  members,
+  activeMembers,
+  readyMembers,
+  leader,
+}: MembersDisplayProps) {
+  const {
+    memberList,
+  } = useMembers({ members, activeMembers, readyMembers, leader })
+
   return (
     <Box
       p={2}
@@ -22,15 +31,7 @@ export function MembersDisplay({ members }: MembersDisplayProps) {
           Members
         </Typography>
         <Box>
-          {/* Display Members */}
-          {members.map(({ id, username }, index) => (
-            <MemberAvatar
-              key={`${id}-${index}`}
-              id={id}
-              username={username}
-              index={index}
-            />
-          ))}
+          <MembersListDisplay memberList={memberList} />
         </Box>
       </Box>
     </Box>

@@ -83,6 +83,7 @@ export type Mutation = {
   reportRunStatus: Scalars['Boolean']['output'];
   requestPasswordReset: Scalars['Boolean']['output'];
   resetPassword: LoginOutput;
+  runDelete: Scalars['Boolean']['output'];
   startRun: StartRunOutput;
   studySetComputation: Scalars['Boolean']['output'];
   studySetNotes: Scalars['Boolean']['output'];
@@ -220,6 +221,11 @@ export type MutationResetPasswordArgs = {
 };
 
 
+export type MutationRunDeleteArgs = {
+  runId: Scalars['String']['input'];
+};
+
+
 export type MutationStartRunArgs = {
   input: StartRunInput;
 };
@@ -291,10 +297,19 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type RunDetailConsortium = {
+  __typename?: 'RunDetailConsortium';
+  activeMembers: Array<PublicUser>;
+  id: Scalars['String']['output'];
+  leader: PublicUser;
+  members: Array<PublicUser>;
+  readyMembers: Array<PublicUser>;
+  title: Scalars['String']['output'];
+};
+
 export type RunDetails = {
   __typename?: 'RunDetails';
-  consortiumId: Scalars['String']['output'];
-  consortiumTitle: Scalars['String']['output'];
+  consortium: RunDetailConsortium;
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
   members: Array<PublicUser>;
