@@ -1,0 +1,81 @@
+# systemd service file for NeuroFLAME Vault Federated Client
+#
+# Installation:
+#   1. Copy this file to /etc/systemd/system/neuroflame-vault.service
+#   2. Create environment file at /etc/neuroflame/vault.env (see below)
+#   3. Create the vault user: sudo useradd -r -s /bin/false neuroflame
+#   4. Set permissions on directories
+#   5. Enable and start:
+#      sudo systemctl daemon-reload
+#      sudo systemctl enable neuroflame-vault
+#      sudo systemctl start neuroflame-vault
+#
+# /etc/neuroflame/vault.env should contain:
+#   VAULT_HTTP_URL=https://your-central-api.example.com/graphql
+#   VAULT_WS_URL=wss://your-central-api.example.com/graphql
+#   VAULT_ACCESS_TOKEN=your-jwt-token
+#   VAULT_BASE_DIR=/var/lib/neuroflame/vault/work
+#   VAULT_DATASET_DIR=/path/to/your/dataset
+#   VAULT_LOG_PATH=/var/log/neuroflame/vault
+#
+# Logs: journalctl -u neuroflame-vault -f
+# Status: systemctl status neuroflame-vault
+
+[Unit]
+Description=NeuroFLAME Vault Federated Client
+Documentation=https://github.com/NeuroFlame/NeuroFLAME
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+
+# Run as dedicated user (must have docker group membership)
+User=neuroflame
+Group=docker
+
+# Environment configuration
+EnvironmentFile=/etc/neuroflame/vault.env
+
+# Working directory
+WorkingDirectory=/opt/neuroflame/vaultFederatedClient
+
+# Start command
+ExecStart=/usr/bin/node /opt/neuroflame/vaultFederatedClient/dist/index.js
+
+# Restart configuration - always restart unless explicitly stopped
+Restart=always
+RestartSec=10
+
+# Give the service time to start before considering it failed
+TimeoutStartSec=30
+
+# Give running computations time to complete on stop (matches our 60s timeout)
+TimeoutStopSec=90
+
+# Stop signal - sends SIGTERM first, then SIGKILL after TimeoutStopSec
+KillSignal=SIGTERM
+KillMode=mixed
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+# Allow writing to specific directories
+ReadWritePaths=/var/lib/neuroflame/vault
+ReadWritePaths=/var/log/neuroflame/vault
+
+# Resource limits
+MemoryMax=2G
+TasksMax=100
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neuroflame-vault
+
+[Install]
+WantedBy=multi-user.target
