@@ -775,7 +775,6 @@ export default {
         activeMembers: [context.userId],
         readyMembers: [],
         studyConfiguration: {
-          consortiumLeaderNotes: '',
           computationParameters: '',
           computation: null,
         },

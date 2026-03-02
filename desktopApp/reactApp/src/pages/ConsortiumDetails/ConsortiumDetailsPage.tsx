@@ -95,6 +95,7 @@ export function ConsortiumDetailsPage() {
   const hasComputation = !!studyConfiguration?.computation
   // NOTE: using the misspelled key per your generated types
   const supportsLocal = !!studyConfiguration?.computation?.hasLocalParameters
+  const leaderNotes = studyConfiguration?.consortiumLeaderNotes
 
   // Tabs only used when supportsLocal === true
   const [tab, setTab] = useState<'global' | 'local'>('global')
@@ -134,9 +135,9 @@ export function ConsortiumDetailsPage() {
             leader={leader}
           />
 
-          {studyConfiguration && (
+          {(isLeader || (leaderNotes !== undefined && leaderNotes !== null)) && (
             <ConsortiumLeaderNotes
-              consortiumLeaderNotes={studyConfiguration?.consortiumLeaderNotes}
+              consortiumLeaderNotes={leaderNotes || ''}
               showAccordion
             />
           )}
