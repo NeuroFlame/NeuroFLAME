@@ -13,6 +13,7 @@ export const resetPassword = async (
         accessToken
         userId
         username
+        email
         roles
       }
     }

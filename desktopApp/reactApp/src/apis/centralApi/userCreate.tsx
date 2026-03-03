@@ -8,11 +8,12 @@ export const userCreate = async (
   input: MutationUserCreateArgs,
 ): Promise<LoginOutput> => {
   const USER_CREATE_MUTATION = gql`
-    mutation UserCreate($username: String!, $password: String!) {
-      userCreate(username: $username, password: $password) {
+    mutation UserCreate($username: String!, $email: String!, $password: String!) {
+      userCreate(username: $username, email: $email, password: $password) {
         accessToken
         userId
         username
+        email
         roles
       }
     }

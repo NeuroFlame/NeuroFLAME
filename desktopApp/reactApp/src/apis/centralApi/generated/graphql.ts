@@ -58,6 +58,7 @@ export type LoginOutput = {
   roles: Array<Scalars['String']['output']>;
   userId: Scalars['String']['output'];
   username: Scalars['String']['output'];
+  email: Scalars['String']['output'];
 }
 
 export type Mutation = {
@@ -221,12 +222,14 @@ export type MutationUserChangePasswordArgs = {
 export type MutationUserCreateArgs = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+  email: Scalars['String']['input'];
 }
 
 export type PublicUser = {
   __typename?: 'PublicUser';
   id: Scalars['String']['output'];
   username: Scalars['String']['output'];
+  email: Scalars['String']['output'];
   vault?: Maybe<Vault>;
 }
 
