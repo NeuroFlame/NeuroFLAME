@@ -117,6 +117,12 @@ type RunDetails {
   runErrors: [RunError!]!
 }
 
+type InviteInfo {
+  consortiumName: String!
+  leaderName: String!
+  isExpired: Boolean!
+}
+
 type Query {
   getConsortiumList: [ConsortiumListItem!]!
   getComputationList: [ComputationListItem!]!
@@ -125,6 +131,7 @@ type Query {
   getRunList(consortiumId: String): [RunListItem!]!
   getRunDetails(runId: String!): RunDetails!
   getVaultUserList: [PublicUser!]!
+  getInviteInfo(inviteToken: String!): InviteInfo!
 }
 
 type Mutation {
@@ -146,6 +153,7 @@ type Mutation {
   consortiumLeave(consortiumId: String!): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
+  consortiumInvite(consortiumId: String!, email: String!): Boolean!
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, email: String!, password: String!): LoginOutput!

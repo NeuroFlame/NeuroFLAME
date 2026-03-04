@@ -6,6 +6,7 @@ module.exports = [
     ignores: [
       ...neostandard.resolveIgnoresFromGitignore(),
       '**/*/*.cjs',
+      '**/generated/*.*',
     ],
     semi: false,
   }),
