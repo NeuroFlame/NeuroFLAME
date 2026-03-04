@@ -52,9 +52,17 @@ export type ConsortiumListItem = {
   title: Scalars['String']['output'];
 };
 
+export type InviteInfo = {
+  __typename?: 'InviteInfo';
+  consortiumName: Scalars['String']['output'];
+  isExpired: Scalars['Boolean']['output'];
+  leaderName: Scalars['String']['output'];
+};
+
 export type LoginOutput = {
   __typename?: 'LoginOutput';
   accessToken: Scalars['String']['output'];
+  email: Scalars['String']['output'];
   roles: Array<Scalars['String']['output']>;
   userId: Scalars['String']['output'];
   username: Scalars['String']['output'];
@@ -69,6 +77,7 @@ export type Mutation = {
   consortiumCreate: Scalars['String']['output'];
   consortiumDelete: Scalars['Boolean']['output'];
   consortiumEdit: Scalars['Boolean']['output'];
+  consortiumInvite: Scalars['Boolean']['output'];
   consortiumJoin: Scalars['Boolean']['output'];
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
@@ -138,6 +147,12 @@ export type MutationConsortiumEditArgs = {
   consortiumId: Scalars['String']['input'];
   description: Scalars['String']['input'];
   title: Scalars['String']['input'];
+};
+
+
+export type MutationConsortiumInviteArgs = {
+  consortiumId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
 };
 
 
@@ -249,12 +264,14 @@ export type MutationUserChangePasswordArgs = {
 
 
 export type MutationUserCreateArgs = {
+  email: Scalars['String']['input'];
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
 };
 
 export type PublicUser = {
   __typename?: 'PublicUser';
+  email: Scalars['String']['output'];
   id: Scalars['String']['output'];
   username: Scalars['String']['output'];
   vault?: Maybe<Vault>;
@@ -266,6 +283,7 @@ export type Query = {
   getComputationList: Array<ComputationListItem>;
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
+  getInviteInfo: InviteInfo;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
   getVaultUserList: Array<PublicUser>;
@@ -279,6 +297,11 @@ export type QueryGetComputationDetailsArgs = {
 
 export type QueryGetConsortiumDetailsArgs = {
   consortiumId: Scalars['String']['input'];
+};
+
+
+export type QueryGetInviteInfoArgs = {
+  inviteToken: Scalars['String']['input'];
 };
 
 

@@ -23,6 +23,7 @@ import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
 import { consortiumDelete } from './consortiumDelete'
 import { consortiumEdit } from './consortiumEdit'
+import { consortiumInvite } from './consortiumInvite'
 import { consortiumJoin } from './consortiumJoin'
 import { consortiumLeave } from './consortiumLeave'
 import { userChangePassword } from './userChangePassword'
@@ -40,6 +41,7 @@ import {
   MutationConsortiumCreateArgs,
   MutationConsortiumEditArgs,
   MutationConsortiumDeleteArgs,
+  MutationConsortiumInviteArgs,
   MutationConsortiumJoinArgs,
   MutationConsortiumLeaveArgs,
   MutationUserChangePasswordArgs,
@@ -91,6 +93,8 @@ export const useCentralApi = () => {
       consortiumSetMemberActive(centralApiApolloClient, input),
     consortiumSetMemberReady: (input: MutationConsortiumSetMemberReadyArgs) =>
       consortiumSetMemberReady(centralApiApolloClient, input),
+    consortiumInvite: (input: MutationConsortiumInviteArgs) =>
+      consortiumInvite(centralApiApolloClient, input),
     startRun: (input: MutationStartRunArgs) =>
       startRun(centralApiApolloClient, input),
     studySetNotes: (input: MutationStudySetNotesArgs) =>

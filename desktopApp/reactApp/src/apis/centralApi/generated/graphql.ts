@@ -58,6 +58,7 @@ export type LoginOutput = {
   roles: Array<Scalars['String']['output']>;
   userId: Scalars['String']['output'];
   username: Scalars['String']['output'];
+  email: Scalars['String']['output'];
 }
 
 export type Mutation = {
@@ -68,6 +69,7 @@ export type Mutation = {
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
   consortiumEdit: Scalars['Boolean']['output'];
+  consortiumInvite: Scalars['Boolean']['output'];
   consortiumJoin: Scalars['Boolean']['output'];
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
@@ -124,6 +126,11 @@ export type MutationConsortiumEditArgs = {
   consortiumId: Scalars['String']['input'];
   description: Scalars['String']['input'];
   title: Scalars['String']['input'];
+}
+
+export type MutationConsortiumInviteArgs = {
+  consortiumId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
 }
 
 export type MutationConsortiumJoinArgs = {
@@ -221,12 +228,14 @@ export type MutationUserChangePasswordArgs = {
 export type MutationUserCreateArgs = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+  email: Scalars['String']['input'];
 }
 
 export type PublicUser = {
   __typename?: 'PublicUser';
   id: Scalars['String']['output'];
   username: Scalars['String']['output'];
+  email: Scalars['String']['output'];
   vault?: Maybe<Vault>;
 }
 

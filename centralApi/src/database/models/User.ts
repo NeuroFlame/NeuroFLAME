@@ -9,6 +9,7 @@ export interface IVault {
 // Define an interface for the User document
 export interface IUser extends Document {
   username: string
+  email: string
   hash: string // Typically used to store the hashed password
   roles: string[] // An array of roles
   vault?: IVault // Optional embedded Vault object
@@ -25,6 +26,7 @@ const vaultSchema: Schema = new Schema({
 // Create the User schema
 const userSchema: Schema = new Schema({
   username: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
   hash: { type: String, required: true }, // Storing password hashes, not plain passwords
   roles: { type: [String], required: true, default: ['user'] }, // Default role is 'user'
   vault: { type: vaultSchema, required: false }, // Optional embedded Vault

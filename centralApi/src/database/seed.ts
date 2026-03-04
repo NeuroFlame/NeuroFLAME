@@ -34,33 +34,39 @@ const users = [
   {
     _id: predefinedIds.user1Id,
     username: 'user1',
+    email: 'user1@email.com',
     hash: await bcrypt.hash('password1', saltRounds),
   },
   {
     _id: predefinedIds.user2Id,
     username: 'user2',
+    email: 'user2@email.com',
     hash: await bcrypt.hash('password2', saltRounds),
   },
   {
     _id: predefinedIds.user3Id,
     username: 'user3',
+    email: 'user3@email.com',
     hash: await bcrypt.hash('password3', saltRounds),
   },
   {
     _id: predefinedIds.user4Id,
     username: 'user4',
+    email: 'user1@emai4.com',
     hash: await bcrypt.hash('password4', saltRounds),
     roles: ['admin'],
   },
   {
     _id: predefinedIds.centralUserId,
     username: 'centralUser',
+    email: 'centraluser@email.com',
     hash: await bcrypt.hash('centralPassword', saltRounds),
     roles: ['central'],
   },
   {
     _id: predefinedIds.user5IdVault,
     username: 'CobreFS',
+    email: 'cobrefs@email.com',
     hash: await bcrypt.hash('vaultPassword1', saltRounds),
     roles: ['vault'],
     vault: {

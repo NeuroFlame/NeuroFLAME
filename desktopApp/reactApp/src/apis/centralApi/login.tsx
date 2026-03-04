@@ -11,6 +11,7 @@ export const login = async (
         accessToken
         userId
         username
+        email
         roles
       }
     }
