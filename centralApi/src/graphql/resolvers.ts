@@ -1209,10 +1209,11 @@ export default {
         throw new Error('User is already a member of the consortium')
       }
 
-      // User is already invited
-      const isAlreadyInvited = await Invite.exists({ email, consortium: consortiumId })
-      if (isAlreadyInvited) {
-        throw new Error('User is already invited to this consortium')
+      // Set current time on createdAt if invite already exists
+      const invite = await Invite.findOne({ email, consortium: consortiumId })
+      if (invite) {
+        await invite.updateOne({ createdAt: Date.now() })
+        return true
       }
 
       const token = randomBytes(32).toString('hex')
