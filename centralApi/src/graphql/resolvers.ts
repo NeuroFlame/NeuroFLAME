@@ -55,13 +55,11 @@ export default {
         leader: {
           id: (consortium.leader as any)._id.toString(),
           username: (consortium.leader as any).username,
-          email: (consortium.leader as any).email,
         },
         members: (consortium.members as any[]).map((member) => ({
           id: member._id.toString(),
           username: member.username,
           vault: member.vault,
-          email: member.email,
         })),
       }))
     },
@@ -79,10 +77,10 @@ export default {
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
-          .populate('leader', 'id username email vault')
-          .populate('members', 'id username email vault')
-          .populate('activeMembers', 'id username email')
-          .populate('readyMembers', 'id username email')
+          .populate('leader', 'id username vault')
+          .populate('members', 'id username vault')
+          .populate('activeMembers', 'id username')
+          .populate('readyMembers', 'id username')
           .populate(
             'studyConfiguration.computation',
             'title imageName imageDownloadUrl notes owner hasLocalParameters',
@@ -111,7 +109,6 @@ export default {
         const transformUser = (user: any): PublicUser => ({
           id: user.id,
           username: user.username,
-          email: user.email,
           vault: user.vault,
         })
 
@@ -237,12 +234,12 @@ export default {
           .populate('consortium', 'title')
           .populate({
             path: 'members',
-            select: 'id username email',
+            select: 'id username',
             model: User,
           })
           .populate({
             path: 'runErrors.user',
-            select: 'id username email', // Populate the user field in runErrors with id, username, and email
+            select: 'id username', // Populate the user field in runErrors with id, username
             model: User,
           })
           .populate(
@@ -275,7 +272,6 @@ export default {
           members: run.members.map((member: any) => ({
             id: member._id.toString(),
             username: member.username,
-            email: member.email,
           })),
           studyConfiguration: {
             consortiumLeaderNotes: run.studyConfiguration.consortiumLeaderNotes,
@@ -294,7 +290,6 @@ export default {
             user: {
               id: error.user._id.toString(),
               username: error.user.username,
-              email: error.user.email,
             },
             timestamp: error.timestamp,
             message: error.message,
@@ -310,7 +305,6 @@ export default {
       return users.map((user) => ({
         id: user._id.toString(),
         username: user.username,
-        email: user.email,
         vault: user.vault,
       }))
     },
@@ -356,9 +350,7 @@ export default {
       context,
     ): Promise<LoginOutput> => {
       // get the user from the database
-      const user = await User.findOne({
-        $or: [{ username }, { email: username }],
-      } as any)
+      const user = await User.findOne({ username })
       if (!user) {
         throw new Error('User not found')
       }
@@ -375,7 +367,6 @@ export default {
         accessToken,
         userId: user._id.toString(),
         username: user.username,
-        email: user.email,
         roles: user.roles,
       }
     },
@@ -383,9 +374,7 @@ export default {
       _: unknown,
       { username }: { username: string },
     ): Promise<boolean> => {
-      const user = await User.findOne({
-        $or: [{ username }, { email: username }],
-      } as any)
+      const user = await User.findOne({ username })
       if (!user) {
         throw new Error('User not found')
       }
@@ -395,7 +384,7 @@ export default {
       user.resetTokenExpiry = Date.now() + 1000 * 60 * 60 * 24 // 24 hours
       await user.save()
 
-      const email = user.email
+      const email = user.username
       const msg = {
         to: email,
         from: 'no-reply@coinstac.org',
@@ -421,7 +410,6 @@ export default {
       accessToken: string
       userId: string
       username: string
-      email: string
       roles: string[]
     }> => {
       try {
@@ -447,7 +435,6 @@ export default {
           accessToken,
           userId: user._id.toString(),
           username: user.username,
-          email: user.email,
           roles: user.roles,
         }
       } catch (error: any) {
@@ -1016,20 +1003,23 @@ export default {
       }
 
       const invite = await Invite.findOne({ token: inviteToken })
-        .populate('leader', 'id username email') as any
+        .populate('leader', 'id username') as any
 
+      // Invite with provided token does not exist
       if (!invite) {
         throw new Error('Invalid invite token')
       }
 
+      // Invite was sent to someone else.
       const user = await User.findById(userId)
-      if (user.email !== invite.email) {
+      if (user.username !== invite.email) {
         throw new Error('Invalid invite token')
       }
 
       const createdAtMs = new Date(invite.createdAt).getTime()
       const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
 
+      // Invite is expired
       if (isExpired) {
         throw new Error('Invite is expired')
       }
@@ -1191,42 +1181,38 @@ export default {
         throw new Error('User not authenticated')
       }
 
+      // Provided email is not valid
+      if (!EMAIL_REGEX.test(email)) {
+        throw new Error('Invalid email')
+      }
+
       const consortium = await Consortium.findById(consortiumId)
         .populate('leader', 'username')
-        .populate('members', 'id username email vault')
+        .populate('members', 'id username vault')
         .lean()
 
       if (!consortium) {
         throw new Error('Consortium not found')
       }
 
+      // Only consortium leader can send invites
       if ((consortium.leader as any)._id.toString() !== context.userId) {
         throw new Error('Only the consortium leader can send invites')
       }
 
-      let targetedEmail = email
-
-      if (!EMAIL_REGEX.test(email)) {
-        const user = await User.findOne({ username: email })
-
-        if (!user) {
-          throw new Error('Invalid username')
-        }
-
-        targetedEmail = user.email
-      }
-
       const isAlreadyMember = (consortium.members as any).some(
-        (member) => member.email === targetedEmail,
+        (member) => member.username === email,
       )
 
+      // User is already a member of the consortium
       if (isAlreadyMember) {
         throw new Error('User is already a member of the consortium')
       }
 
-      const isAlreadyInvited = await Invite.exists({ email: targetedEmail, consortium: consortiumId })
+      // User is already invited
+      const isAlreadyInvited = await Invite.exists({ email, consortium: consortiumId })
       if (isAlreadyInvited) {
-        throw new Error('User is already invited')
+        throw new Error('User is already invited to this consortium')
       }
 
       const token = randomBytes(32).toString('hex')
@@ -1234,7 +1220,7 @@ export default {
       await Invite.create({
         leader: context.userId,
         consortium: consortiumId,
-        email: targetedEmail,
+        email,
         token,
         createdAt: Date.now(),
       })
@@ -1245,7 +1231,7 @@ export default {
 
       try {
         await resend.emails.send({
-          to: targetedEmail,
+          to: email,
           from: 'no-reply@coinstac.org',
           subject: `Invitation to join ${consortiumTitle}`,
           html,
@@ -1259,9 +1245,13 @@ export default {
     },
     userCreate: async (
       _: unknown,
-      { username, email, password }: { username: string; email: string; password: string },
+      { username, password }: { username: string; password: string },
     ): Promise<LoginOutput> => {
       try {
+        if (!EMAIL_REGEX.test(username)) {
+          throw new Error('Username should be email')
+        }
+
         const existingUser = await User.findOne({ username })
         if (existingUser) {
           throw new Error('User already exists')
@@ -1270,7 +1260,6 @@ export default {
         const hashedPassword = await hashPassword(password)
         const user = await User.create({
           username,
-          email,
           hash: hashedPassword,
         })
 
@@ -1281,7 +1270,6 @@ export default {
           accessToken,
           userId: user._id.toString(),
           username: user.username,
-          email: user.email,
           roles: user.roles,
         }
       } catch (error) {

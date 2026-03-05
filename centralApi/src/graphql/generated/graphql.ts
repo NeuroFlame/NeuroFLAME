@@ -62,7 +62,6 @@ export type InviteInfo = {
 export type LoginOutput = {
   __typename?: 'LoginOutput';
   accessToken: Scalars['String']['output'];
-  email: Scalars['String']['output'];
   roles: Array<Scalars['String']['output']>;
   userId: Scalars['String']['output'];
   username: Scalars['String']['output'];
@@ -270,14 +269,12 @@ export type MutationUserChangePasswordArgs = {
 
 
 export type MutationUserCreateArgs = {
-  email: Scalars['String']['input'];
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
 };
 
 export type PublicUser = {
   __typename?: 'PublicUser';
-  email: Scalars['String']['output'];
   id: Scalars['String']['output'];
   username: Scalars['String']['output'];
   vault?: Maybe<Vault>;

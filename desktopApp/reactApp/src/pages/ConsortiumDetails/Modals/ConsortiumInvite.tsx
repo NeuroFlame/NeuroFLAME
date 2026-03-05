@@ -8,7 +8,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { isValidEmail } from '../../../utils/helpers'
 
 interface ConsortiumInviteModalProps {
   open: boolean;
@@ -21,23 +22,43 @@ const ConsortiumInviteModal: React.FC<ConsortiumInviteModalProps> = ({
   onClose,
   onInvite,
 }) => {
-  const [usernameOrEmail, setUsernameOrEmail] = useState<string>('')
+  const [email, setEmail] = useState<string>('')
   const [isInviting, setIsInviting] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
     if (!open) {
-      setUsernameOrEmail('')
+      setEmail('')
       setError('')
       setIsInviting(false)
     }
   }, [open])
 
-  const handleInvite = async (usernameOrEmail: string) => {
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => {
+      if (event.code === 'Enter') {
+        event.preventDefault()
+
+        if (isValidEmail(email)) {
+          handleInvite()
+        } else {
+          console.error('Username or password is not defined')
+        }
+      }
+    }
+    document.addEventListener('keydown', listener)
+    return () => {
+      document.removeEventListener('keydown', listener)
+    }
+  }, [email])
+
+  const isEmailValid = useMemo(() => isValidEmail(email), [email])
+
+  const handleInvite = async () => {
     setError('')
     setIsInviting(true)
     try {
-      await onInvite(usernameOrEmail)
+      await onInvite(email)
       onClose()
     } catch (err) {
       setError((err as any).message || 'Failed to invite the user')
@@ -48,7 +69,7 @@ const ConsortiumInviteModal: React.FC<ConsortiumInviteModalProps> = ({
 
   const handleChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     if (error) setError('')
-    setUsernameOrEmail(evt.target.value)
+    setEmail(evt.target.value)
   }
 
   return (
@@ -62,8 +83,8 @@ const ConsortiumInviteModal: React.FC<ConsortiumInviteModalProps> = ({
         </Typography>
         <TextField
           fullWidth
-          placeholder='Username or Email'
-          value={usernameOrEmail}
+          placeholder='Email'
+          value={email}
           onChange={handleChange}
         />
         {error && <Alert severity='error' style={{ marginTop: 8 }}>{error}</Alert>}
@@ -73,8 +94,8 @@ const ConsortiumInviteModal: React.FC<ConsortiumInviteModalProps> = ({
           Cancel
         </Button>
         <Button
-          onClick={() => handleInvite(usernameOrEmail)}
-          disabled={isInviting}
+          onClick={handleInvite}
+          disabled={!isEmailValid || isInviting}
           color='error'
           variant='contained'
         >

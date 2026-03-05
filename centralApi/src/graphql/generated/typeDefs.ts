@@ -1,7 +1,6 @@
 export const typeDefs = `type PublicUser {
   id: String!
   username: String!
-  email: String!
   vault: Vault
 }
 
@@ -78,7 +77,6 @@ type LoginOutput {
   accessToken: String!
   userId: String!
   username: String!
-  email: String!
   roles: [String!]!
 }
 
@@ -157,7 +155,7 @@ type Mutation {
   consortiumInvite(consortiumId: String!, email: String!): Boolean!
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
-  userCreate(username: String!, email: String!, password: String!): LoginOutput!
+  userCreate(username: String!, password: String!): LoginOutput!
   userChangePassword(password: String!): Boolean!
   adminChangeUserRoles(username: String!, roles: [String!]!): Boolean!
   adminChangeUserPassword(username: String!, password: String!): Boolean!

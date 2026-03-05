@@ -1,12 +1,12 @@
 // CreateUser.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useCreateUser } from './useCreateUser'
+import { isValidEmail } from '../../../utils/helpers'
 
 export function CreateUser({ userCreated }: { userCreated?: () => void }) {
   const { handleUserCreate, loading, error, success } = useCreateUser()
   const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   useEffect(() => {
@@ -14,6 +14,8 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
       userCreated()
     }
   }, [success, userCreated])
+
+  const isFormValid = useMemo(() => isValidEmail(username) && password, [username, password])
 
   return (
     <Box width='400px'>
@@ -27,28 +29,11 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
       )}
 
       <TextField
-        placeholder='Username'
+        placeholder='Username (Email)'
         value={username}
         fullWidth
         size='small'
         onChange={(e) => setUsername(e.target.value)}
-        disabled={loading}
-        sx={{
-          '& .MuiInputBase-root': {
-            backgroundColor: 'white',
-          },
-          '& .MuiInputBase-root input': {
-            margin: '0',
-          },
-          marginBottom: '1rem',
-        }}
-      />
-      <TextField
-        placeholder='Email'
-        value={email}
-        fullWidth
-        size='small'
-        onChange={(e) => setEmail(e.target.value)}
         disabled={loading}
         sx={{
           '& .MuiInputBase-root': {
@@ -82,7 +67,7 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
         variant='contained'
         color='primary'
         fullWidth
-        onClick={() => handleUserCreate(username, email, password)}
+        onClick={() => isFormValid && handleUserCreate(username, password)}
         disabled={loading}
       >
         {loading ? <CircularProgress size={24} /> : 'Create User'}

@@ -8,12 +8,12 @@ export function useCreateUser() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const handleUserCreate = async (username: string, email: string, password: string) => {
+  const handleUserCreate = async (username: string, password: string) => {
     try {
       setLoading(true)
       setError(null)
       // request to the central api
-      await userCreate({ username, email, password })
+      await userCreate({ username, password })
       setSuccess(true)
     } catch (err) {
       setError('Create user failed, please try again.')
