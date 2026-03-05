@@ -1005,6 +1005,47 @@ export default {
 
       return true
     },
+    consortiumJoinByInvite: async (
+      _: unknown,
+      { inviteToken }: { inviteToken: string },
+      context: Context,
+    ): Promise<boolean> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const invite = await Invite.findOne({ token: inviteToken })
+        .populate('leader', 'id username email') as any
+
+      if (!invite) {
+        throw new Error('Invalid invite token')
+      }
+
+      const user = await User.findById(userId)
+      if (user.email !== invite.email) {
+        throw new Error('Invalid invite token')
+      }
+
+      const createdAtMs = new Date(invite.createdAt).getTime()
+      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
+
+      if (isExpired) {
+        throw new Error('Invite is expired')
+      }
+
+      await Consortium.findByIdAndUpdate(invite.consortium, {
+        $addToSet: { members: userId, activeMembers: userId },
+      })
+
+      await invite.deleteOne()
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId: invite.consortium,
+      })
+
+      return true
+    },
     consortiumDelete: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },

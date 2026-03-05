@@ -19,9 +19,6 @@ const inviteSchema: Schema = new Schema({
 })
 
 // Create the model
-const Invite: Model<IInvite> = mongoose.model<IInvite>(
-  'Invite',
-  inviteSchema,
-)
+const Invite: Model<IInvite> = mongoose.model<IInvite>('Invite', inviteSchema)
 
 export default Invite
