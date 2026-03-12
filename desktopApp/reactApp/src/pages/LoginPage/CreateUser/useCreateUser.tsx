@@ -14,11 +14,11 @@ export function useCreateUser() {
       setError(null)
       // request to the central api
       await userCreate({ username, password })
+      setSuccess(true)
     } catch (err) {
       setError('Create user failed, please try again.')
     } finally {
       setLoading(false)
-      setSuccess(true)
     }
   }
 

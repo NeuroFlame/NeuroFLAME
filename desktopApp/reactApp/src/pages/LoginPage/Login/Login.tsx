@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useLogin } from './useLogin'
+import { isValidEmail } from '../../../utils/helpers'
 
 export function Login() {
   const [username, setUsername] = useState('')
@@ -12,7 +13,7 @@ export function Login() {
       if (event.code === 'Enter') {
         event.preventDefault()
 
-        if (username && password) {
+        if (isValidEmail(username) && password) {
           handleLogin(username, password)
         } else {
           console.error('Username or password is not defined')
@@ -25,12 +26,14 @@ export function Login() {
     }
   }, [username, password])
 
+  const isFormValid = useMemo(() => isValidEmail(username) && password, [username, password])
+
   return (
 
     <Box width='400px'>
       {error && <Alert severity='error'>{error}</Alert>}
       <TextField
-        placeholder='Username'
+        placeholder='Username (Email)'
         value={username}
         fullWidth
         size='small'
@@ -68,7 +71,7 @@ export function Login() {
         variant='contained'
         color='primary'
         fullWidth
-        onClick={() => handleLogin(username, password)}
+        onClick={() => isFormValid && handleLogin(username, password)}
         disabled={loading}
       >
         {loading ? <CircularProgress size={24} /> : 'Log In'}

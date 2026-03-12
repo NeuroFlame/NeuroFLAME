@@ -14,7 +14,7 @@ type ConsortiumListItem {
   title: String!
   description: String!
   leader: PublicUser!
-  members: [PublicUser!]!  
+  members: [PublicUser!]!
 }
 
 type ComputationListItem {
@@ -30,7 +30,7 @@ input StartRunInput {
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
-  userIds: [String!]!  
+  userIds: [String!]!
   consortiumId: String!
   computationParameters: String!
 }
@@ -67,9 +67,9 @@ type ConsortiumDetails {
   title: String!
   description: String!
   leader: PublicUser!
-  members: [PublicUser!]!  
-  activeMembers: [PublicUser!]!  
-  readyMembers: [PublicUser!]!  
+  members: [PublicUser!]!
+  activeMembers: [PublicUser!]!
+  readyMembers: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
 }
 
@@ -77,7 +77,7 @@ type LoginOutput {
   accessToken: String!
   userId: String!
   username: String!
-  roles: [String!]!  
+  roles: [String!]!
 }
 
 type RunEventPayload {
@@ -110,19 +110,26 @@ type RunDetails {
   status: String!
   lastUpdated: String!
   createdAt: String!
-  members: [PublicUser!]!  
+  members: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
-  runErrors: [RunError!]!  
+  runErrors: [RunError!]!
+}
+
+type InviteInfo {
+  consortiumName: String!
+  leaderName: String!
+  isExpired: Boolean!
 }
 
 type Query {
-  getConsortiumList: [ConsortiumListItem!]!  
-  getComputationList: [ComputationListItem!]!  
+  getConsortiumList: [ConsortiumListItem!]!
+  getComputationList: [ComputationListItem!]!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!
-  getRunList(consortiumId: String): [RunListItem!]!  
+  getRunList(consortiumId: String): [RunListItem!]!
   getRunDetails(runId: String!): RunDetails!
-  getVaultUserList: [PublicUser!]!  
+  getVaultUserList: [PublicUser!]!
+  getInviteInfo(inviteToken: String!): InviteInfo!
 }
 
 type Mutation {
@@ -140,10 +147,12 @@ type Mutation {
   consortiumCreate(title: String!, description: String): String!
   consortiumEdit(consortiumId: String!, title: String!, description: String!): Boolean!
   consortiumJoin(consortiumId: String!): Boolean!
+  consortiumJoinByInvite(inviteToken: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!
   consortiumLeave(consortiumId: String!): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
+  consortiumInvite(consortiumId: String!, email: String!): Boolean!
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, password: String!): LoginOutput!

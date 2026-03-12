@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import Grid from '@mui/material/Grid2'
-import {
-  Box, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Typography, Tabs, Tab,
-} from '@mui/material'
+import { Box, Button, Tab, Tabs } from '@mui/material'
 import { Members } from './Members/Members'
 import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
 import DirectorySelect from './DirectorySelect/DirectorySelect'
@@ -20,57 +17,8 @@ import Computation from './Computation/Computation'
 import ComputationParameters from './ComputationParameters/ComputationParameters'
 import ComputationLocalParameters from './ComputationLocalParameters/ComputationLocalParameters'
 import { useNavigate, useParams } from 'react-router-dom'
-
-function ConsortiumDeleteModal({
-  open,
-  onClose,
-  onDelete,
-  consortiumName,
-  isDeleting,
-  confirmName,
-  setConfirmName,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onDelete: () => void;
-  consortiumName: string;
-  isDeleting: boolean;
-  confirmName: string;
-  setConfirmName: (value: string) => void;
-}) {
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>
-        Are you sure you want to delete this consortium?
-      </DialogTitle>
-      <DialogContent>
-        <Typography mb={2}>
-          This action is irreversible.{' '}
-          Please type <strong>{consortiumName}</strong> to confirm deletion.
-        </Typography>
-        <TextField
-          fullWidth
-          placeholder='Consortium Name'
-          value={confirmName}
-          onChange={(e) => setConfirmName(e.target.value)}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={isDeleting}>
-          Cancel
-        </Button>
-        <Button
-          onClick={onDelete}
-          disabled={confirmName !== consortiumName || isDeleting}
-          color='error'
-          variant='contained'
-        >
-          {isDeleting ? 'Deleting...' : 'Submit and Delete'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  )
-}
+import ConsortiumInviteModal from './Modals/ConsortiumInvite'
+import ConsortiumDeleteModal from './Modals/ConsortiumDelete'
 
 export function ConsortiumDetailsPage() {
   const { consortiumId } = useParams<{ consortiumId: string }>()
@@ -84,6 +32,7 @@ export function ConsortiumDetailsPage() {
       title,
       description,
     },
+    inviteConsortium,
     deleteConsortium,
     isLeader,
   } = useConsortiumDetailsContext()
@@ -100,23 +49,8 @@ export function ConsortiumDetailsPage() {
   const [tab, setTab] = useState<'global' | 'local'>('global')
 
   // Delete dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [confirmName, setConfirmName] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const handleDelete = async () => {
-    if (confirmName !== title) return
-    setIsDeleting(true)
-    try {
-      await deleteConsortium()
-    } catch (err) {
-      console.error('Error deleting consortium:', err)
-    } finally {
-      setIsDeleting(false)
-      setDeleteDialogOpen(false)
-      navigate('/consortium/list')
-    }
-  }
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false)
 
   return (
     <>
@@ -166,7 +100,7 @@ export function ConsortiumDetailsPage() {
                 color='error'
                 variant='outlined'
                 size='small'
-                onClick={() => setDeleteDialogOpen(true)}
+                onClick={() => setIsDeleteModalOpen(true)}
               >
                 Delete
               </Button>
@@ -219,6 +153,17 @@ export function ConsortiumDetailsPage() {
 
         <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
           <Box className='consortium-links'>
+            {isLeader && (
+              <Button
+                onClick={() => setIsInviteModalOpen(true)}
+                color='secondary'
+                variant='outlined'
+                size='small'
+                style={{ marginRight: '0.5rem' }}
+              >
+                Invite Participants
+              </Button>
+            )}
             <Button
               onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}
               color='success'
@@ -241,7 +186,7 @@ export function ConsortiumDetailsPage() {
                 color='error'
                 variant='outlined'
                 size='small'
-                onClick={() => setDeleteDialogOpen(true)}
+                onClick={() => setIsDeleteModalOpen(true)}
               >
                 Delete
               </Button>
@@ -251,16 +196,23 @@ export function ConsortiumDetailsPage() {
         </Grid>
       </Grid>
 
+      {/* Invite Modal */}
+      {isLeader && (
+        <ConsortiumInviteModal
+          open={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          onInvite={inviteConsortium}
+        />
+      )}
+
       {/* Delete Modal */}
       {isLeader && (
         <ConsortiumDeleteModal
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          onDelete={handleDelete}
+          open={isDeleteModalOpen}
           consortiumName={title}
-          isDeleting={isDeleting}
-          confirmName={confirmName}
-          setConfirmName={setConfirmName}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onNavigate={navigate}
+          onDelete={deleteConsortium}
         />
       )}
     </>

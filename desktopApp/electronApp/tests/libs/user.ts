@@ -2,7 +2,7 @@ import { Page } from '@playwright/test'
 import { EXIST_TIMEOUT } from './constants'
 
 const logIn = async ({ username, password }, page: Page) => {
-  await page.getByPlaceholder('Username').fill(username, { timeout: EXIST_TIMEOUT })
+  await page.getByPlaceholder('Username (Email)').fill(username, { timeout: EXIST_TIMEOUT })
   await page.getByPlaceholder('Password').fill(password)
   await page.getByRole('button', { name: 'Log In' }).click()
 }

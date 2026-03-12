@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useRequestPasswordReset } from './useRequestPasswordReset'
+import { isValidEmail } from '../../../utils/helpers'
 
 export function RequestPasswordReset({
   onChangeFormType,
@@ -17,7 +18,7 @@ export function RequestPasswordReset({
       if (event.code === 'Enter') {
         event.preventDefault()
 
-        if (username) {
+        if (isValidEmail(username)) {
           handleRequestPasswordReset(username)
         }
       }
@@ -30,11 +31,13 @@ export function RequestPasswordReset({
     }
   }, [username, handleRequestPasswordReset, onChangeFormType])
 
+  const isUsernameValid = useMemo(() => isValidEmail(username), [username])
+
   return (
     <Box minWidth={400}>
       {error && <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>}
       <TextField
-        placeholder='Username'
+        placeholder='Username (Email)'
         value={username}
         fullWidth
         size='small'
@@ -55,7 +58,7 @@ export function RequestPasswordReset({
           variant='contained'
           color='primary'
           fullWidth
-          onClick={() => username && handleRequestPasswordReset(username)}
+          onClick={() => isUsernameValid && handleRequestPasswordReset(username)}
           disabled={loading}
         >
           {loading ? <CircularProgress size={24} /> : 'Send token'}
