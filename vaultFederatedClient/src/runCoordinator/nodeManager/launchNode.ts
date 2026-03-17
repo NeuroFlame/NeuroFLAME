@@ -5,6 +5,8 @@ const docker = new Docker()
 interface LaunchNodeArgs {
   containerService: string
   imageName: string
+  runId: string
+  consortiumId: string
   directoriesToMount: Array<{
     hostDirectory: string
     containerDirectory: string
@@ -18,6 +20,16 @@ interface LaunchNodeArgs {
   onContainerExitError?: (containerId: string, error: string) => void
 }
 
+// Track running containers for graceful shutdown and heartbeat reporting
+export interface RunningContainer {
+  containerId: string
+  runId: string
+  consortiumId: string
+  startedAt: Date
+}
+
+const runningContainers = new Map<string, RunningContainer>()
+
 interface ExposedPorts {
   [portWithProtocol: string]: {} // Correctly defined for exposing ports
 }
@@ -29,6 +41,8 @@ interface PortBindings {
 export async function launchNode({
   containerService,
   imageName,
+  runId,
+  consortiumId,
   directoriesToMount,
   portBindings,
   commandsToRun,
@@ -38,6 +52,8 @@ export async function launchNode({
   if (containerService === 'docker') {
     await launchDockerNode({
       imageName,
+      runId,
+      consortiumId,
       directoriesToMount,
       portBindings,
       commandsToRun,
@@ -52,6 +68,8 @@ export async function launchNode({
 
 const launchDockerNode = async ({
   imageName,
+  runId,
+  consortiumId,
   directoriesToMount,
   portBindings,
   commandsToRun,
@@ -93,6 +111,15 @@ const launchDockerNode = async ({
     await container.start()
     logger.info(`Container started successfully: ${container.id}`)
 
+    // Track the running container
+    runningContainers.set(container.id, {
+      containerId: container.id,
+      runId,
+      consortiumId,
+      startedAt: new Date(),
+    })
+    logger.info(`Tracking container ${container.id} for run ${runId} in consortium ${consortiumId}`)
+
     // Add event handlers for the container
     attachDockerEventHandlers({
       containerId: container.id,
@@ -123,6 +150,11 @@ const attachDockerEventHandlers = async ({
 
   try {
     const { StatusCode } = await container.wait()
+
+    // Remove from tracking
+    runningContainers.delete(containerId)
+    logger.info(`Container ${containerId} removed from tracking`)
+
     if (StatusCode !== 0) {
       logger.error(
         `Container ${containerId} exited with error code ${StatusCode}`,
@@ -134,6 +166,8 @@ const attachDockerEventHandlers = async ({
       onContainerExitSuccess && onContainerExitSuccess(containerId)
     }
   } catch (error) {
+    // Remove from tracking on error too
+    runningContainers.delete(containerId)
     logger.error(`Error waiting for container ${containerId}`, { error })
     onContainerExitError &&
       onContainerExitError(containerId, (error as Error).message)
@@ -167,4 +201,87 @@ const doesImageExist = async (imageName: string) => {
       }`,
     )
   }
+}
+
+/**
+ * Get list of currently running containers
+ */
+export function getRunningContainers(): RunningContainer[] {
+  return Array.from(runningContainers.values())
+}
+
+/**
+ * Get count of running containers
+ */
+export function getRunningContainerCount(): number {
+  return runningContainers.size
+}
+
+/**
+ * Stop a specific container gracefully
+ * @param containerId - The container ID to stop
+ * @param timeoutSeconds - Seconds to wait before force killing (default: 10)
+ */
+export async function stopContainer(
+  containerId: string,
+  timeoutSeconds: number = 10,
+): Promise<void> {
+  const container = docker.getContainer(containerId)
+  const containerInfo = runningContainers.get(containerId)
+
+  logger.info(
+    `Stopping container ${containerId}${containerInfo ? ` (run: ${containerInfo.runId})` : ''}`,
+  )
+
+  try {
+    // Stop with timeout - sends SIGTERM, then SIGKILL after timeout
+    await container.stop({ t: timeoutSeconds })
+    logger.info(`Container ${containerId} stopped successfully`)
+  } catch (error: unknown) {
+    const err = error as { statusCode?: number; message?: string }
+    // Container may have already stopped
+    if (err.statusCode === 304) {
+      logger.info(`Container ${containerId} was already stopped`)
+    } else {
+      logger.error(`Error stopping container ${containerId}`, { error })
+      throw error
+    }
+  } finally {
+    runningContainers.delete(containerId)
+  }
+}
+
+/**
+ * Stop all running containers gracefully
+ * @param timeoutSeconds - Seconds to wait per container before force killing
+ * @returns Object with counts of stopped and failed containers
+ */
+export async function stopAllContainers(
+  timeoutSeconds: number = 10,
+): Promise<{ stopped: number; failed: number; runIds: string[] }> {
+  const containers = getRunningContainers()
+  const runIds: string[] = []
+  let stopped = 0
+  let failed = 0
+
+  if (containers.length === 0) {
+    logger.info('No running containers to stop')
+    return { stopped, failed, runIds }
+  }
+
+  logger.info(`Stopping ${containers.length} running container(s)...`)
+
+  for (const { containerId, runId } of containers) {
+    try {
+      await stopContainer(containerId, timeoutSeconds)
+      stopped++
+      runIds.push(runId)
+    } catch (error) {
+      failed++
+      logger.error(`Failed to stop container ${containerId}`, { error })
+    }
+  }
+
+  logger.info(`Container cleanup complete: ${stopped} stopped, ${failed} failed`)
+  return { stopped, failed, runIds }
 }
