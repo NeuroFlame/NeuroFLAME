@@ -66,8 +66,36 @@ export default {
         roles: user.roles,
       }
     },
-    getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
-      const consortiums = await Consortium.find()
+    getConsortiumList: async (
+      _: unknown,
+      _args: unknown,
+      context: Context,
+    ): Promise<ConsortiumListItem[]> => {
+      const { userId, roles } = context
+      const isAdmin = roles?.includes('admin')
+
+      const filter: Record<string, unknown> = (() => {
+        if (isAdmin) return {}
+        if (!userId) {
+          return {
+            $or: [
+              { isPrivate: { $exists: false } },
+              { isPrivate: false },
+            ],
+          }
+        }
+
+        return {
+          $or: [
+            { isPrivate: { $exists: false } },
+            { isPrivate: false },
+            { isPrivate: true, leader: userId },
+            { isPrivate: true, members: userId },
+          ],
+        }
+      })()
+
+      const consortiums = await Consortium.find(filter)
         .populate('leader')
         .populate('members')
         .lean() // Use lean() for better performance and to get plain JavaScript objects
@@ -85,6 +113,7 @@ export default {
           username: member.username,
           vault: member.vault,
         })),
+        isPrivate: consortium.isPrivate ?? false,
       }))
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
@@ -98,6 +127,7 @@ export default {
     getConsortiumDetails: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
+      context: Context,
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
@@ -112,7 +142,22 @@ export default {
           .exec()
 
         if (!consortium) {
-          throw new Error('Consortium not found')
+          throw new Error('Consortium not found or inaccessible')
+        }
+
+        if (consortium.isPrivate) {
+          const { userId, roles } = context
+          const isAdmin = roles?.includes('admin')
+
+          if (!isAdmin) {
+            if (!userId) throw new Error('Consortium not found or inaccessible')
+            const leaderId = consortium.leader._id.toString()
+            const isLeader = leaderId === userId
+            const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
+            if (!isLeader && !isMember) {
+              throw new Error('Consortium not found or inaccessible')
+            }
+          }
         }
 
         const {
@@ -158,10 +203,11 @@ export default {
                 }
               : null,
           },
+          isPrivate: consortium.isPrivate ?? false,
         }
       } catch (error) {
         logger.error('Error in getConsortiumDetails:', error)
-        throw new Error(`Failed to fetch consortium details: ${error.message}`)
+        throw new Error('Failed to fetch consortium details')
       }
     },
     getComputationDetails: async (
@@ -326,10 +372,48 @@ export default {
     },
     getVaultUserList: async (): Promise<PublicUser[]> => {
       const users = await User.find({ roles: 'vault' }).exec()
+
+      // Get consortium titles for any running computations
+      const consortiumIds = new Set<string>()
+      users.forEach((user) => {
+        user.vaultStatus?.runningComputations?.forEach((comp) => {
+          consortiumIds.add(comp.consortiumId)
+        })
+      })
+
+      const consortiums = await Consortium.find({
+        _id: { $in: Array.from(consortiumIds) },
+      })
+        .select('_id title')
+        .lean()
+      const consortiumMap = new Map(
+        consortiums.map((c) => [c._id.toString(), c.title]),
+      )
+
       return users.map((user) => ({
         id: user._id.toString(),
         username: user.username,
         vault: user.vault,
+        vaultStatus: user.vaultStatus
+          ? {
+              status: user.vaultStatus.status,
+              version: user.vaultStatus.version,
+              uptime: user.vaultStatus.uptime,
+              websocketConnected: user.vaultStatus.websocketConnected,
+              lastHeartbeat: user.vaultStatus.lastHeartbeat.toISOString(),
+              runningComputations: user.vaultStatus.runningComputations.map(
+                (comp) => ({
+                  runId: comp.runId,
+                  consortiumId: comp.consortiumId,
+                  consortiumTitle: consortiumMap.get(comp.consortiumId) || null,
+                  runStartedAt: comp.startedAt.toISOString(),
+                  runningFor: Math.floor(
+                    (Date.now() - comp.startedAt.getTime()) / 1000,
+                  ),
+                }),
+              ),
+            }
+          : null,
       }))
     },
     getInviteInfo: async (
@@ -363,6 +447,62 @@ export default {
     },
   },
   Mutation: {
+    // Vault heartbeat - updates vault status
+    vaultHeartbeat: async (
+      _: unknown,
+      {
+        heartbeat,
+      }: {
+        heartbeat: {
+          status: string
+          version: string
+          uptime: number
+          websocketConnected: boolean
+          runningComputations: Array<{
+            runId: string
+            consortiumId: string
+            startedAt: string
+          }>
+        }
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      // Authenticate the user
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      // Authorize - must be a vault user
+      if (!context.roles.includes('vault')) {
+        throw new Error('User not authorized - not a vault user')
+      }
+
+      // Update the user's vault status
+      await User.findByIdAndUpdate(context.userId, {
+        vaultStatus: {
+          status: heartbeat.status,
+          version: heartbeat.version,
+          uptime: heartbeat.uptime,
+          websocketConnected: heartbeat.websocketConnected,
+          lastHeartbeat: new Date(),
+          runningComputations: heartbeat.runningComputations.map((comp) => ({
+            runId: comp.runId,
+            consortiumId: comp.consortiumId,
+            startedAt: new Date(comp.startedAt),
+          })),
+        },
+      })
+
+      logger.debug('Vault heartbeat received', {
+        context: {
+          userId: context.userId,
+          status: heartbeat.status,
+          runningComputations: heartbeat.runningComputations.length,
+        },
+      })
+
+      return true
+    },
     login: async (
       _,
       {
@@ -385,7 +525,10 @@ export default {
       }
 
       // create a token
-      const tokens = generateTokens({ userId: user._id })
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+      })
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -453,7 +596,10 @@ export default {
         user.resetTokenExpiry = undefined
         await user.save()
 
-        const tokens = generateTokens({ userId: user._id })
+        const tokens = generateTokens({
+          userId: user._id,
+          roles: user.roles,
+        })
         const { accessToken } = tokens as { accessToken: string }
 
         return {
@@ -809,7 +955,7 @@ export default {
     },
     consortiumCreate: async (
       _: unknown,
-      { title, description }: { title: string; description: string },
+      { title, description, isPrivate = false }: { title: string; description: string; isPrivate: boolean },
       context: Context,
     ): Promise<any> => {
       if (!title) {
@@ -837,6 +983,7 @@ export default {
           computationParameters: '',
           computation: null,
         },
+        isPrivate,
       })
 
       return consortium._id.toString()
@@ -962,9 +1109,21 @@ export default {
         consortiumId,
         title,
         description,
-      }: { consortiumId: string; title?: string; description?: string },
+        isPrivate,
+      }: { consortiumId: string; title?: string; description?: string; isPrivate?: boolean },
       context: Context,
     ): Promise<boolean> => {
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      const isAdmin = context.roles?.includes('admin')
+      const isLeader = consortium.leader.toString() === context.userId
+      if (!isAdmin && !isLeader) {
+        throw new Error('User not authorized to edit this consortium')
+      }
+
       // Check if the title is provided and validate it against existing consortia
       if (title) {
         const otherConsortium = await Consortium.findOne({
@@ -977,14 +1136,15 @@ export default {
       }
 
       // Ensure at least one field is provided for update
-      if (!title && !description) {
+      if (!title && !description && isPrivate === undefined) {
         throw new Error('No fields provided to update')
       }
 
       // Prepare the update payload
-      const updatePayload: { [key: string]: string } = {}
+      const updatePayload: { [key: string]: string | boolean } = {}
       if (title) updatePayload.title = title
       if (description) updatePayload.description = description
+      if (isPrivate !== undefined) updatePayload.isPrivate = isPrivate
 
       // Perform the update operation
       try {
@@ -1003,10 +1163,24 @@ export default {
       { consortiumId }: { consortiumId: string },
       context: Context,
     ): Promise<boolean> => {
-      const { userId } = context
+      const { userId, roles } = context
       if (!userId) {
         throw new Error('User not authenticated')
       }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      const isAdmin = roles?.includes('admin')
+      const isExistingMember = consortium.members
+        .map((memberId) => memberId.toString())
+        .includes(userId)
+      if (consortium.isPrivate && !isAdmin && !isExistingMember) {
+        throw new Error('This consortium is private and cannot be joined directly')
+      }
+
       await Consortium.findByIdAndUpdate(consortiumId, {
         $addToSet: { members: userId, activeMembers: userId },
       })
@@ -1299,7 +1473,10 @@ export default {
           hash: hashedPassword,
         })
 
-        const tokens = generateTokens({ userId: user._id })
+        const tokens = generateTokens({
+          userId: user._id,
+          roles: user.roles,
+        })
         const { accessToken } = tokens as { accessToken: string }
 
         return {

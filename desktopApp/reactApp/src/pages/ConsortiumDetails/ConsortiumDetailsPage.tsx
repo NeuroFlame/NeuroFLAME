@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Grid from '@mui/material/Grid2'
-import { Box, Button, Tab, Tabs } from '@mui/material'
+import { Box, Button, Tabs, Tab, Switch, FormControlLabel } from '@mui/material'
 import { Members } from './Members/Members'
 import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
 import DirectorySelect from './DirectorySelect/DirectorySelect'
@@ -31,10 +31,13 @@ export function ConsortiumDetailsPage() {
       leader,
       title,
       description,
+      isPrivate,
     },
     inviteConsortium,
+    status,
     deleteConsortium,
     isLeader,
+    updateConsortiumPrivacy,
   } = useConsortiumDetailsContext()
 
   const { userId } = useUserState()
@@ -51,6 +54,10 @@ export function ConsortiumDetailsPage() {
   // Delete dialog state
   const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false)
+
+  const handlePrivacyChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    updateConsortiumPrivacy(checked).catch(() => {})
+  }
 
   return (
     <>
@@ -154,15 +161,28 @@ export function ConsortiumDetailsPage() {
         <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
           <Box className='consortium-links'>
             {isLeader && (
-              <Button
-                onClick={() => setIsInviteModalOpen(true)}
-                color='secondary'
-                variant='outlined'
-                size='small'
-                style={{ marginRight: '0.5rem' }}
-              >
-                Invite Participants
-              </Button>
+              <>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isPrivate}
+                      onChange={handlePrivacyChange}
+                      color='primary'
+                      disabled={status.loading}
+                    />
+                  }
+                  label='Private'
+                />
+                <Button
+                  onClick={() => setIsInviteModalOpen(true)}
+                  color='secondary'
+                  variant='outlined'
+                  size='small'
+                  style={{ marginRight: '0.5rem' }}
+                >
+                  Invite Participants
+                </Button>
+              </>
             )}
             <Button
               onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}

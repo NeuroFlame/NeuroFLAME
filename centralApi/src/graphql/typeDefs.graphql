@@ -2,11 +2,44 @@ type PublicUser {
   id: String!
   username: String!
   vault: Vault
+  vaultStatus: VaultStatus
 }
 
 type Vault {
   name: String!
   description: String!
+}
+
+# Vault heartbeat status - reported by vault services
+type VaultRunningComputation {
+  runId: String!
+  consortiumId: String!
+  consortiumTitle: String
+  runStartedAt: String!
+  runningFor: Int!
+}
+
+type VaultStatus {
+  status: String!
+  version: String!
+  uptime: Int!
+  websocketConnected: Boolean!
+  lastHeartbeat: String!
+  runningComputations: [VaultRunningComputation!]!
+}
+
+input VaultRunningComputationInput {
+  runId: String!
+  consortiumId: String!
+  startedAt: String!
+}
+
+input VaultHeartbeatInput {
+  status: String!
+  version: String!
+  uptime: Int!
+  websocketConnected: Boolean!
+  runningComputations: [VaultRunningComputationInput!]!
 }
 
 type ConsortiumListItem {
@@ -15,6 +48,7 @@ type ConsortiumListItem {
   description: String!
   leader: PublicUser!
   members: [PublicUser!]!
+  isPrivate: Boolean!
 }
 
 type ComputationListItem {
@@ -71,6 +105,7 @@ type ConsortiumDetails {
   activeMembers: [PublicUser!]!
   readyMembers: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
+  isPrivate: Boolean!
 }
 
 type LoginOutput {
@@ -140,6 +175,8 @@ type Query {
 }
 
 type Mutation {
+  # used by vault federated clients
+  vaultHeartbeat(heartbeat: VaultHeartbeatInput!): Boolean!
   # used by federated clients
   reportRunReady(runId: String!): Boolean!
   reportRunError(runId: String!, errorMessage: String!): Boolean!
@@ -151,8 +188,8 @@ type Mutation {
   studySetComputation(consortiumId: String!, computationId: String!): Boolean!
   studySetParameters(consortiumId: String!, parameters: String!): Boolean!
   studySetNotes(consortiumId: String!, notes: String!): Boolean!
-  consortiumCreate(title: String!, description: String): String!
-  consortiumEdit(consortiumId: String!, title: String!, description: String!): Boolean!
+  consortiumCreate(title: String!, description: String, isPrivate: Boolean): String!
+  consortiumEdit(consortiumId: String!, title: String!, description: String!, isPrivate: Boolean): Boolean!
   consortiumJoin(consortiumId: String!): Boolean!
   consortiumJoinByInvite(inviteToken: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!

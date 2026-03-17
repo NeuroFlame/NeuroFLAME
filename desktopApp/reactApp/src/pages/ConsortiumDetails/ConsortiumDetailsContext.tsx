@@ -24,6 +24,7 @@ interface ConsortiumDetailsContextType {
     leader: PublicUser;
     title: string;
     description: string;
+    isPrivate: boolean;
   };
   status: {
     loading: boolean;
@@ -33,6 +34,7 @@ interface ConsortiumDetailsContextType {
   isLeader: boolean;
   inviteConsortium: (_: string) => Promise<void>;
   deleteConsortium: () => Promise<void>;
+  updateConsortiumPrivacy: (isPrivate: boolean) => Promise<void>;
 }
 
 // Create the context
@@ -59,6 +61,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     getConsortiumDetails,
     consortiumInvite,
     consortiumDelete,
+    consortiumEdit,
     subscriptions: {
       consortiumDetailsChanged,
     },
@@ -77,6 +80,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
   const [leader, setLeader] = useState<PublicUser>({ id: '', username: '' })
   const [title, setTitle] = useState<string>('')
   const [description, setDescription] = useState<string>('')
+  const [isPrivate, setIsPrivate] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLeader, setIsLeader] = useState(false)
@@ -95,6 +99,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
       setLeader(result.leader)
       setTitle(result.title)
       setDescription(result.description)
+      setIsPrivate(result.isPrivate)
       setStudyConfiguration(result.studyConfiguration)
 
       setIsLeader(result.leader.id === userId)
@@ -153,6 +158,29 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     }
   }, [consortiumId, consortiumDelete])
 
+  const updateConsortiumPrivacy = useCallback(
+    async (value: boolean) => {
+      if (!consortiumId) return
+      setLoading(true)
+      setError(null)
+      try {
+        await consortiumEdit({
+          consortiumId,
+          title,
+          description,
+          isPrivate: value,
+        })
+        setIsPrivate(value)
+        await fetchConsortiumDetails()
+      } catch (err) {
+        setError('Failed to update consortium privacy.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [consortiumId, consortiumEdit, title, description, fetchConsortiumDetails],
+  )
+
   // Context value
   const contextValue: ConsortiumDetailsContextType = {
     data: {
@@ -163,6 +191,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
       leader,
       title,
       description,
+      isPrivate,
     },
     status: {
       loading,
@@ -172,6 +201,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     isLeader,
     inviteConsortium,
     deleteConsortium,
+    updateConsortiumPrivacy,
   }
 
   return (
