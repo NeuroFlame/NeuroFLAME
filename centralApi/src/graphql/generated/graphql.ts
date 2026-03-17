@@ -289,6 +289,7 @@ export type Query = {
   getInviteInfo: InviteInfo;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
+  getUserProfile: UserProfile;
   getVaultUserList: Array<PublicUser>;
 };
 
@@ -413,6 +414,13 @@ export type SubscriptionConsortiumLatestRunChangedArgs = {
 
 export type SubscriptionRunDetailsChangedArgs = {
   runId: Scalars['String']['input'];
+};
+
+export type UserProfile = {
+  __typename?: 'UserProfile';
+  roles: Array<Scalars['String']['output']>;
+  userId: Scalars['String']['output'];
+  username: Scalars['String']['output'];
 };
 
 export type Vault = {

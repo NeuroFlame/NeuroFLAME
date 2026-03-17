@@ -1,0 +1,246 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Body styling */
+html {
+  scroll-behavior: smooth;
+}
+
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #EFEFF0 !important;
+  color: #333;
+}
+
+header {
+  position: fixed;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600 !important;
+  margin: 0 0 0.5rem;
+  color: #0066FF;
+}
+
+h1 {
+  color: #0066FF;
+}
+
+h6 {
+  font-size: 1.2rem !important;
+}
+
+/* Paragraphs */
+p {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+/* Links */
+a {
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul,
+ol {
+  padding-left: 0;
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+li {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+/* Buttons */
+button {
+  display: inline-block;
+  border: none;
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 1.5rem;
+  font-size: 16px;
+}
+
+button a {
+  color: white;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+button.Mui-disabled.MuiStepButton-horizontal {
+  background: none;
+}
+
+.button {
+  display: inline-block;
+  border: none;
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Forms and Input fields */
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+input.MuiInput-input,
+input.MuiInputBase-input {
+  border: none !important;
+}
+
+input[type="submit"],
+input[type="button"] {
+  width: 100%;
+  background-color: #4CAF50;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="submit"]:hover,
+input[type="button"]:hover {
+  background-color: #45a049;
+}
+
+/* Utility classes */
+.container {
+  width: 80%;
+  margin: auto;
+  overflow: hidden;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Responsive design */
+@media screen and (max-width: 600px) {
+  .container {
+    width: 100%;
+  }
+}
+
+pre, code, .pre {
+  display: inline-block;
+  background-color: #eef2f2; /* Light grey background */
+  border-radius: 8px; /* Rounded corners */
+  padding: 1rem; /* Padding inside the code block */
+  overflow-x: auto; /* Horizontal scroll for long lines */
+  font-size: 0.9rem;
+  color: #000 !important;
+  margin: 0 0 0.25rem;
+  height: auto;
+  width: calc(100% - 2rem);
+}
+
+pre.settings,
+.terminal {
+  font-family: monospace;
+  background-color: #1A2948; /* Light grey background */
+  color: #ffffff !important;
+  padding: 1rem;
+  border-radius: 8px; /* Rounded corners */
+}
+
+code.inline,
+pre.inline {
+  display: inline;
+  width: auto;
+  padding: 0.2rem 0.4rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.terminalWindow {
+  font-family: monospace;
+  background-color: #1A2948; /* Light grey background */
+  color: #ffffff !important;
+  padding: 1rem;
+  border-radius: 8px; /* Rounded corners */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0 0 1rem 0;
+  height: 70px;
+  font-size: 0.75rem;
+  overflow-x: scroll;
+}
+
+pre {
+  white-space: pre-wrap; /* Wrap long lines */
+}
+
+code {
+  font-family: 'Courier New', Courier, monospace; /* Monospace font for code */
+  display: block; /* Make code element block-level */
+  padding: 0;
+}
+
+/* Additional styling for better readability */
+pre code {
+  color: #333; /* Darker text color for contrast */
+  line-height: 1.4; /* Slightly increased line height */
+}
+
+input[type="file"]::-webkit-file-upload-button {
+  display: inline-block;
+  border: none;
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 16px;
+  margin: 8px 0;
+}
+
+input[type="file"]::-webkit-file-upload-button:hover {
+  background-color: #0066cc; /* Slightly darker blue for hover effect */
+}

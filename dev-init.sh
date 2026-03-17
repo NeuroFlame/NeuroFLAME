@@ -13,18 +13,18 @@ load_env_file() {
             # Skip comments and empty lines
             [[ "$line" =~ ^[[:space:]]*# ]] && continue
             [[ -z "${line// }" ]] && continue
-            
+
             # Extract key and value
             if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
                 local key="${BASH_REMATCH[1]// /}"
                 local value="${BASH_REMATCH[2]}"
-                
+
                 # Remove surrounding quotes if present
                 value="${value#\"}"
                 value="${value%\"}"
                 value="${value#\'}"
                 value="${value%\'}"
-                
+
                 # Only export if not already set (allows shell override)
                 if [ -z "${!key}" ]; then
                     export "$key=$value"
@@ -43,7 +43,7 @@ load_env_file "$SCRIPT_DIR/centralFederatedClient/.env"
 load_env_file "$SCRIPT_DIR/fileServer/.env"
 
 # Install dependencies
-for dir in centralApi edgeFederatedClient centralFederatedClient fileServer desktopApp/reactApp desktopApp/electronApp; do
+for dir in centralApi edgeFederatedClient centralFederatedClient fileServer desktopApp/reactApp desktopApp/electronApp desktopApp/inviteApp; do
   echo "Installing dependencies in $dir"
   (cd "$dir" && npm install)
 done

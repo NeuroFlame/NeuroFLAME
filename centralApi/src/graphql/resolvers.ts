@@ -3,7 +3,7 @@ import {
   compare,
   hashPassword,
 } from '../authentication/authentication.js'
-import { CLIENT_FILE_SERVER_URL, RESEND_API_KEY } from '../config.js'
+import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
 import Run, { IRun } from '../database/models/Run.js'
 import User from '../database/models/User.js'
@@ -25,10 +25,12 @@ import {
   RunEventPayload,
   RunListItem,
   RunDetails,
+  UserProfile,
 } from './generated/graphql.js'
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
+import path from 'path'
 
 interface Context {
   userId: string
@@ -37,11 +39,33 @@ interface Context {
 }
 
 const resend = new Resend(RESEND_API_KEY)
-const INVITE_EXPIRATION_MS = 24 * 60 * 60 * 1000 // 24 hours
+const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default {
   Query: {
+    getUserProfile: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ): Promise<UserProfile> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User is not authenticated')
+      }
+
+      const user = await User.findById(userId)
+
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      return {
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
+      }
+    },
     getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
       const consortiums = await Consortium.find()
         .populate('leader')
@@ -318,7 +342,7 @@ export default {
         .lean()
 
       if (!invite) {
-        throw new Error('Invalid invite token')
+        throw new Error('Invalid invite link')
       }
 
       const consortium: any = invite.consortium
@@ -329,11 +353,12 @@ export default {
       }
 
       const createdAtMs = new Date(invite.createdAt).getTime()
+      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
 
       return {
         consortiumName: consortium.title,
         leaderName: leader.username,
-        isExpired: createdAtMs < Date.now() - INVITE_EXPIRATION_MS,
+        isExpired,
       }
     },
   },
@@ -1003,17 +1028,26 @@ export default {
       }
 
       const invite = await Invite.findOne({ token: inviteToken })
-        .populate('leader', 'id username') as any
+        .populate('leader', 'id username')
+        .populate('consortium', 'id members') as any
+
+      if (!invite.consortium || !invite.leader) {
+        throw new Error('Invite is missing consortium or leader information')
+      }
+
+      if (invite.consortium.members.includes(userId)) {
+        throw new Error('You\'re already a member of this consortium')
+      }
 
       // Invite with provided token does not exist
       if (!invite) {
-        throw new Error('Invalid invite token')
+        throw new Error('Invalid invite link')
       }
 
       // Invite was sent to someone else.
       const user = await User.findById(userId)
       if (user.username !== invite.email) {
-        throw new Error('Invalid invite token')
+        throw new Error('Invalid invite link')
       }
 
       const createdAtMs = new Date(invite.createdAt).getTime()
@@ -1228,7 +1262,8 @@ export default {
 
       const leaderName = (consortium.leader as any).username
       const consortiumTitle = consortium.title
-      const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME`
+      const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
+      Please click this <a href="${path.join(CONSORTIUM_INVITE_URL, 'invite', token)}">link</a> to join.`
 
       try {
         await resend.emails.send({

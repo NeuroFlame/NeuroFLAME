@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS - use osascript to open Terminal tabs
     echo "Opening services in Terminal tabs (macOS)..."
-    
+
     # Use Terminal.app (more reliable than iTerm2 AppleScript)
     # iTerm2 users can manually arrange windows or use iTerm2's built-in window management
     echo "Using Terminal.app..."
@@ -57,15 +57,24 @@ tell application "System Events"
         keystroke return
     end tell
 end tell
+delay 0.3
+tell application "System Events"
+    tell process "Terminal"
+        keystroke "t" using {command down}
+        delay 0.5
+        keystroke "cd '$SCRIPT_DIR/desktopApp/inviteApp' && echo 'Starting React App (Webpack)...' && npm run dev"
+        keystroke return
+    end tell
+end tell
 EOF
-    
+
     echo "All services launched in separate Terminal tabs!"
     echo "Check each tab for service logs."
-    
+
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux - try gnome-terminal first, fall back to xterm
     echo "Opening services in terminal windows (Linux)..."
-    
+
     if command -v gnome-terminal &> /dev/null; then
         # Use gnome-terminal with tabs
         gnome-terminal --tab --title="Central API" -- bash -c "cd '$SCRIPT_DIR/centralApi' && echo 'Starting Central API...' && node dev-start.js; exec bash" \

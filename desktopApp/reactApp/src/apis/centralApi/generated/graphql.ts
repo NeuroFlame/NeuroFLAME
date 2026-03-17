@@ -60,6 +60,13 @@ export type LoginOutput = {
   username: Scalars['String']['output'];
 }
 
+export type UserProfile = {
+  __typename?: 'UserProfile';
+  roles: Array<Scalars['String']['output']>;
+  userId: Scalars['String']['output'];
+  username: Scalars['String']['output'];
+}
+
 export type Mutation = {
   __typename?: 'Mutation';
   adminChangeUserPassword: Scalars['Boolean']['output'];
@@ -250,6 +257,7 @@ export type Query = {
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
   getVaultUserList: Array<PublicUser>;
+  getUserProfile: UserProfile;
 }
 
 export type QueryGetComputationDetailsArgs = {

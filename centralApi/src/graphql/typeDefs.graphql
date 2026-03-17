@@ -80,6 +80,12 @@ type LoginOutput {
   roles: [String!]!
 }
 
+type UserProfile {
+  userId: String!
+  username: String!
+  roles: [String!]!
+}
+
 type RunEventPayload {
   consortiumId: String!
   consortiumTitle: String!
@@ -130,6 +136,7 @@ type Query {
   getRunDetails(runId: String!): RunDetails!
   getVaultUserList: [PublicUser!]!
   getInviteInfo(inviteToken: String!): InviteInfo!
+  getUserProfile: UserProfile!
 }
 
 type Mutation {

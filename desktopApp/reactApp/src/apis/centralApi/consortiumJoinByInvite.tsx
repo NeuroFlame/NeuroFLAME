@@ -9,7 +9,7 @@ export const consortiumJoinByInvite = async (
 ): Promise<void> => {
   const CONSORTIUM_JOIN_BY_INVITE_MUTATION = gql`
     mutation ConsortiumJoinByInvite($inviteToken: String!) {
-      consortiumJoin(inviteToken: $inviteToken)
+      consortiumJoinByInvite(inviteToken: $inviteToken)
     }
   `
 
