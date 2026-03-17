@@ -45,6 +45,7 @@ export default function MembersListEdit({
           <div>
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}

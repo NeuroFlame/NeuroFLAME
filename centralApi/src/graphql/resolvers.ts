@@ -274,7 +274,7 @@ export default {
         const run: IRun = await Run.findById(runId)
           .populate({
             path: 'consortium',
-            select: 'title leader members activeMembers readyMembers',
+            select: 'title leader activeMembers readyMembers',
             populate: [
               { path: 'leader', select: 'id username' },
               { path: 'activeMembers', select: 'id username' },
@@ -320,7 +320,6 @@ export default {
           _id: any
           title: string
           leader: any
-          members: any[]
           activeMembers: any[]
           readyMembers: any[]
         }
@@ -331,7 +330,6 @@ export default {
             id: consortium._id.toString(),
             title: consortium.title as string,
             leader: consortium.leader ? transformUser(consortium.leader) : null,
-            members: (consortium.members || []).map(transformUser),
             activeMembers: (consortium.activeMembers || []).map(transformUser),
             readyMembers: (consortium.readyMembers || []).map(transformUser),
           },

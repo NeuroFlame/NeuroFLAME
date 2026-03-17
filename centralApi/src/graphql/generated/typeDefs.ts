@@ -142,7 +142,6 @@ type RunDetailConsortium {
   id: String!
   title: String!
   leader: PublicUser!
-  members: [PublicUser!]!
   activeMembers: [PublicUser!]!
   readyMembers: [PublicUser!]!
 }
