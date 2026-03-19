@@ -302,10 +302,18 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type RunDetailConsortium = {
+  __typename?: 'RunDetailConsortium';
+  activeMembers: Array<PublicUser>;
+  id: Scalars['String']['output'];
+  leader: PublicUser;
+  readyMembers: Array<PublicUser>;
+  title: Scalars['String']['output'];
+};
+
 export type RunDetails = {
   __typename?: 'RunDetails';
-  consortiumId: Scalars['String']['output'];
-  consortiumTitle: Scalars['String']['output'];
+  consortium: RunDetailConsortium;
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
   members: Array<PublicUser>;

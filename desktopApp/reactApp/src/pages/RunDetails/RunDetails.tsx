@@ -28,7 +28,7 @@ export function RunDetails() {
                 variant='contained'
                 color='primary'
                 style={{ marginRight: '1rem' }}
-                onClick={() => navigate(`/consortium/details/${runDetails.consortiumId}`)}
+                onClick={() => navigate(`/consortium/details/${runDetails.consortium.id}`)}
               >
                 View Consortium
               </Button>
@@ -36,7 +36,7 @@ export function RunDetails() {
                 <Button
                   variant='contained'
                   color='success'
-                  onClick={() => navigate(`/run/results/${runDetails.consortiumId}/${runDetails.runId}`)}
+                  onClick={() => navigate(`/run/results/${runDetails.consortium.id}/${runDetails.runId}`)}
                 >
                   View Run Results
                 </Button>
@@ -48,7 +48,7 @@ export function RunDetails() {
               <Box p={2} borderRadius={2} bgcolor='white'>
                 <Typography variant='body1'>
                   <strong>Consortium:</strong>{' '}
-                  {runDetails.consortiumTitle} ({runDetails.consortiumId})
+                  {runDetails.consortium.title} ({runDetails.consortium.id})
                 </Typography>
                 <Typography variant='body1'>
                   <strong>Status:</strong> {runDetails.status}
@@ -65,7 +65,12 @@ export function RunDetails() {
             </Grid>
             {/* Members */}
             <Grid size={{ xs: 12, sm: 6 }}>
-              <MembersDisplay members={runDetails.members} />
+              <MembersDisplay
+                members={runDetails.members}
+                activeMembers={runDetails.consortium.activeMembers}
+                readyMembers={runDetails.consortium.readyMembers}
+                leader={runDetails.consortium.leader}
+              />
             </Grid>
             {/* Errors */}
             {runDetails.runErrors.length > 0 && (

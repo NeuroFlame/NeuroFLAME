@@ -138,10 +138,17 @@ type RunError {
   message: String!
 }
 
+type RunDetailConsortium {
+  id: String!
+  title: String!
+  leader: PublicUser!
+  activeMembers: [PublicUser!]!
+  readyMembers: [PublicUser!]!
+}
+
 type RunDetails {
   runId: String!
-  consortiumId: String!
-  consortiumTitle: String!
+  consortium: RunDetailConsortium!
   status: String!
   lastUpdated: String!
   createdAt: String!
