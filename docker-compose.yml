@@ -38,7 +38,7 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:-access-token-secret-example}
       - ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION:-24h}
-      - CONSORTIUM_INVITE_URL=${CONSORTIUM_INVITE_URL:http://localhost:5173}
+      - CONSORTIUM_INVITE_URL=${CONSORTIUM_INVITE_URL:-http://localhost:5173}
 
   centralFederatedClient:
     depends_on:
