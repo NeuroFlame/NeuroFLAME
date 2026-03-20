@@ -1350,7 +1350,13 @@ export default {
         throw new Error('You cannot delete uncompleted run')
       }
 
+      const consortiumId = (run as any).consortium._id.toString()
+
       await Run.findByIdAndDelete(runId)
+
+      pubsub.publish('CONSORTIUM_LATEST_RUN_CHANGED', {
+        consortiumId,
+      })
 
       pubsub.publish('RUN_DETAILS_CHANGED', {
         runId,
