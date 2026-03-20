@@ -11,6 +11,7 @@ import { startRun } from './startRun'
 import { studySetNotes } from './studySetNotes'
 import { consortiumDetailsChanged } from './subscriptions/consortiumDetailsChanged'
 import { getRunList } from './getRunList'
+import { runDelete } from './runDelete'
 import { consortiumLatestRunChanged } from './subscriptions/consortiumLatestRunChanged'
 import { runDetailsChanged } from './subscriptions/runDetailsChanged'
 import { consortiumSetMemberReady } from './consortiumSetMemberReady'
@@ -60,6 +61,7 @@ import {
   MutationLeaderSetMemberInactiveArgs,
   MutationRequestPasswordResetArgs,
   MutationResetPasswordArgs,
+  MutationRunDeleteArgs,
 } from './generated/graphql'
 import { getVaultUserList } from './getVaultUserList'
 import { leaderAddVaultUser } from './leaderAddVaultUser'
@@ -97,6 +99,8 @@ export const useCentralApi = () => {
       studySetNotes(centralApiApolloClient, input),
     getRunList: (input: QueryGetRunListArgs) =>
       getRunList(centralApiApolloClient, input),
+    runDelete: (input: MutationRunDeleteArgs) =>
+      runDelete(centralApiApolloClient, input),
     adminChangeUserPassword: (input: MutationAdminChangeUserPasswordArgs) =>
       adminChangeUserPassword(centralApiApolloClient, input),
     adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) =>

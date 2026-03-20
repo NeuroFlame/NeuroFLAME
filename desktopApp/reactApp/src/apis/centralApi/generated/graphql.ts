@@ -87,6 +87,7 @@ export type Mutation = {
   studySetParameters: Scalars['Boolean']['output'];
   userChangePassword: Scalars['Boolean']['output'];
   userCreate: LoginOutput;
+  runDelete: Scalars['Boolean']['output'];
 }
 
 export type MutationAdminChangeUserPasswordArgs = {
@@ -224,6 +225,10 @@ export type MutationUserChangePasswordArgs = {
 export type MutationUserCreateArgs = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+}
+
+export type MutationRunDeleteArgs = {
+  runId: Scalars['String']['input'];
 }
 
 export type PublicUser = {
