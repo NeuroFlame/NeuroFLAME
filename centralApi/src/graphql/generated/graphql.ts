@@ -313,7 +313,6 @@ export type RunDetailConsortium = {
   activeMembers: Array<PublicUser>;
   id: Scalars['String']['output'];
   leader: PublicUser;
-  members: Array<PublicUser>;
   readyMembers: Array<PublicUser>;
   title: Scalars['String']['output'];
 };

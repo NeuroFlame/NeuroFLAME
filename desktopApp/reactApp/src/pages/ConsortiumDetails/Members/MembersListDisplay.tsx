@@ -30,6 +30,7 @@ export default function MembersListDisplay({
           return (
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}
@@ -54,6 +55,7 @@ export default function MembersListDisplay({
           return (
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}
@@ -79,6 +81,7 @@ export default function MembersListDisplay({
           return (
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}
@@ -104,6 +107,7 @@ export default function MembersListDisplay({
           return (
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}
@@ -129,6 +133,7 @@ export default function MembersListDisplay({
           return (
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}
