@@ -1,5 +1,10 @@
 # **NeuroFlame**
 
+## Latest Releases
+
+- **NeuroFLAME:** [Latest Release](https://github.com/NeuroFlame/NeuroFLAME/releases/latest)
+- **NeuroFlame Preprocessor:** [Latest Release](https://github.com/NeuroFlame/neuroflame-preprocessor/releases/latest)
+
 **NeuroFlame is a platform for collaborative neuroimaging research that keeps sensitive patient data secure. By using federated learning, researchers can train models and perform analyses across multiple institutions while keeping data securely on-site. This approach allows institutions to benefit from shared insights without exposing private datasets.**
 
 ## **Why NeuroFlame?**

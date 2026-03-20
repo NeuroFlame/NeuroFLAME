@@ -1,12 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TextareaAutosize from 'react-textarea-autosize'
-import { Typography, Button, Box, Container } from '@mui/material'
+import {
+  Typography,
+  Button,
+  Box,
+  Container,
+  FormControlLabel,
+  Switch,
+} from '@mui/material'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 
 export default function ConsortiumCreate() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [isPrivate, setIsPrivate] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,6 +28,7 @@ export default function ConsortiumCreate() {
       const consortiumId = await consortiumCreate({
         title,
         description,
+        isPrivate,
       })
       setLoading(false)
       navigate(`${navPath}/${consortiumId}`)
@@ -70,6 +79,16 @@ export default function ConsortiumCreate() {
             placeholder='Description (Optional)'
             defaultValue={description}
             onChange={(e) => setDescription(e.target.value)}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isPrivate}
+                onChange={(_, v) => setIsPrivate(v)}
+                color='primary'
+              />
+            }
+            label='Private'
           />
           <Box marginTop={2} display='flex' gap={2} alignItems='center'>
             <Button
