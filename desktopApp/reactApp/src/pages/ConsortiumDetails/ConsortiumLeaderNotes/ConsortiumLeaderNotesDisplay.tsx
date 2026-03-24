@@ -13,6 +13,7 @@ export default function ConsortiumLeaderNotesDisplay({
     <Box sx={{
       height: 'auto',
       overflow: 'scroll',
+      maxHeight: 300,
     }}
     >
       {consortiumLeaderNotes && (
