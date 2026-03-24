@@ -36,6 +36,7 @@ export type ConsortiumDetails = {
   activeMembers: Array<PublicUser>;
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   readyMembers: Array<PublicUser>;
@@ -47,6 +48,7 @@ export type ConsortiumListItem = {
   __typename?: 'ConsortiumListItem';
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   title: Scalars['String']['output'];
@@ -83,12 +85,14 @@ export type Mutation = {
   reportRunStatus: Scalars['Boolean']['output'];
   requestPasswordReset: Scalars['Boolean']['output'];
   resetPassword: LoginOutput;
+  runDelete: Scalars['Boolean']['output'];
   startRun: StartRunOutput;
   studySetComputation: Scalars['Boolean']['output'];
   studySetNotes: Scalars['Boolean']['output'];
   studySetParameters: Scalars['Boolean']['output'];
   userChangePassword: Scalars['Boolean']['output'];
   userCreate: LoginOutput;
+  vaultHeartbeat: Scalars['Boolean']['output'];
 };
 
 
@@ -125,6 +129,7 @@ export type MutationComputationEditArgs = {
 
 export type MutationConsortiumCreateArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
 };
 
@@ -137,6 +142,7 @@ export type MutationConsortiumDeleteArgs = {
 export type MutationConsortiumEditArgs = {
   consortiumId: Scalars['String']['input'];
   description: Scalars['String']['input'];
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
 };
 
@@ -220,6 +226,11 @@ export type MutationResetPasswordArgs = {
 };
 
 
+export type MutationRunDeleteArgs = {
+  runId: Scalars['String']['input'];
+};
+
+
 export type MutationStartRunArgs = {
   input: StartRunInput;
 };
@@ -253,11 +264,17 @@ export type MutationUserCreateArgs = {
   username: Scalars['String']['input'];
 };
 
+
+export type MutationVaultHeartbeatArgs = {
+  heartbeat: VaultHeartbeatInput;
+};
+
 export type PublicUser = {
   __typename?: 'PublicUser';
   id: Scalars['String']['output'];
   username: Scalars['String']['output'];
   vault?: Maybe<Vault>;
+  vaultStatus?: Maybe<VaultStatus>;
 };
 
 export type Query = {
@@ -291,10 +308,18 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type RunDetailConsortium = {
+  __typename?: 'RunDetailConsortium';
+  activeMembers: Array<PublicUser>;
+  id: Scalars['String']['output'];
+  leader: PublicUser;
+  readyMembers: Array<PublicUser>;
+  title: Scalars['String']['output'];
+};
+
 export type RunDetails = {
   __typename?: 'RunDetails';
-  consortiumId: Scalars['String']['output'];
-  consortiumTitle: Scalars['String']['output'];
+  consortium: RunDetailConsortium;
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
   members: Array<PublicUser>;
@@ -393,4 +418,37 @@ export type Vault = {
   __typename?: 'Vault';
   description: Scalars['String']['output'];
   name: Scalars['String']['output'];
+};
+
+export type VaultHeartbeatInput = {
+  runningComputations: Array<VaultRunningComputationInput>;
+  status: Scalars['String']['input'];
+  uptime: Scalars['Int']['input'];
+  version: Scalars['String']['input'];
+  websocketConnected: Scalars['Boolean']['input'];
+};
+
+export type VaultRunningComputation = {
+  __typename?: 'VaultRunningComputation';
+  consortiumId: Scalars['String']['output'];
+  consortiumTitle?: Maybe<Scalars['String']['output']>;
+  runId: Scalars['String']['output'];
+  runStartedAt: Scalars['String']['output'];
+  runningFor: Scalars['Int']['output'];
+};
+
+export type VaultRunningComputationInput = {
+  consortiumId: Scalars['String']['input'];
+  runId: Scalars['String']['input'];
+  startedAt: Scalars['String']['input'];
+};
+
+export type VaultStatus = {
+  __typename?: 'VaultStatus';
+  lastHeartbeat: Scalars['String']['output'];
+  runningComputations: Array<VaultRunningComputation>;
+  status: Scalars['String']['output'];
+  uptime: Scalars['Int']['output'];
+  version: Scalars['String']['output'];
+  websocketConnected: Scalars['Boolean']['output'];
 };
