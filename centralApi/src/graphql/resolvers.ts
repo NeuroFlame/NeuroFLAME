@@ -30,7 +30,6 @@ import {
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
-import path from 'path'
 
 interface Context {
   userId: string
@@ -41,6 +40,36 @@ interface Context {
 const resend = new Resend(RESEND_API_KEY)
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const getInviteUrl = (token: string): string => {
+  const baseUrl = CONSORTIUM_INVITE_URL.endsWith('/')
+    ? CONSORTIUM_INVITE_URL
+    : `${CONSORTIUM_INVITE_URL}/`
+
+  return new URL(`invite/${token}`, baseUrl).toString()
+}
+
+const sendInviteEmail = async ({
+  email,
+  leaderName,
+  consortiumTitle,
+  token,
+}: {
+  email: string
+  leaderName: string
+  consortiumTitle: string
+  token: string
+}): Promise<void> => {
+  const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
+      Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
+
+  await resend.emails.send({
+    to: email,
+    from: 'no-reply@coinstac.org',
+    subject: `Invitation to join ${consortiumTitle}`,
+    html,
+  })
+}
 
 export default {
   Query: {
@@ -1205,21 +1234,29 @@ export default {
         .populate('leader', 'id username')
         .populate('consortium', 'id members') as any
 
-      if (!invite.consortium || !invite.leader) {
-        throw new Error('Invite is missing consortium or leader information')
-      }
-
-      if (invite.consortium.members.includes(userId)) {
-        throw new Error('You\'re already a member of this consortium')
-      }
-
-      // Invite with provided token does not exist
       if (!invite) {
         throw new Error('Invalid invite link')
       }
 
+      if (!invite.consortium || !invite.leader) {
+        throw new Error('Invite is missing consortium or leader information')
+      }
+
+      const consortiumId = invite.consortium._id?.toString?.() ?? invite.consortium.id
+      const isExistingMember = invite.consortium.members.some(
+        (memberId: { toString: () => string }) => memberId.toString() === userId,
+      )
+
+      if (isExistingMember) {
+        throw new Error('You\'re already a member of this consortium')
+      }
+
       // Invite was sent to someone else.
       const user = await User.findById(userId)
+      if (!user) {
+        throw new Error('User not found')
+      }
+
       if (user.username !== invite.email) {
         throw new Error('Invalid invite link')
       }
@@ -1232,14 +1269,14 @@ export default {
         throw new Error('Invite is expired')
       }
 
-      await Consortium.findByIdAndUpdate(invite.consortium, {
+      await Consortium.findByIdAndUpdate(consortiumId, {
         $addToSet: { members: userId, activeMembers: userId },
       })
 
       await invite.deleteOne()
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId: invite.consortium,
+        consortiumId,
       })
 
       return true
@@ -1419,32 +1456,31 @@ export default {
 
       // Set current time on createdAt if invite already exists
       const invite = await Invite.findOne({ email, consortium: consortiumId })
-      if (invite) {
-        await invite.updateOne({ createdAt: Date.now() })
-        return true
-      }
-
       const token = randomBytes(32).toString('hex')
 
-      await Invite.create({
-        leader: context.userId,
-        consortium: consortiumId,
-        email,
-        token,
-        createdAt: Date.now(),
-      })
+      if (invite) {
+        invite.token = token
+        invite.createdAt = new Date()
+        await invite.save()
+      } else {
+        await Invite.create({
+          leader: context.userId,
+          consortium: consortiumId,
+          email,
+          token,
+          createdAt: Date.now(),
+        })
+      }
 
       const leaderName = (consortium.leader as any).username
       const consortiumTitle = consortium.title
-      const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
-      Please click this <a href="${path.join(CONSORTIUM_INVITE_URL, 'invite', token)}">link</a> to join.`
 
       try {
-        await resend.emails.send({
-          to: email,
-          from: 'no-reply@coinstac.org',
-          subject: `Invitation to join ${consortiumTitle}`,
-          html,
+        await sendInviteEmail({
+          email,
+          leaderName,
+          consortiumTitle,
+          token,
         })
       } catch (error: any) {
         logger.error('Failed to send invite email', error)
