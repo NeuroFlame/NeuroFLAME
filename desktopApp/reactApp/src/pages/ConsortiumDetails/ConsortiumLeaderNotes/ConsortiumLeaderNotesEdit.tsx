@@ -34,7 +34,7 @@ export default function ConsortiumLeaderNotesEdit({
 
   return (
     <Box>
-      <Box style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 1 }}>
         <Button
           variant='outlined'
           color='secondary'

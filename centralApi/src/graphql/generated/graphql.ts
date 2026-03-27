@@ -386,7 +386,7 @@ export type StudyConfiguration = {
   __typename?: 'StudyConfiguration';
   computation?: Maybe<Computation>;
   computationParameters: Scalars['String']['output'];
-  consortiumLeaderNotes: Scalars['String']['output'];
+  consortiumLeaderNotes?: Maybe<Scalars['String']['output']>;
 };
 
 export type Subscription = {

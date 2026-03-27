@@ -91,7 +91,7 @@ type Computation {
 }
 
 type StudyConfiguration {
-  consortiumLeaderNotes: String!
+  consortiumLeaderNotes: String
   computationParameters: String!
   computation: Computation
 }
