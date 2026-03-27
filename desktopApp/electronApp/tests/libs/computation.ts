@@ -48,8 +48,17 @@ const runComputation = async (page: Page) => {
   // Go to next step
   await page.getByRole('button', { name: /go to next step/i }).click()
 
-  // Set ready status
-  await page.getByRole('button', { name: /Set Yourself as \"Ready\"/i }).click()
+  // Set current user status using the consortium details toggles.
+  const activeToggle = page.getByRole('checkbox', { name: /^Active$/i })
+  if (!(await activeToggle.isChecked())) {
+    await activeToggle.click()
+  }
+
+  const readyToggle = page.getByRole('checkbox', { name: /^Ready$/i })
+  if (!(await readyToggle.isChecked())) {
+    await readyToggle.click()
+  }
+
   await page.getByRole('button', { name: /view consortium details/i }).click()
 
   // Start run
