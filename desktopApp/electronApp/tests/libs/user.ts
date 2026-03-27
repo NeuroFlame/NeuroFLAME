@@ -8,8 +8,12 @@ const logIn = async ({ username, password }, page: Page) => {
 }
 
 const logOut = async (page: Page) => {
-  await page.getByLabel('menu').click({ timeout: EXIST_TIMEOUT });
-  (await page.$('div:text("Logout")'))?.click()
+  if (await page.getByRole('button', { name: /log in/i }).isVisible().catch(() => false)) {
+    return
+  }
+
+  await page.getByLabel('menu').click({ timeout: EXIST_TIMEOUT })
+  await page.getByText('Logout', { exact: true }).click({ timeout: EXIST_TIMEOUT })
 }
 
 export default {
