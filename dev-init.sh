@@ -43,7 +43,7 @@ load_env_file "$SCRIPT_DIR/centralFederatedClient/.env"
 load_env_file "$SCRIPT_DIR/fileServer/.env"
 
 # Install dependencies
-for dir in centralApi edgeFederatedClient centralFederatedClient fileServer desktopApp/reactApp desktopApp/electronApp desktopApp/inviteApp; do
+for dir in centralApi edgeFederatedClient centralFederatedClient fileServer desktopApp/reactApp desktopApp/electronApp; do
   echo "Installing dependencies in $dir"
   (cd "$dir" && npm install)
 done
@@ -67,4 +67,3 @@ echo "Seeding centralApi"
 (cd centralApi && npm run seed)
 
 echo "All tasks completed!"
-

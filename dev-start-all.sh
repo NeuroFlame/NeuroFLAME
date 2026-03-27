@@ -57,15 +57,6 @@ tell application "System Events"
         keystroke return
     end tell
 end tell
-delay 0.3
-tell application "System Events"
-    tell process "Terminal"
-        keystroke "t" using {command down}
-        delay 0.5
-        keystroke "cd '$SCRIPT_DIR/desktopApp/inviteApp' && echo 'Starting React App (Webpack)...' && npm run dev"
-        keystroke return
-    end tell
-end tell
 EOF
 
     echo "All services launched in separate Terminal tabs!"
@@ -108,4 +99,3 @@ else
     echo "  cd desktopApp/reactApp && npm start"
     exit 1
 fi
-

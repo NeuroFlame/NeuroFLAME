@@ -20,6 +20,84 @@ import { useNavigate, useParams } from 'react-router-dom'
 import ConsortiumInviteModal from './Modals/ConsortiumInvite'
 import ConsortiumDeleteModal from './Modals/ConsortiumDelete'
 
+function ConsortiumActions({
+  consortiumId,
+  isLeader,
+  isPrivate,
+  isLoading,
+  onPrivacyChange,
+  onInvite,
+  onDelete,
+  onNavigate,
+}: {
+  consortiumId?: string
+  isLeader: boolean
+  isPrivate: boolean
+  isLoading: boolean
+  onPrivacyChange: (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => void
+  onInvite: () => void
+  onDelete: () => void
+  onNavigate: (_: string) => void
+}) {
+  return (
+    <Box className='consortium-actions'>
+      {isLeader && (
+        <FormControlLabel
+          className='consortium-actions-private'
+          control={
+            <Switch
+              checked={isPrivate}
+              onChange={onPrivacyChange}
+              color='primary'
+              disabled={isLoading}
+            />
+          }
+          label='Private'
+        />
+      )}
+      {isLeader && (
+        <Button
+          onClick={onInvite}
+          color='secondary'
+          variant='outlined'
+          size='small'
+          className='consortium-actions-button'
+        >
+          Invite Participants
+        </Button>
+      )}
+      <Button
+        onClick={() => onNavigate(`/consortium/wizard/${consortiumId}`)}
+        color='success'
+        variant='outlined'
+        size='small'
+        className='consortium-actions-button'
+      >
+        Setup Wizard
+      </Button>
+      <Button
+        onClick={() => onNavigate('/consortium/list')}
+        variant='outlined'
+        size='small'
+        className='consortium-actions-button'
+      >
+        Consortia List
+      </Button>
+      {isLeader && (
+        <Button
+          color='error'
+          variant='outlined'
+          size='small'
+          onClick={onDelete}
+          className='consortium-actions-button'
+        >
+          Delete
+        </Button>
+      )}
+    </Box>
+  )
+}
+
 export function ConsortiumDetailsPage() {
   const { consortiumId } = useParams<{ consortiumId: string }>()
   const {
@@ -62,6 +140,19 @@ export function ConsortiumDetailsPage() {
   return (
     <>
       <Grid container spacing={2} padding={2}>
+        <Grid size={12}>
+          <ConsortiumActions
+            consortiumId={consortiumId}
+            isLeader={isLeader}
+            isPrivate={isPrivate}
+            isLoading={status.loading}
+            onPrivacyChange={handlePrivacyChange}
+            onInvite={() => setIsInviteModalOpen(true)}
+            onDelete={() => setIsDeleteModalOpen(true)}
+            onNavigate={navigate}
+          />
+        </Grid>
+
         <Grid size={{ sm: 6, md: 4 }}>
           <TitleAndDescription title={title} description={description} />
 
@@ -84,36 +175,6 @@ export function ConsortiumDetailsPage() {
         </Grid>
 
         <Grid size={{ sm: 6, md: 4 }} className='consortium-details-grid-2'>
-          <Box className='consortium-links'>
-            <Button
-              onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}
-              color='success'
-              variant='outlined'
-              size='small'
-              style={{ marginRight: '0.5rem' }}
-            >
-              Setup
-            </Button>
-            <Button
-              onClick={() => navigate('/consortium/list')}
-              variant='outlined'
-              size='small'
-              style={{ marginRight: '0.5rem' }}
-            >
-              Consortia
-            </Button>
-            {isLeader && (
-              <Button
-                color='error'
-                variant='outlined'
-                size='small'
-                onClick={() => setIsDeleteModalOpen(true)}
-              >
-                Delete
-              </Button>
-            )}
-          </Box>
-
           <LatestRun />
           <Computation computation={studyConfiguration?.computation} />
 
@@ -159,59 +220,6 @@ export function ConsortiumDetailsPage() {
         </Grid>
 
         <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
-          <Box className='consortium-links'>
-            {isLeader && (
-              <>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={isPrivate}
-                      onChange={handlePrivacyChange}
-                      color='primary'
-                      disabled={status.loading}
-                    />
-                  }
-                  label='Private'
-                />
-                <Button
-                  onClick={() => setIsInviteModalOpen(true)}
-                  color='secondary'
-                  variant='outlined'
-                  size='small'
-                  style={{ marginRight: '0.5rem' }}
-                >
-                  Invite Participants
-                </Button>
-              </>
-            )}
-            <Button
-              onClick={() => navigate(`/consortium/wizard/${consortiumId}`)}
-              color='success'
-              variant='outlined'
-              size='small'
-              style={{ marginRight: '0.5rem' }}
-            >
-              Setup Wizard
-            </Button>
-            <Button
-              onClick={() => navigate('/consortium/list')}
-              variant='outlined'
-              size='small'
-              style={{ marginRight: '0.5rem' }}
-            >
-              Consortia List
-            </Button>
-            {isLeader && (
-              <Button
-                color='error'
-                variant='outlined'
-                size='small'
-                onClick={() => setIsDeleteModalOpen(true)}
-              >
-                Delete
-              </Button>
-            )}
-          </Box>
           <ComputationDisplay notesHeading />
         </Grid>
       </Grid>

@@ -59,6 +59,7 @@ export default function Computation({ computation }: ComputationDisplayProps) {
 
   return (
     <Box
+      className='consortium-summary-card'
       p={2}
       borderRadius={2}
       marginBottom={2}
