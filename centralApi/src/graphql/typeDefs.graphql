@@ -115,6 +115,12 @@ type LoginOutput {
   roles: [String!]!
 }
 
+type UserProfile {
+  userId: String!
+  username: String!
+  roles: [String!]!
+}
+
 type RunEventPayload {
   consortiumId: String!
   consortiumTitle: String!
@@ -157,6 +163,12 @@ type RunDetails {
   runErrors: [RunError!]!
 }
 
+type InviteInfo {
+  consortiumName: String!
+  leaderName: String!
+  isExpired: Boolean!
+}
+
 type Query {
   getConsortiumList: [ConsortiumListItem!]!
   getComputationList: [ComputationListItem!]!
@@ -165,6 +177,8 @@ type Query {
   getRunList(consortiumId: String): [RunListItem!]!
   getRunDetails(runId: String!): RunDetails!
   getVaultUserList: [PublicUser!]!
+  getInviteInfo(inviteToken: String!): InviteInfo!
+  getUserProfile: UserProfile!
 }
 
 type Mutation {
@@ -184,10 +198,12 @@ type Mutation {
   consortiumCreate(title: String!, description: String, isPrivate: Boolean): String!
   consortiumEdit(consortiumId: String!, title: String!, description: String!, isPrivate: Boolean): Boolean!
   consortiumJoin(consortiumId: String!): Boolean!
+  consortiumJoinByInvite(inviteToken: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!
   consortiumLeave(consortiumId: String!): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
+  consortiumInvite(consortiumId: String!, email: String!): Boolean!
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, password: String!): LoginOutput!

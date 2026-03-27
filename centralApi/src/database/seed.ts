@@ -8,6 +8,7 @@ import Run from './models/Run.js'
 import User from './models/User.js'
 // eslint-disable-next-line @stylistic/max-len
 import computationNotesSingleRoundRidgeRegressionFreesurfer from './seedContent/computationNotesSingleRoundRidgeRegressionFreesurfer.js'
+// eslint-disable-next-line @stylistic/max-len
 import computationNotesSingleRoundClosedformRegressionVBM from './seedContent/computationNotesSingleRoundClosedformRegressionVBM.js'
 import computationNotesSpatiallyConstrainedICA from './seedContent/computationNotesSpatiallyConstrainedICA.js'
 import vaultDescriptionCobreFreeSurfer from './seedContent/vaultDescriptionCobreFreeSurfer.js'
@@ -33,34 +34,34 @@ const predefinedIds = {
 const users = [
   {
     _id: predefinedIds.user1Id,
-    username: 'user1',
+    username: 'user1@email.com',
     hash: await bcrypt.hash('password1', saltRounds),
   },
   {
     _id: predefinedIds.user2Id,
-    username: 'user2',
+    username: 'user2@email.com',
     hash: await bcrypt.hash('password2', saltRounds),
   },
   {
     _id: predefinedIds.user3Id,
-    username: 'user3',
+    username: 'user3@email.com',
     hash: await bcrypt.hash('password3', saltRounds),
   },
   {
     _id: predefinedIds.user4Id,
-    username: 'user4',
+    username: 'user4@email.com',
     hash: await bcrypt.hash('password4', saltRounds),
     roles: ['admin'],
   },
   {
     _id: predefinedIds.centralUserId,
-    username: 'centralUser',
+    username: 'centralUser@email.com',
     hash: await bcrypt.hash('centralPassword', saltRounds),
     roles: ['central'],
   },
   {
     _id: predefinedIds.user5IdVault,
-    username: 'CobreFS',
+    username: 'cobrefs@email.com',
     hash: await bcrypt.hash('vaultPassword1', saltRounds),
     roles: ['vault'],
     vault: {

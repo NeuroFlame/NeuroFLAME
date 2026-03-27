@@ -24,7 +24,9 @@ import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
 import { consortiumDelete } from './consortiumDelete'
 import { consortiumEdit } from './consortiumEdit'
+import { consortiumInvite } from './consortiumInvite'
 import { consortiumJoin } from './consortiumJoin'
+import { consortiumJoinByInvite } from './consortiumJoinByInvite'
 import { consortiumLeave } from './consortiumLeave'
 import { userChangePassword } from './userChangePassword'
 import { userCreate } from './userCreate'
@@ -41,7 +43,9 @@ import {
   MutationConsortiumCreateArgs,
   MutationConsortiumEditArgs,
   MutationConsortiumDeleteArgs,
+  MutationConsortiumInviteArgs,
   MutationConsortiumJoinArgs,
+  MutationConsortiumJoinByInviteArgs,
   MutationConsortiumLeaveArgs,
   MutationUserChangePasswordArgs,
   MutationUserCreateArgs,
@@ -93,6 +97,8 @@ export const useCentralApi = () => {
       consortiumSetMemberActive(centralApiApolloClient, input),
     consortiumSetMemberReady: (input: MutationConsortiumSetMemberReadyArgs) =>
       consortiumSetMemberReady(centralApiApolloClient, input),
+    consortiumInvite: (input: MutationConsortiumInviteArgs) =>
+      consortiumInvite(centralApiApolloClient, input),
     startRun: (input: MutationStartRunArgs) =>
       startRun(centralApiApolloClient, input),
     studySetNotes: (input: MutationStudySetNotesArgs) =>
@@ -117,6 +123,8 @@ export const useCentralApi = () => {
       consortiumDelete(centralApiApolloClient, input),
     consortiumJoin: (input: MutationConsortiumJoinArgs) =>
       consortiumJoin(centralApiApolloClient, input),
+    consortiumJoinByInvite: (input: MutationConsortiumJoinByInviteArgs) =>
+      consortiumJoinByInvite(centralApiApolloClient, input),
     consortiumLeave: (input: MutationConsortiumLeaveArgs) =>
       consortiumLeave(centralApiApolloClient, input),
     userChangePassword: (input: MutationUserChangePasswordArgs) =>

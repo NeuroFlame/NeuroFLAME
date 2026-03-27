@@ -32,6 +32,7 @@ interface ConsortiumDetailsContextType {
   };
   refetch: () => void;
   isLeader: boolean;
+  inviteConsortium: (_: string) => Promise<void>;
   deleteConsortium: () => Promise<void>;
   updateConsortiumPrivacy: (isPrivate: boolean) => Promise<void>;
 }
@@ -58,6 +59,7 @@ export const ConsortiumDetailsProvider:
 React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
   const {
     getConsortiumDetails,
+    consortiumInvite,
     consortiumDelete,
     consortiumEdit,
     subscriptions: {
@@ -124,6 +126,21 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     }
   }, [consortiumId])
 
+  // Handle consortium invite
+  const inviteConsortium = useCallback(async (email: string) => {
+    if (!consortiumId) return
+    setLoading(true)
+    setError(null)
+
+    try {
+      await consortiumInvite({ consortiumId, email })
+      // You can navigate away here if needed, e.g., to a list page
+      // navigate('/consortia');
+    } finally {
+      setLoading(false)
+    }
+  }, [consortiumId, consortiumDelete])
+
   // Handle consortium deletion
   const deleteConsortium = useCallback(async () => {
     if (!consortiumId) return
@@ -182,6 +199,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     },
     refetch: fetchConsortiumDetails,
     isLeader,
+    inviteConsortium,
     deleteConsortium,
     updateConsortiumPrivacy,
   }

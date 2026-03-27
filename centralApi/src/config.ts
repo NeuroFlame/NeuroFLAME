@@ -1,16 +1,13 @@
 const requireEnv = (name: string): string => {
   const value = process.env[name]
   if (!value) {
-    // eslint-disable-next-line no-console
     console.error(`[CONFIG] Missing required environment variable: ${name}`)
     process.exit(1)
   }
   return value
 }
 
-const requireEnvOptional = (name: string): string | undefined => {
-  return process.env[name]
-}
+const requireEnvOptional = (name: string): string | undefined => process.env[name]
 
 export const CLIENT_FILE_SERVER_URL = requireEnv('CLIENT_FILE_SERVER_URL')
 export const APOLLO_PORT = Number(requireEnv('APOLLO_PORT'))
@@ -22,3 +19,4 @@ export const COINSTAC_CONFIGURATIONS_FOLDER = requireEnvOptional(
 )
 export const ACCESS_TOKEN_SECRET = requireEnv('ACCESS_TOKEN_SECRET')
 export const ACCESS_TOKEN_DURATION = requireEnv('ACCESS_TOKEN_DURATION')
+export const CONSORTIUM_INVITE_URL = requireEnv('CONSORTIUM_INVITE_URL')

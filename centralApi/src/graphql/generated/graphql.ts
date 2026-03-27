@@ -54,6 +54,13 @@ export type ConsortiumListItem = {
   title: Scalars['String']['output'];
 };
 
+export type InviteInfo = {
+  __typename?: 'InviteInfo';
+  consortiumName: Scalars['String']['output'];
+  isExpired: Scalars['Boolean']['output'];
+  leaderName: Scalars['String']['output'];
+};
+
 export type LoginOutput = {
   __typename?: 'LoginOutput';
   accessToken: Scalars['String']['output'];
@@ -71,7 +78,9 @@ export type Mutation = {
   consortiumCreate: Scalars['String']['output'];
   consortiumDelete: Scalars['Boolean']['output'];
   consortiumEdit: Scalars['Boolean']['output'];
+  consortiumInvite: Scalars['Boolean']['output'];
   consortiumJoin: Scalars['Boolean']['output'];
+  consortiumJoinByInvite: Scalars['Boolean']['output'];
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
   consortiumSetMemberReady: Scalars['Boolean']['output'];
@@ -147,8 +156,19 @@ export type MutationConsortiumEditArgs = {
 };
 
 
+export type MutationConsortiumInviteArgs = {
+  consortiumId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
+};
+
+
 export type MutationConsortiumJoinArgs = {
   consortiumId: Scalars['String']['input'];
+};
+
+
+export type MutationConsortiumJoinByInviteArgs = {
+  inviteToken: Scalars['String']['input'];
 };
 
 
@@ -283,8 +303,10 @@ export type Query = {
   getComputationList: Array<ComputationListItem>;
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
+  getInviteInfo: InviteInfo;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
+  getUserProfile: UserProfile;
   getVaultUserList: Array<PublicUser>;
 };
 
@@ -296,6 +318,11 @@ export type QueryGetComputationDetailsArgs = {
 
 export type QueryGetConsortiumDetailsArgs = {
   consortiumId: Scalars['String']['input'];
+};
+
+
+export type QueryGetInviteInfoArgs = {
+  inviteToken: Scalars['String']['input'];
 };
 
 
@@ -412,6 +439,13 @@ export type SubscriptionConsortiumLatestRunChangedArgs = {
 
 export type SubscriptionRunDetailsChangedArgs = {
   runId: Scalars['String']['input'];
+};
+
+export type UserProfile = {
+  __typename?: 'UserProfile';
+  roles: Array<Scalars['String']['output']>;
+  userId: Scalars['String']['output'];
+  username: Scalars['String']['output'];
 };
 
 export type Vault = {

@@ -1,15 +1,15 @@
 const USER_1 = {
-  username: 'user1',
+  username: 'user1@email.com',
   password: 'password1',
 }
 
 const USER_2 = {
-  username: 'user2',
+  username: 'user2@email.com',
   password: 'password2',
 }
 
 const USER_4 = {
-  username: 'user4',
+  username: 'user4@email.com',
   password: 'password4',
 }
 

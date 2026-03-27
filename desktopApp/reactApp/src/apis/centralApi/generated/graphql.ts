@@ -61,6 +61,13 @@ export type LoginOutput = {
   username: Scalars['String']['output'];
 }
 
+export type UserProfile = {
+  __typename?: 'UserProfile';
+  roles: Array<Scalars['String']['output']>;
+  userId: Scalars['String']['output'];
+  username: Scalars['String']['output'];
+}
+
 export type Mutation = {
   __typename?: 'Mutation';
   adminChangeUserPassword: Scalars['Boolean']['output'];
@@ -69,7 +76,9 @@ export type Mutation = {
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
   consortiumEdit: Scalars['Boolean']['output'];
+  consortiumInvite: Scalars['Boolean']['output'];
   consortiumJoin: Scalars['Boolean']['output'];
+  consortiumJoinByInvite: Scalars['Boolean']['output'];
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
   consortiumSetMemberReady: Scalars['Boolean']['output'];
@@ -130,8 +139,17 @@ export type MutationConsortiumEditArgs = {
   isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
+export type MutationConsortiumInviteArgs = {
+  consortiumId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
+}
+
 export type MutationConsortiumJoinArgs = {
   consortiumId: Scalars['String']['input'];
+}
+
+export type MutationConsortiumJoinByInviteArgs = {
+  inviteToken: Scalars['String']['input'];
 }
 
 export type MutationConsortiumDeleteArgs = {
@@ -248,6 +266,7 @@ export type Query = {
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
   getVaultUserList: Array<PublicUser>;
+  getUserProfile: UserProfile;
 }
 
 export type QueryGetComputationDetailsArgs = {

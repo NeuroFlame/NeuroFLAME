@@ -1,40 +1,41 @@
-import { useEffect, useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useLogin } from './useLogin'
 
 export function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [formError, setFormError] = useState<string | null>(null)
   const { handleLogin, loading, error } = useLogin()
 
-  useEffect(() => {
-    const listener = (event: KeyboardEvent) => {
-      if (event.code === 'Enter') {
-        event.preventDefault()
+  const submitLogin = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
 
-        if (username && password) {
-          handleLogin(username, password)
-        } else {
-          console.error('Username or password is not defined')
-        }
-      }
+    const normalizedUsername = username.trim()
+    if (!normalizedUsername || !password) {
+      setFormError('Please enter a username and password.')
+      return
     }
-    document.addEventListener('keydown', listener)
-    return () => {
-      document.removeEventListener('keydown', listener)
-    }
-  }, [username, password])
+
+    setFormError(null)
+    await handleLogin(normalizedUsername, password)
+  }
 
   return (
-
-    <Box width='400px'>
+    <Box component='form' width='400px' onSubmit={submitLogin}>
+      {formError && <Alert severity='error'>{formError}</Alert>}
       {error && <Alert severity='error'>{error}</Alert>}
       <TextField
-        placeholder='Username'
+        placeholder='Username or Email'
         value={username}
         fullWidth
         size='small'
-        onChange={(e) => setUsername(e.target.value)}
+        onChange={(e) => {
+          setUsername(e.target.value)
+          if (formError) {
+            setFormError(null)
+          }
+        }}
         disabled={loading}
         sx={{
           '& .MuiInputBase-root': {
@@ -52,7 +53,12 @@ export function Login() {
         fullWidth
         size='small'
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value)
+          if (formError) {
+            setFormError(null)
+          }
+        }}
         disabled={loading}
         sx={{
           '& .MuiInputBase-root': {
@@ -68,11 +74,11 @@ export function Login() {
         variant='contained'
         color='primary'
         fullWidth
-        onClick={() => handleLogin(username, password)}
         disabled={loading}
+        type='submit'
       >
         {loading ? <CircularProgress size={24} /> : 'Log In'}
       </Button>
     </Box>
   )
-};
+}

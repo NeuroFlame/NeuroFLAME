@@ -3,11 +3,12 @@ import {
   compare,
   hashPassword,
 } from '../authentication/authentication.js'
-import { CLIENT_FILE_SERVER_URL, RESEND_API_KEY } from '../config.js'
+import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
 import Run, { IRun } from '../database/models/Run.js'
 import User from '../database/models/User.js'
 import Computation from '../database/models/Computation.js'
+import Invite from '../database/models/Invite.js'
 import pubsub from './pubSubService.js'
 import { withFilter } from 'graphql-subscriptions'
 import {
@@ -19,10 +20,12 @@ import {
   RunStartEdgePayload,
   PublicUser,
   ConsortiumDetails,
+  InviteInfo,
   LoginOutput,
   RunEventPayload,
   RunListItem,
   RunDetails,
+  UserProfile,
 } from './generated/graphql.js'
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
@@ -35,8 +38,63 @@ interface Context {
 }
 
 const resend = new Resend(RESEND_API_KEY)
+const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const getInviteUrl = (token: string): string => {
+  const baseUrl = CONSORTIUM_INVITE_URL.endsWith('/')
+    ? CONSORTIUM_INVITE_URL
+    : `${CONSORTIUM_INVITE_URL}/`
+
+  return new URL(`invite/${token}`, baseUrl).toString()
+}
+
+const sendInviteEmail = async ({
+  email,
+  leaderName,
+  consortiumTitle,
+  token,
+}: {
+  email: string
+  leaderName: string
+  consortiumTitle: string
+  token: string
+}): Promise<void> => {
+  const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
+      Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
+
+  await resend.emails.send({
+    to: email,
+    from: 'no-reply@coinstac.org',
+    subject: `Invitation to join ${consortiumTitle}`,
+    html,
+  })
+}
+
 export default {
   Query: {
+    getUserProfile: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ): Promise<UserProfile> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User is not authenticated')
+      }
+
+      const user = await User.findById(userId)
+
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      return {
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
+      }
+    },
     getConsortiumList: async (
       _: unknown,
       _args: unknown,
@@ -102,7 +160,7 @@ export default {
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
-          .populate('leader', 'id username')
+          .populate('leader', 'id username vault')
           .populate('members', 'id username vault')
           .populate('activeMembers', 'id username')
           .populate('readyMembers', 'id username')
@@ -288,7 +346,7 @@ export default {
           })
           .populate({
             path: 'runErrors.user',
-            select: 'id username', // Populate the user field in runErrors with id and username
+            select: 'id username', // Populate the user field in runErrors with id, username
             model: User,
           })
           .populate(
@@ -414,6 +472,35 @@ export default {
           : null,
       }))
     },
+    getInviteInfo: async (
+      _: unknown,
+      { inviteToken }: { inviteToken: string },
+    ): Promise<InviteInfo> => {
+      const invite = await Invite.findOne({ token: inviteToken })
+        .populate('leader')
+        .populate('consortium')
+        .lean()
+
+      if (!invite) {
+        throw new Error('Invalid invite link')
+      }
+
+      const consortium: any = invite.consortium
+      const leader: any = invite.leader
+
+      if (!consortium || !leader) {
+        throw new Error('Invite is missing consortium or leader information')
+      }
+
+      const createdAtMs = new Date(invite.createdAt).getTime()
+      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
+
+      return {
+        consortiumName: consortium.title,
+        leaderName: leader.username,
+        isExpired,
+      }
+    },
   },
   Mutation: {
     // Vault heartbeat - updates vault status
@@ -521,7 +608,7 @@ export default {
       user.resetTokenExpiry = Date.now() + 1000 * 60 * 60 * 24 // 24 hours
       await user.save()
 
-      const email = user.username // assuming username is the email
+      const email = user.username
       const msg = {
         to: email,
         from: 'no-reply@coinstac.org',
@@ -1159,6 +1246,67 @@ export default {
 
       return true
     },
+    consortiumJoinByInvite: async (
+      _: unknown,
+      { inviteToken }: { inviteToken: string },
+      context: Context,
+    ): Promise<boolean> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const invite = await Invite.findOne({ token: inviteToken })
+        .populate('leader', 'id username')
+        .populate('consortium', 'id members') as any
+
+      if (!invite) {
+        throw new Error('Invalid invite link')
+      }
+
+      if (!invite.consortium || !invite.leader) {
+        throw new Error('Invite is missing consortium or leader information')
+      }
+
+      const consortiumId = invite.consortium._id?.toString?.() ?? invite.consortium.id
+      const isExistingMember = invite.consortium.members.some(
+        (memberId: { toString: () => string }) => memberId.toString() === userId,
+      )
+
+      if (isExistingMember) {
+        throw new Error('You\'re already a member of this consortium')
+      }
+
+      // Invite was sent to someone else.
+      const user = await User.findById(userId)
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (user.username !== invite.email) {
+        throw new Error('Invalid invite link')
+      }
+
+      const createdAtMs = new Date(invite.createdAt).getTime()
+      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
+
+      // Invite is expired
+      if (isExpired) {
+        throw new Error('Invite is expired')
+      }
+
+      await Consortium.findByIdAndUpdate(consortiumId, {
+        $addToSet: { members: userId, activeMembers: userId },
+      })
+
+      await invite.deleteOne()
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId,
+      })
+
+      return true
+    },
     consortiumDelete: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
@@ -1295,11 +1443,87 @@ export default {
         throw new Error('Failed to update consortium ready members')
       }
     },
+    consortiumInvite: async (
+      _: unknown,
+      { consortiumId, email }: { consortiumId: string; email: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      // Provided email is not valid
+      if (!EMAIL_REGEX.test(email)) {
+        throw new Error('Invalid email')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+        .populate('leader', 'username')
+        .populate('members', 'id username vault')
+        .lean()
+
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      // Only consortium leader can send invites
+      if ((consortium.leader as any)._id.toString() !== context.userId) {
+        throw new Error('Only the consortium leader can send invites')
+      }
+
+      const isAlreadyMember = (consortium.members as any).some(
+        (member) => member.username === email,
+      )
+
+      // User is already a member of the consortium
+      if (isAlreadyMember) {
+        throw new Error('User is already a member of the consortium')
+      }
+
+      // Set current time on createdAt if invite already exists
+      const invite = await Invite.findOne({ email, consortium: consortiumId })
+      const token = randomBytes(32).toString('hex')
+
+      if (invite) {
+        invite.token = token
+        invite.createdAt = new Date()
+        await invite.save()
+      } else {
+        await Invite.create({
+          leader: context.userId,
+          consortium: consortiumId,
+          email,
+          token,
+          createdAt: Date.now(),
+        })
+      }
+
+      const leaderName = (consortium.leader as any).username
+      const consortiumTitle = consortium.title
+
+      try {
+        await sendInviteEmail({
+          email,
+          leaderName,
+          consortiumTitle,
+          token,
+        })
+      } catch (error: any) {
+        logger.error('Failed to send invite email', error)
+        throw new Error(`Failed to send invite email: ${error.message}`)
+      }
+
+      return true
+    },
     userCreate: async (
       _: unknown,
       { username, password }: { username: string; password: string },
     ): Promise<LoginOutput> => {
       try {
+        if (!EMAIL_REGEX.test(username)) {
+          throw new Error('Username should be email')
+        }
+
         const existingUser = await User.findOne({ username })
         if (existingUser) {
           throw new Error('User already exists')
