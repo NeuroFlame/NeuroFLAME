@@ -14,7 +14,6 @@ import {
   ConsortiumDetailsProvider,
   useConsortiumDetailsContext,
 } from '../ConsortiumDetails/ConsortiumDetailsContext'
-import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { useUserState } from '../../contexts/UserStateContext'
 
 const ConsortiumWizard = () => {
@@ -27,7 +26,6 @@ const ConsortiumWizard = () => {
   const [steps, setSteps] = useState<StepsType[]>([])
   const [isReady, setIsReady] = useState<boolean>(false)
   const navigate = useNavigate()
-  const { consortiumLeave } = useCentralApi()
 
   const { consortiumId } = useParams<{ consortiumId: string }>()
   const { data, isLeader } = useConsortiumDetailsContext()
@@ -110,18 +108,6 @@ const ConsortiumWizard = () => {
     }
   }
 
-  const handleCancelAndExit = async () => {
-    if (consortiumId) {
-      try {
-        await consortiumLeave({ consortiumId })
-      } catch (error) {
-        console.error('Failed to leave the consortium:', error)
-      } finally {
-        navigate('/consortium/list')
-      }
-    }
-  }
-
   return (
     <>
       {steps.length > 0 && (
@@ -178,8 +164,8 @@ const ConsortiumWizard = () => {
             }}
           >
             {step === 0 && !isReady && (
-              <Button variant='outlined' color='primary' onClick={handleCancelAndExit}>
-                Cancel & Leave
+              <Button variant='outlined' color='primary' onClick={handleNavigateToConsortiumDetails}>
+                Leave Wizard
               </Button>
             )}
             {step > 0 && (
