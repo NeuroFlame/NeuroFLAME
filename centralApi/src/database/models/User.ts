@@ -24,7 +24,6 @@ export interface IVaultDataset {
   key: string
   path: string
   label?: string
-  lastSeenAt: Date
 }
 
 // Define an interface for vault status (reported via heartbeat)
@@ -74,7 +73,6 @@ const vaultDatasetSchema: Schema = new Schema({
   key: { type: String, required: true, trim: true },
   path: { type: String, required: true, trim: true },
   label: { type: String, required: false, trim: true },
-  lastSeenAt: { type: Date, required: true },
 }, { _id: false })
 
 // Define the vault status sub-schema

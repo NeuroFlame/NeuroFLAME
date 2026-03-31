@@ -121,14 +121,12 @@ const mapAvailableDatasets = (
         key?: string | null
         path?: string | null
         label?: string | null
-        lastSeenAt?: Date | string | null
       }>
     | undefined,
 ): Array<{
   key: string
   path: string
   label: string | null
-  lastSeenAt: string
 }> => (
   Array.isArray(datasets)
     ? datasets
@@ -139,8 +137,7 @@ const mapAvailableDatasets = (
           typeof dataset.key === 'string' &&
           dataset.key.trim().length > 0 &&
           typeof dataset.path === 'string' &&
-          dataset.path.trim().length > 0 &&
-          dataset.lastSeenAt,
+          dataset.path.trim().length > 0,
       )
       .map((dataset) => ({
         key: dataset.key!.trim(),
@@ -149,7 +146,6 @@ const mapAvailableDatasets = (
           typeof dataset.label === 'string' && dataset.label.trim().length > 0
             ? dataset.label.trim()
             : null,
-        lastSeenAt: new Date(dataset.lastSeenAt as Date | string).toISOString(),
       }))
     : []
 )
@@ -194,7 +190,6 @@ const mapVaultStatus = (
           key?: string | null
           path?: string | null
           label?: string | null
-          lastSeenAt?: Date | string | null
         }>
       }
     | null
@@ -342,29 +337,6 @@ export default {
         title: computation.title,
         imageName: computation.imageName,
       }))
-    },
-    getMyAllowedComputations: async (
-      _: unknown,
-      __: unknown,
-      context: Context,
-    ): Promise<ComputationListItem[]> => {
-      if (!context.userId) {
-        throw new Error('User is not authenticated')
-      }
-
-      const user = await User.findById(context.userId)
-        .populate('vault.allowedComputations', 'title imageName')
-        .exec()
-
-      if (!user) {
-        throw new Error('User not found')
-      }
-
-      if (!user.roles.includes('vault')) {
-        throw new Error('User is not a vault user')
-      }
-
-      return mapAllowedComputations(user.vault?.allowedComputations as any[])
     },
     getMyVaultConfig: async (
       _: unknown,
@@ -774,7 +746,6 @@ export default {
             key: string
             path: string
             label?: string | null
-            lastSeenAt: string
           }>
         }
       },
@@ -807,7 +778,6 @@ export default {
             key: dataset.key.trim(),
             path: dataset.path.trim(),
             label: dataset.label?.trim() || undefined,
-            lastSeenAt: new Date(dataset.lastSeenAt),
           })),
         },
       })

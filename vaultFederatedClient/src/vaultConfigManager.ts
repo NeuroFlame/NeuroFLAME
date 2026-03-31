@@ -38,7 +38,6 @@ export interface AvailableVaultDataset {
   key: string
   path: string
   label?: string
-  lastSeenAt: string
 }
 
 export interface VaultConfig {
@@ -158,14 +157,12 @@ export async function getVaultConfig(): Promise<VaultConfig> {
 
 export async function scanAvailableDatasets(): Promise<AvailableVaultDataset[]> {
   const entries = await fs.readdir(VAULT_DATASET_DIR, { withFileTypes: true })
-  const seenAt = new Date().toISOString()
 
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => ({
       key: entry.name,
       path: path.join(VAULT_DATASET_DIR, entry.name),
-      lastSeenAt: seenAt,
     }))
     .sort((left, right) => left.key.localeCompare(right.key))
 }

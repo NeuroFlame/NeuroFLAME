@@ -323,7 +323,6 @@ function VaultRow({
                       <TableRow>
                         <TableCell>Dataset Key</TableCell>
                         <TableCell>Path</TableCell>
-                        <TableCell>Last Seen</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -338,7 +337,6 @@ function VaultRow({
                               {dataset.path}
                             </Typography>
                           </TableCell>
-                          <TableCell>{formatLastSeen(dataset.lastSeenAt)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

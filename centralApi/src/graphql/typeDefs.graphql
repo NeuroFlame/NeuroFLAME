@@ -26,14 +26,12 @@ type VaultDataset {
   key: String!
   path: String!
   label: String
-  lastSeenAt: String!
 }
 
 input VaultDatasetInput {
   key: String!
   path: String!
   label: String
-  lastSeenAt: String!
 }
 
 # Vault heartbeat status - reported by vault services
@@ -201,7 +199,6 @@ type InviteInfo {
 type Query {
   getConsortiumList: [ConsortiumListItem!]!
   getComputationList: [ComputationListItem!]!
-  getMyAllowedComputations: [ComputationListItem!]!
   getMyVaultConfig: Vault!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!

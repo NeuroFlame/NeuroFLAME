@@ -282,7 +282,6 @@ export type VaultDataset = {
   __typename?: 'VaultDataset';
   key: Scalars['String']['output'];
   label?: Maybe<Scalars['String']['output']>;
-  lastSeenAt: Scalars['String']['output'];
   path: Scalars['String']['output'];
 }
 
@@ -303,7 +302,6 @@ export type Query = {
   getComputationList: Array<ComputationListItem>;
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
-  getMyAllowedComputations: Array<ComputationListItem>;
   getMyVaultConfig: Vault;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;

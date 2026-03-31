@@ -30,7 +30,6 @@ interface HeartbeatPayload {
     key: string
     path: string
     label?: string
-    lastSeenAt: string
   }>
 }
 

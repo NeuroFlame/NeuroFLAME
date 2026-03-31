@@ -319,7 +319,6 @@ export type Query = {
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
   getInviteInfo: InviteInfo;
-  getMyAllowedComputations: Array<ComputationListItem>;
   getMyVaultConfig: Vault;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
@@ -478,14 +477,12 @@ export type VaultDataset = {
   __typename?: 'VaultDataset';
   key: Scalars['String']['output'];
   label?: Maybe<Scalars['String']['output']>;
-  lastSeenAt: Scalars['String']['output'];
   path: Scalars['String']['output'];
 };
 
 export type VaultDatasetInput = {
   key: Scalars['String']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
-  lastSeenAt: Scalars['String']['input'];
   path: Scalars['String']['input'];
 };
 
