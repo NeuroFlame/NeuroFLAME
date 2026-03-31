@@ -5,14 +5,14 @@
   "edgeClientSubscriptionUrl": "ws://localhost:3003/graphql",
   "edgeClientRunResultsUrl": "http://localhost:3003/run-results",
   "startEdgeClientOnLaunch": true,
-  "logPath": "C:\\Users\\dylan\\AppData\\Roaming\\neuroflame\\logs",
+  "logPath": "",
   "edgeClientConfig": {
     "httpUrl": "http://localhost:3001/graphql",
     "wsUrl": "ws://localhost:3001/graphql",
     "pathBaseDirectory": "{{REPO_DIR}}/_devTestDirectories/edgeSite1",
     "authenticationEndpoint": "http://localhost:3001/authenticateToken",
     "hostingPort": 3003,
-    "logPath": "C:\\Users\\dylan\\AppData\\Roaming\\neuroflame\\logs\\edgeClient",
+    "logPath": "",
     "containerService": "docker"
   }
 }

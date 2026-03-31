@@ -16,28 +16,36 @@ const UserColor: string[] = [
   '#016572', // heather
 ]
 
-const GetUserColor = (index: number, active: boolean): string => {
-  if (active) {
-    const valkeyIndex = index % UserColor.length
-    return UserColor[valkeyIndex]
-  } else {
+const hashString = (value: string): number => {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0
+  }
+  return hash
+}
+
+const GetUserColor = (userId: string, active: boolean): string => {
+  if (!active) {
     return '#ddd'
   }
+
+  return UserColor[hashString(userId) % UserColor.length]
 }
 
 const UserAvatar = styled(Avatar, {
-  shouldForwardProp: (prop) => prop !== 'admin' && prop !== 'active',
-})<{ index: number; admin: boolean; active: boolean }>(({
-  index,
+  shouldForwardProp: (prop) => prop !== 'admin' && prop !== 'active' && prop !== 'userId',
+})<{ userId: string; admin: boolean; active: boolean }>(({
+  userId,
   admin,
   active,
 }) => ({
   width: '45px',
   height: '45px',
-  background: !admin ? GetUserColor(index, active) : 'none',
+  background: !admin ? GetUserColor(userId, active) : 'none',
 }))
 
 interface MemberAvatarProps {
+  id: string;
   username: string;
   isLeader: boolean;
   isActive: boolean;
@@ -50,6 +58,7 @@ interface MemberAvatarProps {
 
 const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
   const {
+    id,
     username,
     isLeader,
     isActive,
@@ -120,7 +129,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
             }}
           />
         )}
-        <UserAvatar index={index} admin={isLeader} active={isActive}>
+        <UserAvatar userId={id} admin={isLeader} active={isActive}>
           <span
             style={{
               position: 'absolute',

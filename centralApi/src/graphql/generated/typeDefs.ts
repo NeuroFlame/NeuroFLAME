@@ -47,7 +47,8 @@ type ConsortiumListItem {
   title: String!
   description: String!
   leader: PublicUser!
-  members: [PublicUser!]!  
+  members: [PublicUser!]!
+  isPrivate: Boolean!
 }
 
 type ComputationListItem {
@@ -63,7 +64,7 @@ input StartRunInput {
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
-  userIds: [String!]!  
+  userIds: [String!]!
   consortiumId: String!
   computationParameters: String!
 }
@@ -90,7 +91,7 @@ type Computation {
 }
 
 type StudyConfiguration {
-  consortiumLeaderNotes: String!
+  consortiumLeaderNotes: String
   computationParameters: String!
   computation: Computation
 }
@@ -100,17 +101,24 @@ type ConsortiumDetails {
   title: String!
   description: String!
   leader: PublicUser!
-  members: [PublicUser!]!  
-  activeMembers: [PublicUser!]!  
-  readyMembers: [PublicUser!]!  
+  members: [PublicUser!]!
+  activeMembers: [PublicUser!]!
+  readyMembers: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
+  isPrivate: Boolean!
 }
 
 type LoginOutput {
   accessToken: String!
   userId: String!
   username: String!
-  roles: [String!]!  
+  roles: [String!]!
+}
+
+type UserProfile {
+  userId: String!
+  username: String!
+  roles: [String!]!
 }
 
 type RunEventPayload {
@@ -136,26 +144,41 @@ type RunError {
   message: String!
 }
 
+type RunDetailConsortium {
+  id: String!
+  title: String!
+  leader: PublicUser!
+  activeMembers: [PublicUser!]!
+  readyMembers: [PublicUser!]!
+}
+
 type RunDetails {
   runId: String!
-  consortiumId: String!
-  consortiumTitle: String!
+  consortium: RunDetailConsortium!
   status: String!
   lastUpdated: String!
   createdAt: String!
-  members: [PublicUser!]!  
+  members: [PublicUser!]!
   studyConfiguration: StudyConfiguration!
-  runErrors: [RunError!]!  
+  runErrors: [RunError!]!
+}
+
+type InviteInfo {
+  consortiumName: String!
+  leaderName: String!
+  isExpired: Boolean!
 }
 
 type Query {
-  getConsortiumList: [ConsortiumListItem!]!  
-  getComputationList: [ComputationListItem!]!  
+  getConsortiumList: [ConsortiumListItem!]!
+  getComputationList: [ComputationListItem!]!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!
-  getRunList(consortiumId: String): [RunListItem!]!  
+  getRunList(consortiumId: String): [RunListItem!]!
   getRunDetails(runId: String!): RunDetails!
-  getVaultUserList: [PublicUser!]!  
+  getVaultUserList: [PublicUser!]!
+  getInviteInfo(inviteToken: String!): InviteInfo!
+  getUserProfile: UserProfile!
 }
 
 type Mutation {
@@ -172,13 +195,15 @@ type Mutation {
   studySetComputation(consortiumId: String!, computationId: String!): Boolean!
   studySetParameters(consortiumId: String!, parameters: String!): Boolean!
   studySetNotes(consortiumId: String!, notes: String!): Boolean!
-  consortiumCreate(title: String!, description: String): String!
-  consortiumEdit(consortiumId: String!, title: String!, description: String!): Boolean!
+  consortiumCreate(title: String!, description: String, isPrivate: Boolean): String!
+  consortiumEdit(consortiumId: String!, title: String!, description: String!, isPrivate: Boolean): Boolean!
   consortiumJoin(consortiumId: String!): Boolean!
+  consortiumJoinByInvite(inviteToken: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!
   consortiumLeave(consortiumId: String!): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
+  consortiumInvite(consortiumId: String!, email: String!): Boolean!
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, password: String!): LoginOutput!
@@ -190,6 +215,7 @@ type Mutation {
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!
   requestPasswordReset(username: String!): Boolean!
   resetPassword(token: String!, newPassword: String!): LoginOutput!
+  runDelete(runId: String!): Boolean!
 }
 
 type Subscription {

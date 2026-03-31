@@ -21,6 +21,8 @@ import {
   checkSingularityImageExists,
 } from './singularityImageManager.js'
 
+app.setName('NeuroFLAME')
+
 let mainWindow: BrowserWindow | null = null
 let terminalProcess: TerminalProcess | null = null
 

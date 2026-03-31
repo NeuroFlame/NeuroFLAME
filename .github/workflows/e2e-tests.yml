@@ -3,7 +3,7 @@ name: Build and test
 on:
   push:
     branches-ignore:
-      - "master"
+      - 'master'
 
 jobs:
   build-and-test:
@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare screencap dir
         run: |
@@ -44,10 +44,8 @@ jobs:
           docker inspect "$c" >> docker_inspect/$c.json 2>&1
           done
 
-
-        
       - name: Upload test artifacts
-        if: always()  # ensures it runs even if tests fail
+        if: always() # ensures it runs even if tests fail
         uses: actions/upload-artifact@v4
         with:
           name: ui-artifacts

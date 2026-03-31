@@ -8,8 +8,8 @@ export const consortiumEdit = async (
   input: MutationConsortiumEditArgs,
 ): Promise<void> => {
   const CONSORTIUM_EDIT_MUTATION = gql`
-    mutation ConsortiumEdit($consortiumId: String!, $title: String!, $description: String!) {
-      consortiumEdit(consortiumId: $consortiumId, title: $title, description: $description)
+    mutation ConsortiumEdit($consortiumId: String!, $title: String!, $description: String!, $isPrivate: Boolean) {
+      consortiumEdit(consortiumId: $consortiumId, title: $title, description: $description, isPrivate: $isPrivate)
     }
   `
 

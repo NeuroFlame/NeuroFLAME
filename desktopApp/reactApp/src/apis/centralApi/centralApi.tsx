@@ -11,6 +11,7 @@ import { startRun } from './startRun'
 import { studySetNotes } from './studySetNotes'
 import { consortiumDetailsChanged } from './subscriptions/consortiumDetailsChanged'
 import { getRunList } from './getRunList'
+import { runDelete } from './runDelete'
 import { consortiumLatestRunChanged } from './subscriptions/consortiumLatestRunChanged'
 import { runDetailsChanged } from './subscriptions/runDetailsChanged'
 import { consortiumSetMemberReady } from './consortiumSetMemberReady'
@@ -23,7 +24,9 @@ import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
 import { consortiumDelete } from './consortiumDelete'
 import { consortiumEdit } from './consortiumEdit'
+import { consortiumInvite } from './consortiumInvite'
 import { consortiumJoin } from './consortiumJoin'
+import { consortiumJoinByInvite } from './consortiumJoinByInvite'
 import { consortiumLeave } from './consortiumLeave'
 import { userChangePassword } from './userChangePassword'
 import { userCreate } from './userCreate'
@@ -40,7 +43,9 @@ import {
   MutationConsortiumCreateArgs,
   MutationConsortiumEditArgs,
   MutationConsortiumDeleteArgs,
+  MutationConsortiumInviteArgs,
   MutationConsortiumJoinArgs,
+  MutationConsortiumJoinByInviteArgs,
   MutationConsortiumLeaveArgs,
   MutationUserChangePasswordArgs,
   MutationUserCreateArgs,
@@ -60,6 +65,7 @@ import {
   MutationLeaderSetMemberInactiveArgs,
   MutationRequestPasswordResetArgs,
   MutationResetPasswordArgs,
+  MutationRunDeleteArgs,
 } from './generated/graphql'
 import { getVaultUserList } from './getVaultUserList'
 import { leaderAddVaultUser } from './leaderAddVaultUser'
@@ -91,12 +97,16 @@ export const useCentralApi = () => {
       consortiumSetMemberActive(centralApiApolloClient, input),
     consortiumSetMemberReady: (input: MutationConsortiumSetMemberReadyArgs) =>
       consortiumSetMemberReady(centralApiApolloClient, input),
+    consortiumInvite: (input: MutationConsortiumInviteArgs) =>
+      consortiumInvite(centralApiApolloClient, input),
     startRun: (input: MutationStartRunArgs) =>
       startRun(centralApiApolloClient, input),
     studySetNotes: (input: MutationStudySetNotesArgs) =>
       studySetNotes(centralApiApolloClient, input),
     getRunList: (input: QueryGetRunListArgs) =>
       getRunList(centralApiApolloClient, input),
+    runDelete: (input: MutationRunDeleteArgs) =>
+      runDelete(centralApiApolloClient, input),
     adminChangeUserPassword: (input: MutationAdminChangeUserPasswordArgs) =>
       adminChangeUserPassword(centralApiApolloClient, input),
     adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) =>
@@ -113,6 +123,8 @@ export const useCentralApi = () => {
       consortiumDelete(centralApiApolloClient, input),
     consortiumJoin: (input: MutationConsortiumJoinArgs) =>
       consortiumJoin(centralApiApolloClient, input),
+    consortiumJoinByInvite: (input: MutationConsortiumJoinByInviteArgs) =>
+      consortiumJoinByInvite(centralApiApolloClient, input),
     consortiumLeave: (input: MutationConsortiumLeaveArgs) =>
       consortiumLeave(centralApiApolloClient, input),
     userChangePassword: (input: MutationUserChangePasswordArgs) =>

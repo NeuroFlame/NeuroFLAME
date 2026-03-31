@@ -36,6 +36,7 @@ export type ConsortiumDetails = {
   activeMembers: Array<PublicUser>;
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   readyMembers: Array<PublicUser>;
@@ -47,9 +48,17 @@ export type ConsortiumListItem = {
   __typename?: 'ConsortiumListItem';
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   title: Scalars['String']['output'];
+};
+
+export type InviteInfo = {
+  __typename?: 'InviteInfo';
+  consortiumName: Scalars['String']['output'];
+  isExpired: Scalars['Boolean']['output'];
+  leaderName: Scalars['String']['output'];
 };
 
 export type LoginOutput = {
@@ -69,7 +78,9 @@ export type Mutation = {
   consortiumCreate: Scalars['String']['output'];
   consortiumDelete: Scalars['Boolean']['output'];
   consortiumEdit: Scalars['Boolean']['output'];
+  consortiumInvite: Scalars['Boolean']['output'];
   consortiumJoin: Scalars['Boolean']['output'];
+  consortiumJoinByInvite: Scalars['Boolean']['output'];
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
   consortiumSetMemberReady: Scalars['Boolean']['output'];
@@ -83,6 +94,7 @@ export type Mutation = {
   reportRunStatus: Scalars['Boolean']['output'];
   requestPasswordReset: Scalars['Boolean']['output'];
   resetPassword: LoginOutput;
+  runDelete: Scalars['Boolean']['output'];
   startRun: StartRunOutput;
   studySetComputation: Scalars['Boolean']['output'];
   studySetNotes: Scalars['Boolean']['output'];
@@ -126,6 +138,7 @@ export type MutationComputationEditArgs = {
 
 export type MutationConsortiumCreateArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
 };
 
@@ -138,12 +151,24 @@ export type MutationConsortiumDeleteArgs = {
 export type MutationConsortiumEditArgs = {
   consortiumId: Scalars['String']['input'];
   description: Scalars['String']['input'];
+  isPrivate?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
+};
+
+
+export type MutationConsortiumInviteArgs = {
+  consortiumId: Scalars['String']['input'];
+  email: Scalars['String']['input'];
 };
 
 
 export type MutationConsortiumJoinArgs = {
   consortiumId: Scalars['String']['input'];
+};
+
+
+export type MutationConsortiumJoinByInviteArgs = {
+  inviteToken: Scalars['String']['input'];
 };
 
 
@@ -221,6 +246,11 @@ export type MutationResetPasswordArgs = {
 };
 
 
+export type MutationRunDeleteArgs = {
+  runId: Scalars['String']['input'];
+};
+
+
 export type MutationStartRunArgs = {
   input: StartRunInput;
 };
@@ -273,8 +303,10 @@ export type Query = {
   getComputationList: Array<ComputationListItem>;
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
+  getInviteInfo: InviteInfo;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
+  getUserProfile: UserProfile;
   getVaultUserList: Array<PublicUser>;
 };
 
@@ -289,6 +321,11 @@ export type QueryGetConsortiumDetailsArgs = {
 };
 
 
+export type QueryGetInviteInfoArgs = {
+  inviteToken: Scalars['String']['input'];
+};
+
+
 export type QueryGetRunDetailsArgs = {
   runId: Scalars['String']['input'];
 };
@@ -298,10 +335,18 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type RunDetailConsortium = {
+  __typename?: 'RunDetailConsortium';
+  activeMembers: Array<PublicUser>;
+  id: Scalars['String']['output'];
+  leader: PublicUser;
+  readyMembers: Array<PublicUser>;
+  title: Scalars['String']['output'];
+};
+
 export type RunDetails = {
   __typename?: 'RunDetails';
-  consortiumId: Scalars['String']['output'];
-  consortiumTitle: Scalars['String']['output'];
+  consortium: RunDetailConsortium;
   createdAt: Scalars['String']['output'];
   lastUpdated: Scalars['String']['output'];
   members: Array<PublicUser>;
@@ -368,7 +413,7 @@ export type StudyConfiguration = {
   __typename?: 'StudyConfiguration';
   computation?: Maybe<Computation>;
   computationParameters: Scalars['String']['output'];
-  consortiumLeaderNotes: Scalars['String']['output'];
+  consortiumLeaderNotes?: Maybe<Scalars['String']['output']>;
 };
 
 export type Subscription = {
@@ -394,6 +439,13 @@ export type SubscriptionConsortiumLatestRunChangedArgs = {
 
 export type SubscriptionRunDetailsChangedArgs = {
   runId: Scalars['String']['input'];
+};
+
+export type UserProfile = {
+  __typename?: 'UserProfile';
+  roles: Array<Scalars['String']['output']>;
+  userId: Scalars['String']['output'];
+  username: Scalars['String']['output'];
 };
 
 export type Vault = {

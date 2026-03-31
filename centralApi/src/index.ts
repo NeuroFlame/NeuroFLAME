@@ -9,6 +9,8 @@ import { useServer } from 'graphql-ws/lib/use/ws'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import mongoose from 'mongoose'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
 import { logger, logToPath } from './logger.js'
 
 import { typeDefs } from './graphql/generated/typeDefs.js'
@@ -17,6 +19,11 @@ import resolvers from './graphql/resolvers.js'
 import { httpServerContext, wsServerContext } from './serverContexts.js'
 import { validateAccessToken } from './authentication/authentication.js'
 import { APOLLO_PORT, DATABASE_URI, LOG_PATH } from './config.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const inviteSiteDir = join(__dirname, '..', 'public', 'invite')
+const inviteSiteIndex = join(inviteSiteDir, 'index.html')
 
 if (LOG_PATH) {
   logToPath(LOG_PATH)
@@ -83,12 +90,19 @@ export async function start({
 
   app.use(cors())
   app.use(bodyParser.json())
+  app.use('/invite-assets', express.static(inviteSiteDir))
   app.use(
     '/graphql',
     expressMiddleware(server, {
       context: httpServerContext,
     }),
   )
+  app.get('/invite', (_req, res) => {
+    res.sendFile(inviteSiteIndex)
+  })
+  app.get('/invite/:inviteToken', (_req, res) => {
+    res.sendFile(inviteSiteIndex)
+  })
 
   app.post('/authenticateToken', (req, res) => {
     const token = req.body.token // assuming the token is sent in the request body

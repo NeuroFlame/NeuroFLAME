@@ -21,7 +21,7 @@ export default function MembersListEdit({
   leaderSetRemoveMember,
 }: MembersListEditProps) {
   return (
-    <Box style={{ width: '100%' }}>
+    <Box sx={{ width: '100%' }}>
       {/* Display Leader */}
       {memberList.map(({
         id,
@@ -32,19 +32,21 @@ export default function MembersListEdit({
       }, index) => (
         <Box
           key={`member-${id}-${index}`}
-          style={{
+          sx={{
             display: 'flex',
-            flexDirection: 'row',
+            flexWrap: 'wrap',
             justifyContent: 'space-between',
             alignItems: 'center',
-            width: 'calc(100% - 2rem)',
-            padding: '0.5rem 1rem',
+            width: '100%',
+            gap: '0.75rem',
+            padding: '0.75rem 1rem',
             background: index % 2 === 0 ? 'white' : '#EEF2F2',
           }}
         >
-          <div>
+          <Box sx={{ flex: '1 1 16rem', minWidth: 0 }}>
             <MemberAvatar
               key={`${id}-${index}`}
+              id={id}
               username={username}
               isLeader={isLeader}
               isActive={isActive}
@@ -53,19 +55,35 @@ export default function MembersListEdit({
               direction='row'
               nameSize='1rem'
             />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem' }}>
+          </Box>
+          <Box
+            sx={{
+              display: 'flex',
+              flex: '0 1 auto',
+              flexWrap: 'wrap',
+              justifyContent: {
+                xs: 'flex-start',
+                sm: 'flex-end',
+              },
+              gap: '0.5rem',
+              width: {
+                xs: '100%',
+                sm: 'auto',
+              },
+            }}
+          >
             {isActive && (
               <Button
                 color='primary'
                 size='small'
                 variant='outlined'
-                style={{ borderColor: 'grey' }}
                 sx={{
                   color: 'grey',
                   borderColor: 'grey',
+                  minWidth: '8.5rem',
+                  whiteSpace: 'nowrap',
                   '&:hover': {
-                    backgroundColor: '#f0f0f0', // Light gray on hover
+                    backgroundColor: '#f0f0f0',
                   },
                 }}
                 onClick={() => leaderSetMemberActive(id)}
@@ -78,13 +96,17 @@ export default function MembersListEdit({
                 color='primary'
                 size='small'
                 variant='contained'
-                style={{ backgroundColor: 'grey' }}
+                sx={{
+                  backgroundColor: 'grey',
+                  minWidth: '7.5rem',
+                  whiteSpace: 'nowrap',
+                }}
                 onClick={() => leaderSetRemoveMember(id)}
               >
                 Remove
               </Button>
             )}
-          </div>
+          </Box>
         </Box>
       ))}
     </Box>
