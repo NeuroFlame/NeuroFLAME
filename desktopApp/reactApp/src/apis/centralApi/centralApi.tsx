@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useApolloClients } from '../../contexts/ApolloClientsContext'
 import { login } from './login'
 import { getConsortiumList } from './getConsortiumList'
@@ -20,6 +21,7 @@ import { consortiumSetMemberReady } from './consortiumSetMemberReady'
 import { adminChangeUserPassword } from './adminChangeUserPassword'
 import { adminChangeUserRoles } from './adminChangeUserRoles'
 import { adminSetVaultAllowedComputations } from './adminSetVaultAllowedComputations'
+import { adminSetVaultDatasetMappings } from './adminSetVaultDatasetMappings'
 import { computationCreate } from './computationCreate'
 import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
@@ -40,6 +42,7 @@ import {
   MutationAdminChangeUserPasswordArgs,
   MutationAdminChangeUserRolesArgs,
   MutationAdminSetVaultAllowedComputationsArgs,
+  MutationAdminSetVaultDatasetMappingsArgs,
   MutationComputationCreateArgs,
   MutationComputationEditArgs,
   MutationConsortiumCreateArgs,
@@ -82,8 +85,7 @@ export const useCentralApi = () => {
     throw new Error('Apollo Client is not defined')
   }
 
-  return {
-    // Existing methods
+  return useMemo(() => ({
     getConsortiumList: () => getConsortiumList(centralApiApolloClient),
     getComputationList: () => getComputationList(centralApiApolloClient),
     getConsortiumDetails: (input: QueryGetConsortiumDetailsArgs) =>
@@ -116,6 +118,9 @@ export const useCentralApi = () => {
     adminSetVaultAllowedComputations: (
       input: MutationAdminSetVaultAllowedComputationsArgs,
     ) => adminSetVaultAllowedComputations(centralApiApolloClient, input),
+    adminSetVaultDatasetMappings: (
+      input: MutationAdminSetVaultDatasetMappingsArgs,
+    ) => adminSetVaultDatasetMappings(centralApiApolloClient, input),
     computationCreate: (input: MutationComputationCreateArgs) =>
       computationCreate(centralApiApolloClient, input),
     computationEdit: (input: MutationComputationEditArgs) =>
@@ -149,7 +154,6 @@ export const useCentralApi = () => {
       requestPasswordReset(centralApiApolloClient, input),
     resetPassword: (input: MutationResetPasswordArgs) =>
       resetPassword(centralApiApolloClient, input),
-
     subscriptions: {
       consortiumDetailsChanged: (input: { consortiumId: string }) =>
         consortiumDetailsChanged(centralApiApolloClient, input),
@@ -158,5 +162,5 @@ export const useCentralApi = () => {
       runDetailsChanged: (input: { runId: string }) =>
         runDetailsChanged(centralApiApolloClient, input),
     },
-  }
+  }), [centralApiApolloClient])
 }

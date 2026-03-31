@@ -74,6 +74,7 @@ export type Mutation = {
   adminChangeUserPassword: Scalars['Boolean']['output'];
   adminChangeUserRoles: Scalars['Boolean']['output'];
   adminSetVaultAllowedComputations: Scalars['Boolean']['output'];
+  adminSetVaultDatasetMappings: Scalars['Boolean']['output'];
   computationCreate: Scalars['Boolean']['output'];
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
@@ -120,6 +121,12 @@ export type MutationAdminChangeUserRolesArgs = {
 
 export type MutationAdminSetVaultAllowedComputationsArgs = {
   computationIds: Array<Scalars['String']['input']>;
+  userId: Scalars['String']['input'];
+};
+
+
+export type MutationAdminSetVaultDatasetMappingsArgs = {
+  mappings: Array<VaultDatasetMappingInput>;
   userId: Scalars['String']['input'];
 };
 
@@ -209,6 +216,7 @@ export type MutationLeaderRemoveMemberArgs = {
 
 
 export type MutationLeaderSetMemberInactiveArgs = {
+  active: Scalars['Boolean']['input'];
   consortiumId: Scalars['String']['input'];
   userId: Scalars['String']['input'];
 };
@@ -312,6 +320,7 @@ export type Query = {
   getConsortiumList: Array<ConsortiumListItem>;
   getInviteInfo: InviteInfo;
   getMyAllowedComputations: Array<ComputationListItem>;
+  getMyVaultConfig: Vault;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
   getUserProfile: UserProfile;
@@ -401,6 +410,7 @@ export type RunStartCentralPayload = {
 
 export type RunStartEdgePayload = {
   __typename?: 'RunStartEdgePayload';
+  computationId: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
   downloadToken: Scalars['String']['output'];
   downloadUrl: Scalars['String']['output'];
@@ -459,11 +469,39 @@ export type UserProfile = {
 export type Vault = {
   __typename?: 'Vault';
   allowedComputations: Array<ComputationListItem>;
+  datasetMappings: Array<VaultDatasetMapping>;
   description: Scalars['String']['output'];
   name: Scalars['String']['output'];
 };
 
+export type VaultDataset = {
+  __typename?: 'VaultDataset';
+  key: Scalars['String']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  lastSeenAt: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+};
+
+export type VaultDatasetInput = {
+  key: Scalars['String']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  lastSeenAt: Scalars['String']['input'];
+  path: Scalars['String']['input'];
+};
+
+export type VaultDatasetMapping = {
+  __typename?: 'VaultDatasetMapping';
+  computationId: Scalars['String']['output'];
+  datasetKey: Scalars['String']['output'];
+};
+
+export type VaultDatasetMappingInput = {
+  computationId: Scalars['String']['input'];
+  datasetKey: Scalars['String']['input'];
+};
+
 export type VaultHeartbeatInput = {
+  availableDatasets: Array<VaultDatasetInput>;
   runningComputations: Array<VaultRunningComputationInput>;
   status: Scalars['String']['input'];
   uptime: Scalars['Int']['input'];
@@ -488,6 +526,7 @@ export type VaultRunningComputationInput = {
 
 export type VaultStatus = {
   __typename?: 'VaultStatus';
+  availableDatasets: Array<VaultDataset>;
   lastHeartbeat: Scalars['String']['output'];
   runningComputations: Array<VaultRunningComputation>;
   status: Scalars['String']['output'];

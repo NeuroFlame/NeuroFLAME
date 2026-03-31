@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuroFLAME Invite</title>
+    <link rel="stylesheet" href="/invite-assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="NeuroFLAME home">
+          <img
+            class="brand-logo"
+            src="/invite-assets/neuroflame-logo.png"
+            alt="NeuroFLAME logo"
+          />
+          <span class="brand-text">Neuro<span>FLAME</span></span>
+        </a>
+        <div class="topbar-user" id="topbarUser" hidden>
+          <span class="topbar-email" id="topbarEmail"></span>
+          <button class="ghost-button" id="logoutButton" type="button">Log Out</button>
+        </div>
+      </header>
+
+      <main class="invite-layout">
+        <section class="invite-card" aria-labelledby="inviteTitle">
+          <p class="eyebrow">Consortium Invite</p>
+          <h1 id="inviteTitle">Join NeuroFLAME from your browser</h1>
+          <p class="lede" id="inviteSubtitle">
+            We are loading your invite now.
+          </p>
+
+          <div class="status" id="status" aria-live="polite"></div>
+
+          <div class="download-card" id="downloadCard">
+            <p class="download-title">Download NeuroFLAME to get started.</p>
+            <a
+              class="download-link"
+              href="https://github.com/NeuroFlame/NeuroFLAME/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Latest Release
+            </a>
+          </div>
+
+          <section class="auth-panel" id="authPanel" aria-labelledby="authHeading">
+            <div class="auth-toggle" role="tablist" aria-label="Authentication options">
+              <button class="toggle-button is-active" id="loginTab" type="button" role="tab" aria-selected="true">
+                Log In
+              </button>
+              <button class="toggle-button" id="signupTab" type="button" role="tab" aria-selected="false">
+                Sign Up
+              </button>
+            </div>
+
+            <form class="auth-form" id="authForm" novalidate>
+              <h2 id="authHeading">Log In</h2>
+              <label class="field">
+                <span>Email</span>
+                <input id="emailInput" name="email" type="email" autocomplete="email" required />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <input
+                  id="passwordInput"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                />
+              </label>
+              <div class="form-error" id="formError" aria-live="polite"></div>
+              <button class="primary-button" id="submitButton" type="submit">Log In</button>
+            </form>
+          </section>
+
+          <section class="join-panel" id="joinPanel" hidden aria-labelledby="joinHeading">
+            <h2 id="joinHeading">Finishing your invite</h2>
+            <p class="join-copy" id="joinCopy">Joining consortium now...</p>
+            <div class="form-error" id="joinError" aria-live="polite"></div>
+            <div class="join-actions" id="joinActions" hidden>
+              <button class="primary-button" id="retryJoinButton" type="button">Retry</button>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="/invite-assets/invite.js" defer></script>
+  </body>
+</html>

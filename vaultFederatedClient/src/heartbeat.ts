@@ -4,6 +4,7 @@ import {
   isConnected,
   getRunningContainers,
 } from './runCoordinator/runCoordinator.js'
+import { scanAvailableDatasets } from './vaultConfigManager.js'
 
 // Heartbeat configuration
 const HEARTBEAT_INTERVAL_MS = 30_000 // 30 seconds
@@ -25,6 +26,12 @@ interface HeartbeatPayload {
     consortiumId: string
     startedAt: string
   }>
+  availableDatasets: Array<{
+    key: string
+    path: string
+    label?: string
+    lastSeenAt: string
+  }>
 }
 
 const HEARTBEAT_MUTATION = `
@@ -36,9 +43,10 @@ const HEARTBEAT_MUTATION = `
 /**
  * Build the heartbeat payload with current status
  */
-function buildHeartbeatPayload(): HeartbeatPayload {
+async function buildHeartbeatPayload(): Promise<HeartbeatPayload> {
   const wsConnected = isConnected()
   const runningContainers = getRunningContainers()
+  const availableDatasets = await scanAvailableDatasets()
 
   return {
     status: wsConnected ? 'online' : 'degraded',
@@ -50,6 +58,7 @@ function buildHeartbeatPayload(): HeartbeatPayload {
       consortiumId: c.consortiumId,
       startedAt: c.startedAt.toISOString(),
     })),
+    availableDatasets,
   }
 }
 
@@ -57,7 +66,7 @@ function buildHeartbeatPayload(): HeartbeatPayload {
  * Send a heartbeat to the central API
  */
 async function sendHeartbeat(): Promise<void> {
-  const payload = buildHeartbeatPayload()
+  const payload = await buildHeartbeatPayload()
 
   try {
     const response = await fetch(VAULT_HTTP_URL, {
@@ -89,6 +98,7 @@ async function sendHeartbeat(): Promise<void> {
       context: {
         status: payload.status,
         runningComputations: payload.runningComputations.length,
+        availableDatasets: payload.availableDatasets.length,
       },
     })
   } catch (error) {
@@ -135,7 +145,7 @@ export async function stopHeartbeat(): Promise<void> {
 
   // Send final offline heartbeat
   try {
-    const payload = buildHeartbeatPayload()
+    const payload = await buildHeartbeatPayload()
     // Override status to indicate we're going offline
     payload.status = 'degraded'
 

@@ -1,12 +1,12 @@
 import {
   VAULT_BASE_DIR,
   VAULT_CONTAINER_SERVICE,
-  VAULT_DATASET_DIR,
 } from '../../../config.js'
 import {
   ensureImageReadyForRun,
   registerTrackedImage,
 } from '../../../imageManager.js'
+import { resolveDatasetPathForComputation } from '../../../vaultConfigManager.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import path from 'path'
@@ -20,6 +20,7 @@ export const RUN_START_SUBSCRIPTION = `
     runStartEdge {
       consortiumId
       runId
+      computationId
       imageName
       downloadUrl
       downloadToken
@@ -37,6 +38,7 @@ export const runStartHandler = {
       const {
         consortiumId,
         runId,
+        computationId,
         imageName,
         downloadUrl,
         downloadToken,
@@ -87,16 +89,11 @@ export const runStartHandler = {
         },
       ]
 
-      // Load mount configuration and add data path
-      try {
-        directoriesToMount.push({
-          hostDirectory: VAULT_DATASET_DIR,
-          containerDirectory: '/workspace/data',
-        })
-      } catch (e) {
-        logger.error(`Failed to read or parse mount configuration: ${e}`)
-        throw new Error('Failed to load mount configuration')
-      }
+      const datasetPath = await resolveDatasetPathForComputation(computationId)
+      directoriesToMount.push({
+        hostDirectory: datasetPath,
+        containerDirectory: '/workspace/data',
+      })
 
       // Launch the node
       await launchNode({

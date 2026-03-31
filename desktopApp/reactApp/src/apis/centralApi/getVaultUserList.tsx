@@ -15,6 +15,10 @@ export const GET_VAULT_USER_LIST = gql`
           title
           imageName
         }
+        datasetMappings {
+          computationId
+          datasetKey
+        }
       }
       vaultStatus {
         status
@@ -22,6 +26,12 @@ export const GET_VAULT_USER_LIST = gql`
         uptime
         websocketConnected
         lastHeartbeat
+        availableDatasets {
+          key
+          path
+          label
+          lastSeenAt
+        }
         runningComputations {
           runId
           consortiumId

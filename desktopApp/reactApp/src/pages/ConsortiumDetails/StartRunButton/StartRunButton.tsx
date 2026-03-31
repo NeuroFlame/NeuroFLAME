@@ -17,16 +17,20 @@ export default function StartRunButton() {
     try {
       const result = await startRun({ input: { consortiumId } })
       setRunId(result.runId)
-    } catch (err) {
-      setError('Failed to start the run. Please try again.')
-    } finally {
-      setLoading(false)
       setRunStarted(true)
-      const startRunTimeout = setTimeout(() => {
+      setTimeout(() => {
         setRunStarted(false)
       }, 10000)
-      // eslint-disable-next-line no-unsafe-finally
-      return () => clearTimeout(startRunTimeout)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to start the run. Please try again.',
+      )
+      setRunId(null)
+      setRunStarted(false)
+    } finally {
+      setLoading(false)
     }
   }
 

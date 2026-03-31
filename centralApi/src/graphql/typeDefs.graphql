@@ -9,6 +9,31 @@ type Vault {
   name: String!
   description: String!
   allowedComputations: [ComputationListItem!]!
+  datasetMappings: [VaultDatasetMapping!]!
+}
+
+type VaultDatasetMapping {
+  computationId: String!
+  datasetKey: String!
+}
+
+input VaultDatasetMappingInput {
+  computationId: String!
+  datasetKey: String!
+}
+
+type VaultDataset {
+  key: String!
+  path: String!
+  label: String
+  lastSeenAt: String!
+}
+
+input VaultDatasetInput {
+  key: String!
+  path: String!
+  label: String
+  lastSeenAt: String!
 }
 
 # Vault heartbeat status - reported by vault services
@@ -27,6 +52,7 @@ type VaultStatus {
   websocketConnected: Boolean!
   lastHeartbeat: String!
   runningComputations: [VaultRunningComputation!]!
+  availableDatasets: [VaultDataset!]!
 }
 
 input VaultRunningComputationInput {
@@ -41,6 +67,7 @@ input VaultHeartbeatInput {
   uptime: Int!
   websocketConnected: Boolean!
   runningComputations: [VaultRunningComputationInput!]!
+  availableDatasets: [VaultDatasetInput!]!
 }
 
 type ConsortiumListItem {
@@ -72,6 +99,7 @@ type RunStartCentralPayload {
 
 type RunStartEdgePayload {
   runId: String!
+  computationId: String!
   imageName: String!
   consortiumId: String!
   downloadUrl: String!
@@ -174,6 +202,7 @@ type Query {
   getConsortiumList: [ConsortiumListItem!]!
   getComputationList: [ComputationListItem!]!
   getMyAllowedComputations: [ComputationListItem!]!
+  getMyVaultConfig: Vault!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!
   getRunList(consortiumId: String): [RunListItem!]!
@@ -213,7 +242,11 @@ type Mutation {
   adminChangeUserRoles(username: String!, roles: [String!]!): Boolean!
   adminChangeUserPassword(username: String!, password: String!): Boolean!
   adminSetVaultAllowedComputations(userId: String!, computationIds: [String!]!): Boolean!
-  leaderSetMemberInactive(consortiumId: String!, userId: String!): Boolean!
+  adminSetVaultDatasetMappings(
+    userId: String!
+    mappings: [VaultDatasetMappingInput!]!
+  ): Boolean!
+  leaderSetMemberInactive(consortiumId: String!, userId: String!, active: Boolean!): Boolean!
   leaderRemoveMember(consortiumId: String!, userId: String!): Boolean!
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!
   requestPasswordReset(username: String!): Boolean!

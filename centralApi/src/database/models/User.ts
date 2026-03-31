@@ -5,6 +5,12 @@ export interface IVault {
   name: string
   description: string
   allowedComputations: mongoose.Types.ObjectId[]
+  datasetMappings: IVaultDatasetMapping[]
+}
+
+export interface IVaultDatasetMapping {
+  computationId: mongoose.Types.ObjectId
+  datasetKey: string
 }
 
 // Define an interface for running computation in vault status
@@ -12,6 +18,13 @@ export interface IVaultRunningComputation {
   runId: string
   consortiumId: string
   startedAt: Date
+}
+
+export interface IVaultDataset {
+  key: string
+  path: string
+  label?: string
+  lastSeenAt: Date
 }
 
 // Define an interface for vault status (reported via heartbeat)
@@ -22,6 +35,7 @@ export interface IVaultStatus {
   websocketConnected: boolean
   lastHeartbeat: Date
   runningComputations: IVaultRunningComputation[]
+  availableDatasets: IVaultDataset[]
 }
 
 // Define an interface for the User document
@@ -40,6 +54,13 @@ const vaultSchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
   allowedComputations: [{ type: mongoose.Types.ObjectId, ref: 'Computation' }],
+  datasetMappings: {
+    type: [{
+      computationId: { type: mongoose.Types.ObjectId, ref: 'Computation', required: true },
+      datasetKey: { type: String, required: true, trim: true },
+    }],
+    default: [],
+  },
 }, { _id: false }) // Disable _id for sub-documents if not needed
 
 // Define the running computation sub-schema
@@ -47,6 +68,13 @@ const vaultRunningComputationSchema: Schema = new Schema({
   runId: { type: String, required: true },
   consortiumId: { type: String, required: true },
   startedAt: { type: Date, required: true },
+}, { _id: false })
+
+const vaultDatasetSchema: Schema = new Schema({
+  key: { type: String, required: true, trim: true },
+  path: { type: String, required: true, trim: true },
+  label: { type: String, required: false, trim: true },
+  lastSeenAt: { type: Date, required: true },
 }, { _id: false })
 
 // Define the vault status sub-schema
@@ -57,6 +85,7 @@ const vaultStatusSchema: Schema = new Schema({
   websocketConnected: { type: Boolean, required: true },
   lastHeartbeat: { type: Date, required: true },
   runningComputations: { type: [vaultRunningComputationSchema], default: [] },
+  availableDatasets: { type: [vaultDatasetSchema], default: [] },
 }, { _id: false })
 
 // Create the User schema
