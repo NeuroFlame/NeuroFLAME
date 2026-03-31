@@ -10,6 +10,11 @@ export const GET_VAULT_USER_LIST = gql`
       vault {
         name
         description
+        allowedComputations {
+          id
+          title
+          imageName
+        }
       }
       vaultStatus {
         status

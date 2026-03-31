@@ -3,6 +3,10 @@ import {
   VAULT_CONTAINER_SERVICE,
   VAULT_DATASET_DIR,
 } from '../../../config.js'
+import {
+  ensureImageReadyForRun,
+  registerTrackedImage,
+} from '../../../imageManager.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import path from 'path'
@@ -37,6 +41,9 @@ export const runStartHandler = {
         downloadUrl,
         downloadToken,
       } = data.runStartEdge
+
+      await registerTrackedImage(imageName)
+      await ensureImageReadyForRun(imageName, VAULT_CONTAINER_SERVICE)
 
       const consortiumPath = path.join(VAULT_BASE_DIR, consortiumId)
       const runPath = path.join(consortiumPath, runId)

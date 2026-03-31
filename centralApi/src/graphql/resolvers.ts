@@ -41,6 +41,35 @@ const resend = new Resend(RESEND_API_KEY)
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const mapAllowedComputations = (
+  computations: any[] | undefined,
+): ComputationListItem[] => (
+  Array.isArray(computations)
+    ? computations
+      .filter(
+        (computation) =>
+          computation &&
+          typeof computation === 'object' &&
+          'title' in computation &&
+          'imageName' in computation,
+      )
+      .map((computation: any) => ({
+        id: computation._id.toString(),
+        title: computation.title,
+        imageName: computation.imageName,
+      }))
+    : []
+)
+
+const allowsComputation = (
+  user: { vault?: { allowedComputations?: Array<{ _id: unknown }> } },
+  computationId: string,
+): boolean =>
+  Array.isArray(user.vault?.allowedComputations) &&
+  user.vault.allowedComputations.some(
+    (computation) => computation._id.toString() === computationId,
+  )
+
 const getInviteUrl = (token: string): string => {
   const baseUrl = CONSORTIUM_INVITE_URL.endsWith('/')
     ? CONSORTIUM_INVITE_URL
@@ -140,7 +169,14 @@ export default {
         members: (consortium.members as any[]).map((member) => ({
           id: member._id.toString(),
           username: member.username,
-          vault: member.vault,
+          vault: member.vault
+            ? {
+                ...member.vault,
+                allowedComputations: mapAllowedComputations(
+                  member.vault.allowedComputations,
+                ),
+              }
+            : null,
         })),
         isPrivate: consortium.isPrivate ?? false,
       }))
@@ -153,6 +189,29 @@ export default {
         imageName: computation.imageName,
       }))
     },
+    getMyAllowedComputations: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ): Promise<ComputationListItem[]> => {
+      if (!context.userId) {
+        throw new Error('User is not authenticated')
+      }
+
+      const user = await User.findById(context.userId)
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
+
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      return mapAllowedComputations(user.vault?.allowedComputations as any[])
+    },
     getConsortiumDetails: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
@@ -160,10 +219,38 @@ export default {
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
-          .populate('leader', 'id username vault')
-          .populate('members', 'id username vault')
-          .populate('activeMembers', 'id username')
-          .populate('readyMembers', 'id username')
+          .populate({
+            path: 'leader',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'members',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'activeMembers',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'readyMembers',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
           .populate(
             'studyConfiguration.computation',
             'title imageName imageDownloadUrl notes owner hasLocalParameters',
@@ -207,7 +294,14 @@ export default {
         const transformUser = (user: any): PublicUser => ({
           id: user.id,
           username: user.username,
-          vault: user.vault,
+          vault: user.vault
+            ? {
+                ...user.vault,
+                allowedComputations: mapAllowedComputations(
+                  user.vault.allowedComputations,
+                ),
+              }
+            : null,
         })
 
         return {
@@ -397,7 +491,14 @@ export default {
           members: run.members.map((member: any) => ({
             id: member._id.toString(),
             username: member.username,
-            vault: member.vault,
+            vault: member.vault
+              ? {
+                  ...member.vault,
+                  allowedComputations: mapAllowedComputations(
+                    member.vault.allowedComputations,
+                  ),
+                }
+              : null,
           })),
           studyConfiguration: {
             consortiumLeaderNotes: run.studyConfiguration.consortiumLeaderNotes,
@@ -427,7 +528,9 @@ export default {
       }
     },
     getVaultUserList: async (): Promise<PublicUser[]> => {
-      const users = await User.find({ roles: 'vault' }).exec()
+      const users = await User.find({ roles: 'vault' })
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
 
       // Get consortium titles for any running computations
       const consortiumIds = new Set<string>()
@@ -449,7 +552,14 @@ export default {
       return users.map((user) => ({
         id: user._id.toString(),
         username: user.username,
-        vault: user.vault,
+        vault: user.vault
+          ? {
+              ...user.vault,
+              allowedComputations: mapAllowedComputations(
+                user.vault.allowedComputations as any[],
+              ),
+            }
+          : null,
         vaultStatus: user.vaultStatus
           ? {
               status: user.vaultStatus.status,
@@ -921,6 +1031,25 @@ export default {
         const computation = await Computation.findById(computationId)
         if (!computation) {
           throw new Error('Computation not found')
+        }
+
+        const vaultMembers = await User.find({
+          _id: { $in: consortium.members },
+          roles: 'vault',
+        })
+          .populate('vault.allowedComputations', 'title imageName')
+          .exec()
+
+        const incompatibleVaults = vaultMembers.filter(
+          (member) => !allowsComputation(member as any, computationId.toString()),
+        )
+        if (incompatibleVaults.length > 0) {
+          const vaultNames = incompatibleVaults.map(
+            (member) => member.vault?.name || member.username,
+          )
+          throw new Error(
+            `The following vaults do not allow "${computation.title}": ${vaultNames.join(', ')}`,
+          )
         }
 
         // Set the computation in the study configuration
@@ -1619,6 +1748,74 @@ export default {
         throw new Error('Failed to change roles')
       }
     },
+    adminSetVaultAllowedComputations: async (
+      _: unknown,
+      {
+        userId,
+        computationIds,
+      }: { userId: string; computationIds: string[] },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const user = await User.findById(userId).exec()
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      const uniqueComputationIds = Array.from(new Set(computationIds))
+      const computations = await Computation.find({
+        _id: { $in: uniqueComputationIds },
+      })
+        .select('title')
+        .exec()
+
+      if (computations.length !== uniqueComputationIds.length) {
+        throw new Error('One or more computations were not found')
+      }
+
+      const incompatibleConsortia = await Consortium.find({
+        members: user._id,
+        'studyConfiguration.computation': { $exists: true, $ne: null },
+      })
+        .populate('studyConfiguration.computation', 'title')
+        .select('title studyConfiguration')
+        .exec()
+
+      const blockedConsortia = incompatibleConsortia.filter((consortium) => {
+        const selectedComputation = consortium.studyConfiguration?.computation as any
+        if (!selectedComputation?._id) {
+          return false
+        }
+        return !uniqueComputationIds.includes(selectedComputation._id.toString())
+      })
+
+      if (blockedConsortia.length > 0) {
+        const consortiumTitles = blockedConsortia.map((consortium) => consortium.title)
+        throw new Error(
+          `Cannot remove required computations while this vault belongs to: ${consortiumTitles.join(', ')}`,
+        )
+      }
+
+      if (!user.vault) {
+        throw new Error('Vault settings not found for this user')
+      }
+
+      user.vault.allowedComputations = uniqueComputationIds as any
+      await user.save()
+
+      return true
+    },
     leaderSetMemberInactive: async (
       _: unknown,
       { consortiumId, userId },
@@ -1703,9 +1900,29 @@ export default {
 
       // is the user a vault user
       const user = await User.findById(userId)
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
+      if (!user) {
+        throw new Error('User not found')
+      }
       // does the user have the role of vault?
       if (!user.roles.includes('vault')) {
         throw new Error('User is not a vault user')
+      }
+
+      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      if (
+        selectedComputationId &&
+        !allowsComputation(user as any, selectedComputationId)
+      ) {
+        const selectedComputation = await Computation.findById(
+          selectedComputationId,
+        )
+          .select('title')
+          .exec()
+        throw new Error(
+          `Vault ${user.vault?.name || user.username} does not allow "${selectedComputation?.title || 'the selected computation'}"`,
+        )
       }
 
       // add the user to the members, active members, and ready members

@@ -16,8 +16,10 @@ import {
   CircularProgress,
   Alert,
   Typography,
+  Chip,
 } from '@mui/material'
 import { createMarkdownComponents } from '../../../utils/markdownComponents'
+import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 
 interface VaultUserListProps {
   onClose: () => void;
@@ -30,9 +32,13 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
+  const {
+    data: { members, studyConfiguration },
+  } = useConsortiumDetailsContext()
 
   // React-Markdown custom renderers
   const markdownComponents = useMemo(() => createMarkdownComponents(), [])
+  const selectedComputation = studyConfiguration?.computation
 
   const loadUsers = useCallback(async () => {
     try {
@@ -65,6 +71,29 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
       console.error('Error adding user:', error)
     }
   }
+
+  const existingMemberIds = useMemo(
+    () => new Set(members.map((member) => member.id)),
+    [members],
+  )
+
+  const vaultCompatibility = useMemo(
+    () =>
+      vaultUserList.map((vaultUser) => {
+        const allowsSelectedComputation =
+          !selectedComputation ||
+          (vaultUser.vault?.allowedComputations ?? []).some(
+            (computation) => computation.imageName === selectedComputation.imageName,
+          )
+
+        return {
+          vaultUser,
+          alreadyMember: existingMemberIds.has(vaultUser.id),
+          allowsSelectedComputation,
+        }
+      }),
+    [existingMemberIds, selectedComputation, vaultUserList],
+  )
 
   if (loading) {
     return (
@@ -113,6 +142,12 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             height: 'calc(380px - 4rem)',
           }}
         >
+          {selectedComputation && (
+            <Alert severity='info' sx={{ mb: 2 }}>
+              Current computation: {selectedComputation.title}. Only vaults that
+              allow it can be added.
+            </Alert>
+          )}
           {vaultUserList.length === 0 ? (
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant='body1' color='text.secondary'>
@@ -121,52 +156,65 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             </Box>
           ) : (
             <List>
-              {vaultUserList.map(({ id, username, vault }, index) => (
-              <React.Fragment key={id}>
-                <ListItem
-                  sx={{
-                    padding: '1rem 0',
-                    display: 'flex',
-                  }}
-                  secondaryAction={
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        marginRight: '-1rem',
-                        flex: '0.25',
-                      }}
-                    >
-                      <Button
-                        variant='outlined'
-                        color='primary'
-                        size='small'
-                        onClick={() => setSelectedVaultInfo(index)}
+              {vaultCompatibility.map(
+                ({ vaultUser, alreadyMember, allowsSelectedComputation }, index) => {
+                  const { id, username, vault } = vaultUser
+                  const addDisabled = alreadyMember || !allowsSelectedComputation
+
+                  return (
+                    <React.Fragment key={id}>
+                      <ListItem
+                        sx={{
+                          padding: '1rem 0',
+                          display: 'flex',
+                        }}
+                        secondaryAction={
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.5rem',
+                              marginRight: '-1rem',
+                              flex: '0.25',
+                            }}
+                          >
+                            <Button
+                              variant='outlined'
+                              color='primary'
+                              size='small'
+                              onClick={() => setSelectedVaultInfo(index)}
+                            >
+                              Info
+                            </Button>
+                            <Button
+                              variant='contained'
+                              color='primary'
+                              size='small'
+                              disabled={addDisabled}
+                              onClick={() => handleAdd(id)}
+                            >
+                              {alreadyMember ? 'Added' : 'Add'}
+                            </Button>
+                            {!allowsSelectedComputation && (
+                              <Typography variant='caption' color='error'>
+                                Not allowed for current computation
+                              </Typography>
+                            )}
+                          </Box>
+                        }
                       >
-                        Info
-                      </Button>
-                      <Button
-                        variant='contained'
-                        color='primary'
-                        size='small'
-                        onClick={() => handleAdd(id)}
-                      >
-                        Add
-                      </Button>
-                    </Box>
-                  }
-                >
-                  <ListItemText
-                    primary={vault?.name || 'No Vault Assigned'}
-                    secondary={username}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    sx={{ flex: '0.75' }}
-                  />
-                </ListItem>
-                <Divider component='li' />
-              </React.Fragment>
-            ))}
+                        <ListItemText
+                          primary={vault?.name || 'No Vault Assigned'}
+                          secondary={username}
+                          primaryTypographyProps={{ fontWeight: 'bold' }}
+                          sx={{ flex: '0.75' }}
+                        />
+                      </ListItem>
+                      <Divider component='li' />
+                    </React.Fragment>
+                  )
+                },
+              )}
             </List>
           )}
         </Box>
@@ -182,6 +230,38 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             {vaultUserList[selectedVaultInfo]?.username}
           </h4>
           <h2 style={{ lineHeight: 1.2 }}>{vaultUserList[selectedVaultInfo]?.vault?.name}</h2>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              marginBottom: '1rem',
+            }}
+          >
+            {(vaultUserList[selectedVaultInfo]?.vault?.allowedComputations ?? []).length ? (
+              (vaultUserList[selectedVaultInfo]?.vault?.allowedComputations ?? []).map((computation) => (
+                <Chip
+                  key={computation.id}
+                  label={computation.title}
+                  size='small'
+                  color={
+                    selectedComputation?.imageName === computation.imageName
+                      ? 'primary'
+                      : 'default'
+                  }
+                  variant={
+                    selectedComputation?.imageName === computation.imageName
+                      ? 'filled'
+                      : 'outlined'
+                  }
+                />
+              ))
+            ) : (
+              <Typography variant='body2' color='text.secondary'>
+                No allowed computations configured
+              </Typography>
+            )}
+          </Box>
           <ReactMarkdown
             className='markdown-wrapper'
             components={markdownComponents}

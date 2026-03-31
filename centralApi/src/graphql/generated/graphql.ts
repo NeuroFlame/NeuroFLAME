@@ -73,6 +73,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   adminChangeUserPassword: Scalars['Boolean']['output'];
   adminChangeUserRoles: Scalars['Boolean']['output'];
+  adminSetVaultAllowedComputations: Scalars['Boolean']['output'];
   computationCreate: Scalars['Boolean']['output'];
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
@@ -114,6 +115,12 @@ export type MutationAdminChangeUserPasswordArgs = {
 export type MutationAdminChangeUserRolesArgs = {
   roles: Array<Scalars['String']['input']>;
   username: Scalars['String']['input'];
+};
+
+
+export type MutationAdminSetVaultAllowedComputationsArgs = {
+  computationIds: Array<Scalars['String']['input']>;
+  userId: Scalars['String']['input'];
 };
 
 
@@ -304,6 +311,7 @@ export type Query = {
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
   getInviteInfo: InviteInfo;
+  getMyAllowedComputations: Array<ComputationListItem>;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
   getUserProfile: UserProfile;
@@ -450,6 +458,7 @@ export type UserProfile = {
 
 export type Vault = {
   __typename?: 'Vault';
+  allowedComputations: Array<ComputationListItem>;
   description: Scalars['String']['output'];
   name: Scalars['String']['output'];
 };

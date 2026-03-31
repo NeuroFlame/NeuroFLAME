@@ -4,6 +4,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose'
 export interface IVault {
   name: string
   description: string
+  allowedComputations: mongoose.Types.ObjectId[]
 }
 
 // Define an interface for running computation in vault status
@@ -38,6 +39,7 @@ export interface IUser extends Document {
 const vaultSchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
+  allowedComputations: [{ type: mongoose.Types.ObjectId, ref: 'Computation' }],
 }, { _id: false }) // Disable _id for sub-documents if not needed
 
 // Define the running computation sub-schema

@@ -77,7 +77,10 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
   const [members, setMembers] = useState<PublicUser[]>([])
   const [activeMembers, setActiveMembers] = useState<PublicUser[]>([])
   const [readyMembers, setReadyMembers] = useState<PublicUser[]>([])
-  const [leader, setLeader] = useState<PublicUser>({ id: '', username: '' })
+  const [leader, setLeader] = useState<PublicUser>({
+    id: '',
+    username: '',
+  })
   const [title, setTitle] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [isPrivate, setIsPrivate] = useState<boolean>(false)

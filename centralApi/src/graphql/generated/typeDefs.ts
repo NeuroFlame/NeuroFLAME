@@ -8,6 +8,7 @@ export const typeDefs = `type PublicUser {
 type Vault {
   name: String!
   description: String!
+  allowedComputations: [ComputationListItem!]!
 }
 
 # Vault heartbeat status - reported by vault services
@@ -172,6 +173,7 @@ type InviteInfo {
 type Query {
   getConsortiumList: [ConsortiumListItem!]!
   getComputationList: [ComputationListItem!]!
+  getMyAllowedComputations: [ComputationListItem!]!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!
   getRunList(consortiumId: String): [RunListItem!]!
@@ -210,6 +212,7 @@ type Mutation {
   userChangePassword(password: String!): Boolean!
   adminChangeUserRoles(username: String!, roles: [String!]!): Boolean!
   adminChangeUserPassword(username: String!, password: String!): Boolean!
+  adminSetVaultAllowedComputations(userId: String!, computationIds: [String!]!): Boolean!
   leaderSetMemberInactive(consortiumId: String!, userId: String!): Boolean!
   leaderRemoveMember(consortiumId: String!, userId: String!): Boolean!
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!
