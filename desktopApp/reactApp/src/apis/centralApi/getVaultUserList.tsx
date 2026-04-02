@@ -30,7 +30,6 @@ export const GET_VAULT_USER_LIST = gql`
           key
           path
           label
-          lastSeenAt
         }
         runningComputations {
           runId
