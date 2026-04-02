@@ -10,7 +10,7 @@ interface MembersListEditProps {
     isLeader: boolean;
     isMe: boolean;
   }[];
-  leaderSetMemberActive: (userId: string) => void;
+  leaderSetMemberActive: (userId: string, isActive: boolean) => void;
   leaderSetRemoveMember: (userId: string) => void;
   setMemberReady: (memberId: string, isReady: boolean) => void;
 }
@@ -72,7 +72,7 @@ export default function MembersListEdit({
               },
             }}
           >
-            {isActive && (
+            {!isLeader && (
               <Button
                 color='primary'
                 size='small'
@@ -86,9 +86,9 @@ export default function MembersListEdit({
                     backgroundColor: '#f0f0f0',
                   },
                 }}
-                onClick={() => leaderSetMemberActive(id)}
+                onClick={() => leaderSetMemberActive(id, !isActive)}
               >
-                Set Inactive
+                {isActive ? 'Set Inactive' : 'Set Active'}
               </Button>
             )}
             {!isLeader && (

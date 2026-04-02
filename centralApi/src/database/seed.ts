@@ -67,6 +67,10 @@ const users = [
     vault: {
       name: 'TReNDS Cobre FreeSurfer Regression Vault',
       description: vaultDescriptionCobreFreeSurfer,
+      allowedComputations: [
+        predefinedIds.computation1Id,
+        predefinedIds.computation2Id,
+      ],
     },
   },
 ]

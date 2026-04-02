@@ -70,9 +70,9 @@ export const useMembers = ({
     }
   }
 
-  const leaderSetMemberActive = async (userId: string) => {
+  const leaderSetMemberActive = async (userId: string, isActive: boolean) => {
     try {
-      await leaderSetMemberInactive({ consortiumId, userId })
+      await leaderSetMemberInactive({ consortiumId, userId, active: isActive })
       refetch()
     } catch (error) {
       console.error('Failed to update member status:', error)
@@ -100,5 +100,12 @@ export const useMembers = ({
     }
   }
 
-  return { memberList, setMemberActive, setMemberReady, handleLeave, leaderSetMemberActive, leaderSetRemoveMember }
+  return {
+    memberList,
+    setMemberActive,
+    setMemberReady,
+    handleLeave,
+    leaderSetMemberActive,
+    leaderSetRemoveMember,
+  }
 }

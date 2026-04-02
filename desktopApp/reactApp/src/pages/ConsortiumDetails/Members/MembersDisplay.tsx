@@ -25,7 +25,7 @@ interface MembersDisplayProps {
   }[];
   setMemberActive: (memberId: string, isActive: boolean) => void;
   setMemberReady: (memberId: string, isReady: boolean) => void;
-  leaderSetMemberActive: (userId: string) => void;
+  leaderSetMemberActive: (userId: string, isActive: boolean) => void;
   leaderSetRemoveMember: (userId: string) => void;
   handleLeave: () => void;
 }
