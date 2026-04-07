@@ -8,16 +8,22 @@ import {
 import { logger } from './logger.js'
 
 const GET_MY_VAULT_CONFIG_QUERY = `
-  query getMyVaultConfig {
-    getMyVaultConfig {
-      allowedComputations {
+  query getMyVaultServerConfig {
+    getMyVaultServerConfig {
+      id
+      name
+      description
+      vaults {
         id
-        title
-        imageName
-      }
-      datasetMappings {
-        computationId
+        name
+        description
         datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
       }
     }
   }
@@ -34,6 +40,15 @@ export interface VaultDatasetMapping {
   datasetKey: string
 }
 
+export interface HostedVaultConfig {
+  id: string
+  name: string
+  description: string
+  datasetKey: string
+  active: boolean
+  allowedComputations: VaultComputationConfig[]
+}
+
 export interface AvailableVaultDataset {
   key: string
   path: string
@@ -41,64 +56,111 @@ export interface AvailableVaultDataset {
 }
 
 export interface VaultConfig {
-  allowedComputations: VaultComputationConfig[]
-  datasetMappings: VaultDatasetMapping[]
+  serverId: string
+  serverName: string
+  serverDescription: string
+  vaults: HostedVaultConfig[]
 }
 
 let cachedVaultConfig: VaultConfig = {
-  allowedComputations: [],
-  datasetMappings: [],
+  serverId: '',
+  serverName: '',
+  serverDescription: '',
+  vaults: [],
 }
 
 function normalizeVaultConfig(rawConfig: {
-  allowedComputations?: Array<{
+  id?: string | null
+  name?: string | null
+  description?: string | null
+  vaults?: Array<{
     id?: string | null
-    title?: string | null
-    imageName?: string | null
-  }> | null
-  datasetMappings?: Array<{
-    computationId?: string | null
+    name?: string | null
+    description?: string | null
     datasetKey?: string | null
+    active?: boolean | null
+    allowedComputations?: Array<{
+      id?: string | null
+      title?: string | null
+      imageName?: string | null
+    }> | null
   }> | null
 } | null | undefined): VaultConfig {
-  const allowedComputations = (rawConfig?.allowedComputations ?? [])
+  const vaults = (rawConfig?.vaults ?? [])
     .filter(
-      (computation): computation is {
+      (vault): vault is {
         id: string
-        title: string
-        imageName: string
-      } => Boolean(
-        computation?.id &&
-        computation.title &&
-        computation.imageName,
-      ),
-    )
-    .map((computation) => ({
-      id: computation.id.trim(),
-      title: computation.title.trim(),
-      imageName: computation.imageName.trim(),
-    }))
-
-  const datasetMappings = (rawConfig?.datasetMappings ?? [])
-    .filter(
-      (mapping): mapping is {
-        computationId: string
+        name: string
+        description: string
         datasetKey: string
+        active?: boolean | null
+        allowedComputations?: Array<{
+          id?: string | null
+          title?: string | null
+          imageName?: string | null
+        }> | null
       } => Boolean(
-        mapping?.computationId &&
-        mapping.datasetKey &&
-        mapping.datasetKey.trim().length > 0,
+        vault?.id &&
+        vault.name &&
+        vault.description !== undefined &&
+        vault.datasetKey,
       ),
     )
-    .map((mapping) => ({
-      computationId: mapping.computationId.trim(),
-      datasetKey: mapping.datasetKey.trim(),
+    .map((vault) => ({
+      id: vault.id.trim(),
+      name: vault.name.trim(),
+      description: vault.description.trim(),
+      datasetKey: vault.datasetKey.trim(),
+      active: vault.active !== false,
+      allowedComputations: (vault.allowedComputations ?? [])
+        .filter(
+          (computation): computation is {
+            id: string
+            title: string
+            imageName: string
+          } => Boolean(
+            computation?.id &&
+            computation.title &&
+            computation.imageName,
+          ),
+        )
+        .map((computation) => ({
+          id: computation.id.trim(),
+          title: computation.title.trim(),
+          imageName: computation.imageName.trim(),
+        })),
     }))
 
   return {
-    allowedComputations,
-    datasetMappings,
+    serverId: rawConfig?.id?.trim?.() ?? '',
+    serverName: rawConfig?.name?.trim?.() ?? '',
+    serverDescription: rawConfig?.description?.trim?.() ?? '',
+    vaults,
   }
+}
+
+export function getAllowedComputationsFromVaultConfig(
+  vaultConfig: VaultConfig,
+): VaultComputationConfig[] {
+  return vaultConfig.vaults
+    .filter((vault) => vault.active)
+    .flatMap((vault) => vault.allowedComputations)
+}
+
+export function getHostedVaultConfig(
+  vaultConfig: VaultConfig,
+  vaultId: string,
+): HostedVaultConfig {
+  const hostedVault = vaultConfig.vaults.find((vault) => vault.id === vaultId)
+  if (!hostedVault) {
+    throw new Error(`Hosted vault ${vaultId} is not configured on this server`)
+  }
+
+  if (!hostedVault.active) {
+    throw new Error(`Hosted vault ${hostedVault.name} is inactive`)
+  }
+
+  return hostedVault
 }
 
 export async function fetchVaultConfig(): Promise<VaultConfig> {
@@ -119,15 +181,21 @@ export async function fetchVaultConfig(): Promise<VaultConfig> {
 
   const result = (await response.json()) as {
     data?: {
-      getMyVaultConfig?: {
-        allowedComputations?: Array<{
+      getMyVaultServerConfig?: {
+        id?: string | null
+        name?: string | null
+        description?: string | null
+        vaults?: Array<{
           id?: string | null
-          title?: string | null
-          imageName?: string | null
-        }>
-        datasetMappings?: Array<{
-          computationId?: string | null
+          name?: string | null
+          description?: string | null
           datasetKey?: string | null
+          active?: boolean | null
+          allowedComputations?: Array<{
+            id?: string | null
+            title?: string | null
+            imageName?: string | null
+          }>
         }>
       }
     }
@@ -138,7 +206,7 @@ export async function fetchVaultConfig(): Promise<VaultConfig> {
     throw new Error(result.errors.map((error) => error.message).join(', '))
   }
 
-  cachedVaultConfig = normalizeVaultConfig(result.data?.getMyVaultConfig)
+  cachedVaultConfig = normalizeVaultConfig(result.data?.getMyVaultServerConfig)
   return cachedVaultConfig
 }
 
@@ -146,7 +214,7 @@ export async function getVaultConfig(): Promise<VaultConfig> {
   try {
     return await fetchVaultConfig()
   } catch (error) {
-    if (cachedVaultConfig.allowedComputations.length > 0 || cachedVaultConfig.datasetMappings.length > 0) {
+    if (cachedVaultConfig.vaults.length > 0) {
       logger.warn('Falling back to cached vault config', { error })
       return cachedVaultConfig
     }
@@ -167,32 +235,25 @@ export async function scanAvailableDatasets(): Promise<AvailableVaultDataset[]> 
     .sort((left, right) => left.key.localeCompare(right.key))
 }
 
-export async function resolveDatasetPathForComputation(
+export async function resolveDatasetPathForVault(
+  vaultId: string,
   computationId: string,
 ): Promise<string> {
   const vaultConfig = await getVaultConfig()
-  const isAllowed = vaultConfig.allowedComputations.some(
+  const hostedVault = getHostedVaultConfig(vaultConfig, vaultId)
+  const isAllowed = hostedVault.allowedComputations.some(
     (computation) => computation.id === computationId,
   )
 
   if (!isAllowed) {
-    throw new Error(`Computation ${computationId} is not allowed for this vault`)
-  }
-
-  const mapping = vaultConfig.datasetMappings.find(
-    (candidate) => candidate.computationId === computationId,
-  )
-  if (!mapping) {
-    throw new Error(
-      `No dataset mapping is configured for computation ${computationId}`,
-    )
+    throw new Error(`Computation ${computationId} is not allowed for hosted vault ${vaultId}`)
   }
 
   const datasets = await scanAvailableDatasets()
-  const dataset = datasets.find((candidate) => candidate.key === mapping.datasetKey)
+  const dataset = datasets.find((candidate) => candidate.key === hostedVault.datasetKey)
   if (!dataset) {
     throw new Error(
-      `Mapped dataset "${mapping.datasetKey}" is not currently available on this vault`,
+      `Dataset "${hostedVault.datasetKey}" for hosted vault "${hostedVault.name}" is not currently available on this server`,
     )
   }
 

@@ -12,6 +12,26 @@ type Vault {
   datasetMappings: [VaultDatasetMapping!]!
 }
 
+type HostedVault {
+  id: String!
+  serverId: String!
+  name: String!
+  description: String!
+  datasetKey: String!
+  allowedComputations: [ComputationListItem!]!
+  active: Boolean!
+}
+
+type VaultServer {
+  id: String!
+  userId: String!
+  username: String!
+  name: String!
+  description: String!
+  status: VaultStatus
+  vaults: [HostedVault!]!
+}
+
 type VaultDatasetMapping {
   computationId: String!
   datasetKey: String!
@@ -90,13 +110,15 @@ input StartRunInput {
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
-  userIds: [String!]!
+  participantIds: [String!]!
   consortiumId: String!
   computationParameters: String!
 }
 
 type RunStartEdgePayload {
   runId: String!
+  participantId: String!
+  vaultId: String
   computationId: String!
   imageName: String!
   consortiumId: String!
@@ -131,6 +153,9 @@ type ConsortiumDetails {
   members: [PublicUser!]!
   activeMembers: [PublicUser!]!
   readyMembers: [PublicUser!]!
+  vaultMembers: [HostedVault!]!
+  activeVaultMembers: [HostedVault!]!
+  readyVaultMembers: [HostedVault!]!
   studyConfiguration: StudyConfiguration!
   isPrivate: Boolean!
 }
@@ -177,6 +202,8 @@ type RunDetailConsortium {
   leader: PublicUser!
   activeMembers: [PublicUser!]!
   readyMembers: [PublicUser!]!
+  activeVaultMembers: [HostedVault!]!
+  readyVaultMembers: [HostedVault!]!
 }
 
 type RunDetails {
@@ -186,6 +213,7 @@ type RunDetails {
   lastUpdated: String!
   createdAt: String!
   members: [PublicUser!]!
+  vaultMembers: [HostedVault!]!
   studyConfiguration: StudyConfiguration!
   runErrors: [RunError!]!
 }
@@ -200,11 +228,14 @@ type Query {
   getConsortiumList: [ConsortiumListItem!]!
   getComputationList: [ComputationListItem!]!
   getMyVaultConfig: Vault!
+  getMyVaultServerConfig: VaultServer!
   getConsortiumDetails(consortiumId: String!): ConsortiumDetails!
   getComputationDetails(computationId: String!): Computation!
   getRunList(consortiumId: String): [RunListItem!]!
   getRunDetails(runId: String!): RunDetails!
   getVaultUserList: [PublicUser!]!
+  getVaultServerList: [VaultServer!]!
+  getHostedVaultList(serverId: String): [HostedVault!]!
   getInviteInfo(inviteToken: String!): InviteInfo!
   getUserProfile: UserProfile!
 }
@@ -243,6 +274,23 @@ type Mutation {
     userId: String!
     mappings: [VaultDatasetMappingInput!]!
   ): Boolean!
+  adminCreateHostedVault(
+    serverId: String!
+    name: String!
+    description: String!
+    datasetKey: String!
+  ): String!
+  adminSetHostedVaultAllowedComputations(
+    vaultId: String!
+    computationIds: [String!]!
+  ): Boolean!
+  leaderAddHostedVault(consortiumId: String!, vaultId: String!): Boolean!
+  leaderSetHostedVaultActive(
+    consortiumId: String!
+    vaultId: String!
+    active: Boolean!
+  ): Boolean!
+  leaderRemoveHostedVault(consortiumId: String!, vaultId: String!): Boolean!
   leaderSetMemberInactive(consortiumId: String!, userId: String!, active: Boolean!): Boolean!
   leaderRemoveMember(consortiumId: String!, userId: String!): Boolean!
   leaderAddVaultUser(consortiumId: String!, userId: String!): Boolean!

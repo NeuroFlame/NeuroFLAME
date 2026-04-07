@@ -8,20 +8,33 @@ import React, {
 } from 'react'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
-  PublicUser,
   StudyConfiguration,
 } from '../../apis/centralApi/generated/graphql'
 import { useParams } from 'react-router-dom'
 import { useUserState } from '../../contexts/UserStateContext'
 
+export interface ConsortiumMemberLike {
+  id: string
+  username: string
+  vault?: {
+    name: string
+    description: string
+    allowedComputations?: Array<{
+      id: string
+      title: string
+      imageName: string
+    }>
+  }
+}
+
 // Define the shape of the context
 interface ConsortiumDetailsContextType {
   data: {
     studyConfiguration?: StudyConfiguration;
-    members: PublicUser[];
-    activeMembers: PublicUser[];
-    readyMembers: PublicUser[];
-    leader: PublicUser;
+    members: ConsortiumMemberLike[];
+    activeMembers: ConsortiumMemberLike[];
+    readyMembers: ConsortiumMemberLike[];
+    leader: ConsortiumMemberLike;
     title: string;
     description: string;
     isPrivate: boolean;
@@ -74,10 +87,10 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     studyConfiguration,
     setStudyConfiguration,
   ] = useState<StudyConfiguration>()
-  const [members, setMembers] = useState<PublicUser[]>([])
-  const [activeMembers, setActiveMembers] = useState<PublicUser[]>([])
-  const [readyMembers, setReadyMembers] = useState<PublicUser[]>([])
-  const [leader, setLeader] = useState<PublicUser>({
+  const [members, setMembers] = useState<ConsortiumMemberLike[]>([])
+  const [activeMembers, setActiveMembers] = useState<ConsortiumMemberLike[]>([])
+  const [readyMembers, setReadyMembers] = useState<ConsortiumMemberLike[]>([])
+  const [leader, setLeader] = useState<ConsortiumMemberLike>({
     id: '',
     username: '',
   })
@@ -96,10 +109,41 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
 
     try {
       const result = await getConsortiumDetails({ consortiumId })
-      setMembers(result.members)
-      setActiveMembers(result.activeMembers)
-      setReadyMembers(result.readyMembers)
-      setLeader(result.leader)
+      const userToMember = (user: any): ConsortiumMemberLike => ({
+        id: user.id,
+        username: user.username,
+        vault: user.vault
+          ? {
+              name: user.vault.name,
+              description: user.vault.description,
+              allowedComputations: user.vault.allowedComputations,
+            }
+          : undefined,
+      })
+
+      const hostedVaultToMember = (vault: any): ConsortiumMemberLike => ({
+        id: vault.id,
+        username: vault.name,
+        vault: {
+          name: vault.name,
+          description: vault.description,
+          allowedComputations: vault.allowedComputations,
+        },
+      })
+
+      setMembers([
+        ...result.members.map(userToMember),
+        ...(result.vaultMembers ?? []).map(hostedVaultToMember),
+      ])
+      setActiveMembers([
+        ...result.activeMembers.map(userToMember),
+        ...(result.activeVaultMembers ?? []).map(hostedVaultToMember),
+      ])
+      setReadyMembers([
+        ...result.readyMembers.map(userToMember),
+        ...(result.readyVaultMembers ?? []).map(hostedVaultToMember),
+      ])
+      setLeader(userToMember(result.leader))
       setTitle(result.title)
       setDescription(result.description)
       setIsPrivate(result.isPrivate)

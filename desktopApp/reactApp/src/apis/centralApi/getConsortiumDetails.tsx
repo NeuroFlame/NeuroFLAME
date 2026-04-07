@@ -60,6 +60,45 @@ const GET_CONSORTIUM_DETAILS = gql`
           }
         }
       }
+      vaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
+      }
+      activeVaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
+      }
+      readyVaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
+      }
       studyConfiguration {
         consortiumLeaderNotes
         computationParameters

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useCentralApi } from '../../../apis/centralApi/centralApi'
-import { PublicUser } from '../../../apis/centralApi/generated/graphql'
+import { HostedVault } from '../../../apis/centralApi/generated/graphql'
 import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -26,8 +26,8 @@ interface VaultUserListProps {
 }
 
 const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
-  const { getVaultUserList, leaderAddVaultUser } = useCentralApi()
-  const [vaultUserList, setVaultUserList] = useState<PublicUser[]>([])
+  const { getHostedVaultList, leaderAddHostedVault } = useCentralApi()
+  const [vaultUserList, setVaultUserList] = useState<HostedVault[]>([])
   const [selectedVaultInfo, setSelectedVaultInfo] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +44,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
     try {
       setLoading(true)
       setError(null)
-      const res = await getVaultUserList()
+      const res = await getHostedVaultList({})
       setVaultUserList(res)
       setSelectedVaultInfo((prev) =>
         res.length === 0 ? 0 : Math.min(prev, res.length - 1),
@@ -63,9 +63,9 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
     loadUsers()
   }, [loadUsers])
 
-  const handleAdd = async (userId: string) => {
+  const handleAdd = async (vaultId: string) => {
     try {
-      await leaderAddVaultUser({ consortiumId, userId })
+      await leaderAddHostedVault({ consortiumId, vaultId })
       onClose()
     } catch (error) {
       console.error('Error adding user:', error)
@@ -82,7 +82,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
       vaultUserList.map((vaultUser) => {
         const allowsSelectedComputation =
           !selectedComputation ||
-          (vaultUser.vault?.allowedComputations ?? []).some(
+          (vaultUser.allowedComputations ?? []).some(
             (computation) => computation.imageName === selectedComputation.imageName,
           )
 
@@ -158,7 +158,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             <List>
               {vaultCompatibility.map(
                 ({ vaultUser, alreadyMember, allowsSelectedComputation }, index) => {
-                  const { id, username, vault } = vaultUser
+                  const { id } = vaultUser
                   const addDisabled = alreadyMember || !allowsSelectedComputation
 
                   return (
@@ -204,8 +204,8 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
                         }
                       >
                         <ListItemText
-                          primary={vault?.name || 'No Vault Assigned'}
-                          secondary={username}
+                          primary={vaultUser.name}
+                          secondary={vaultUser.datasetKey}
                           primaryTypographyProps={{ fontWeight: 'bold' }}
                           sx={{ flex: '0.75' }}
                         />
@@ -227,9 +227,9 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
           }}
         >
           <h4 style={{ color: 'black' }}>
-            {vaultUserList[selectedVaultInfo]?.username}
+            {vaultUserList[selectedVaultInfo]?.datasetKey}
           </h4>
-          <h2 style={{ lineHeight: 1.2 }}>{vaultUserList[selectedVaultInfo]?.vault?.name}</h2>
+          <h2 style={{ lineHeight: 1.2 }}>{vaultUserList[selectedVaultInfo]?.name}</h2>
           <Box
             sx={{
               display: 'flex',
@@ -238,8 +238,8 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
               marginBottom: '1rem',
             }}
           >
-            {(vaultUserList[selectedVaultInfo]?.vault?.allowedComputations ?? []).length ? (
-              (vaultUserList[selectedVaultInfo]?.vault?.allowedComputations ?? []).map((computation) => (
+            {(vaultUserList[selectedVaultInfo]?.allowedComputations ?? []).length ? (
+              (vaultUserList[selectedVaultInfo]?.allowedComputations ?? []).map((computation) => (
                 <Chip
                   key={computation.id}
                   label={computation.title}
@@ -267,7 +267,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             components={markdownComponents}
             remarkPlugins={[remarkGfm]}
           >
-            {vaultUserList[selectedVaultInfo]?.vault?.description ?? ''}
+            {vaultUserList[selectedVaultInfo]?.description ?? ''}
           </ReactMarkdown>
         </Box>
       </Box>

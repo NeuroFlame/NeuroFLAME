@@ -20,6 +20,8 @@ import { consortiumSetMemberReady } from './consortiumSetMemberReady'
 // New imports
 import { adminChangeUserPassword } from './adminChangeUserPassword'
 import { adminChangeUserRoles } from './adminChangeUserRoles'
+import { adminCreateHostedVault } from './adminCreateHostedVault'
+import { adminSetHostedVaultAllowedComputations } from './adminSetHostedVaultAllowedComputations'
 import { adminSetVaultAllowedComputations } from './adminSetVaultAllowedComputations'
 import { adminSetVaultDatasetMappings } from './adminSetVaultDatasetMappings'
 import { computationCreate } from './computationCreate'
@@ -39,8 +41,11 @@ import { resetPassword } from './resetPassword'
 
 // Import generated types
 import {
+  MutationLeaderAddHostedVaultArgs,
+  MutationAdminCreateHostedVaultArgs,
   MutationAdminChangeUserPasswordArgs,
   MutationAdminChangeUserRolesArgs,
+  MutationAdminSetHostedVaultAllowedComputationsArgs,
   MutationAdminSetVaultAllowedComputationsArgs,
   MutationAdminSetVaultDatasetMappingsArgs,
   MutationComputationCreateArgs,
@@ -65,14 +70,22 @@ import {
   MutationConsortiumSetMemberReadyArgs,
   MutationStartRunArgs,
   MutationStudySetNotesArgs,
+  MutationLeaderRemoveHostedVaultArgs,
+  MutationLeaderSetHostedVaultActiveArgs,
   MutationLeaderAddVaultUserArgs,
   MutationLeaderRemoveMemberArgs,
   MutationLeaderSetMemberInactiveArgs,
   MutationRequestPasswordResetArgs,
   MutationResetPasswordArgs,
   MutationRunDeleteArgs,
+  QueryGetHostedVaultListArgs,
 } from './generated/graphql'
+import { getHostedVaultList } from './getHostedVaultList'
+import { getVaultServerList } from './getVaultServerList'
 import { getVaultUserList } from './getVaultUserList'
+import { leaderAddHostedVault } from './leaderAddHostedVault'
+import { leaderRemoveHostedVault } from './leaderRemoveHostedVault'
+import { leaderSetHostedVaultActive } from './leaderSetHostedVaultActive'
 import { leaderAddVaultUser } from './leaderAddVaultUser'
 import { leaderRemoveMember } from './leaderRemoveMember'
 import { leaderSetMemberInactive } from './leaderSetMemberInactive'
@@ -115,6 +128,11 @@ export const useCentralApi = () => {
       adminChangeUserPassword(centralApiApolloClient, input),
     adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) =>
       adminChangeUserRoles(centralApiApolloClient, input),
+    adminCreateHostedVault: (input: MutationAdminCreateHostedVaultArgs) =>
+      adminCreateHostedVault(centralApiApolloClient, input),
+    adminSetHostedVaultAllowedComputations: (
+      input: MutationAdminSetHostedVaultAllowedComputationsArgs,
+    ) => adminSetHostedVaultAllowedComputations(centralApiApolloClient, input),
     adminSetVaultAllowedComputations: (
       input: MutationAdminSetVaultAllowedComputationsArgs,
     ) => adminSetVaultAllowedComputations(centralApiApolloClient, input),
@@ -143,7 +161,16 @@ export const useCentralApi = () => {
       userCreate(centralApiApolloClient, input),
     getComputationDetails: (input: QueryGetComputationDetailsArgs) =>
       getComputationDetails(centralApiApolloClient, input),
+    getHostedVaultList: (input: QueryGetHostedVaultListArgs) =>
+      getHostedVaultList(centralApiApolloClient, input),
+    getVaultServerList: () => getVaultServerList(centralApiApolloClient),
     getVaultUserList: () => getVaultUserList(centralApiApolloClient),
+    leaderAddHostedVault: (input: MutationLeaderAddHostedVaultArgs) =>
+      leaderAddHostedVault(centralApiApolloClient, input),
+    leaderSetHostedVaultActive: (input: MutationLeaderSetHostedVaultActiveArgs) =>
+      leaderSetHostedVaultActive(centralApiApolloClient, input),
+    leaderRemoveHostedVault: (input: MutationLeaderRemoveHostedVaultArgs) =>
+      leaderRemoveHostedVault(centralApiApolloClient, input),
     leaderAddVaultUser: (input: MutationLeaderAddVaultUserArgs) =>
       leaderAddVaultUser(centralApiApolloClient, input),
     leaderRemoveMember: (input: MutationLeaderRemoveMemberArgs) =>

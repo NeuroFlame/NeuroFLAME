@@ -7,7 +7,10 @@ import {
   VAULT_BASE_DIR,
 } from './config.js'
 import { logger } from './logger.js'
-import { getVaultConfig } from './vaultConfigManager.js'
+import {
+  getAllowedComputationsFromVaultConfig,
+  getVaultConfig,
+} from './vaultConfigManager.js'
 
 const docker = new Docker()
 
@@ -802,7 +805,7 @@ async function fetchAllowedImageNames(): Promise<string[]> {
     const vaultConfig = await getVaultConfig()
     allowedImageNames = Array.from(
       new Set(
-        vaultConfig.allowedComputations
+        getAllowedComputationsFromVaultConfig(vaultConfig)
           .map((computation) => computation.imageName?.trim())
           .filter((imageName): imageName is string => Boolean(imageName)),
       ),

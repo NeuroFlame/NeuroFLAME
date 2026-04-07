@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -21,6 +21,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
@@ -31,8 +32,8 @@ import ErrorIcon from '@mui/icons-material/Error'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
   ComputationListItem,
-  PublicUser,
-  VaultDatasetMappingInput,
+  HostedVault,
+  VaultServer,
 } from '../../apis/centralApi/generated/graphql'
 
 const OFFLINE_THRESHOLD_MS = 90_000
@@ -63,80 +64,40 @@ function isOnline(lastHeartbeat: string): boolean {
   return now.getTime() - date.getTime() < OFFLINE_THRESHOLD_MS
 }
 
-function toDatasetMappingRecord(
-  mappings: Array<{ computationId: string; datasetKey: string }>,
-): Record<string, string> {
-  const mappingRecord: Record<string, string> = {}
-  for (const mapping of mappings) {
-    mappingRecord[mapping.computationId] = mapping.datasetKey
-  }
-  return mappingRecord
-}
-
-interface VaultRowProps {
+interface HostedVaultCardProps {
   allComputations: ComputationListItem[]
+  hostedVault: HostedVault
   saveError: string | null
-  savingAction: 'allowed' | 'datasetMappings' | null
   savingVaultId: string | null
-  vault: PublicUser
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
   ) => Promise<void>
-  onSaveDatasetMappings: (
-    vaultId: string,
-    mappings: VaultDatasetMappingInput[],
-  ) => Promise<void>
 }
 
-function VaultRow({
+function HostedVaultCard({
   allComputations,
+  hostedVault,
   saveError,
-  savingAction,
   savingVaultId,
-  vault,
   onSaveAllowedComputations,
-  onSaveDatasetMappings,
-}: VaultRowProps) {
-  const allowedComputations = vault.vault?.allowedComputations ?? []
-  const persistedDatasetMappings = vault.vault?.datasetMappings ?? []
-  const availableDatasets = vault.vaultStatus?.availableDatasets ?? []
-  const [expanded, setExpanded] = useState(false)
+}: HostedVaultCardProps) {
   const [selectedComputationIds, setSelectedComputationIds] = useState<string[]>(
-    allowedComputations.map((computation) => computation.id),
-  )
-  const [selectedDatasetMappings, setSelectedDatasetMappings] = useState<Record<string, string>>(
-    toDatasetMappingRecord(persistedDatasetMappings),
+    hostedVault.allowedComputations.map((computation) => computation.id),
   )
 
   useEffect(() => {
     setSelectedComputationIds(
-      allowedComputations.map((computation) => computation.id),
+      hostedVault.allowedComputations.map((computation) => computation.id),
     )
-  }, [allowedComputations])
+  }, [hostedVault.allowedComputations])
 
-  useEffect(() => {
-    setSelectedDatasetMappings(toDatasetMappingRecord(persistedDatasetMappings))
-  }, [persistedDatasetMappings])
-
-  const status = vault.vaultStatus
-  const online = status ? isOnline(status.lastHeartbeat) : false
-  const hasRunningComputations = (status?.runningComputations?.length ?? 0) > 0
-  const isSaving = savingVaultId === vault.id
-  const isSavingAllowed = isSaving && savingAction === 'allowed'
-  const isSavingDatasetMappings = isSaving && savingAction === 'datasetMappings'
-  const persistedDatasetMappingRecord = toDatasetMappingRecord(persistedDatasetMappings)
-  const hasUnsavedAllowedComputationChanges =
-    selectedComputationIds.length !== allowedComputations.length ||
+  const isSaving = savingVaultId === hostedVault.id
+  const hasUnsavedChanges =
+    selectedComputationIds.length !== hostedVault.allowedComputations.length ||
     selectedComputationIds.some(
-      (id) => !allowedComputations.some((computation) => computation.id === id),
+      (id) => !hostedVault.allowedComputations.some((computation) => computation.id === id),
     )
-
-  const hasUnsavedDatasetMappingChanges = allowedComputations.some(
-    (computation) =>
-      (selectedDatasetMappings[computation.id] ?? '') !==
-      (persistedDatasetMappingRecord[computation.id] ?? ''),
-  )
 
   const toggleComputation = (computationId: string) => {
     setSelectedComputationIds((currentIds) => {
@@ -148,20 +109,154 @@ function VaultRow({
     })
   }
 
-  const handleDatasetMappingChange = (
-    computationId: string,
-    event: SelectChangeEvent<string>,
-  ) => {
-    const datasetKey = event.target.value
-    setSelectedDatasetMappings((currentMappings) => ({
-      ...currentMappings,
-      [computationId]: datasetKey,
-    }))
-  }
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', gap: 2, mb: 1 }}>
+        <Box>
+          <Typography variant="subtitle2">{hostedVault.name}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Dataset: {hostedVault.datasetKey}
+          </Typography>
+          {hostedVault.description && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {hostedVault.description}
+            </Typography>
+          )}
+        </Box>
+        <Chip
+          label={hostedVault.active ? 'Active' : 'Inactive'}
+          size="small"
+          color={hostedVault.active ? 'success' : 'default'}
+          variant="outlined"
+        />
+      </Box>
 
-  const mappedDatasetCount = allowedComputations.filter(
-    (computation) => (persistedDatasetMappingRecord[computation.id] ?? '').length > 0,
-  ).length
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 1,
+        }}
+      >
+        {allComputations.map((computation) => (
+          <FormControlLabel
+            key={computation.id}
+            control={(
+              <Checkbox
+                checked={selectedComputationIds.includes(computation.id)}
+                onChange={() => toggleComputation(computation.id)}
+              />
+            )}
+            label={(
+              <Box>
+                <Typography variant="body2">{computation.title}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {computation.imageName}
+                </Typography>
+              </Box>
+            )}
+            sx={{ alignItems: 'flex-start', marginRight: 0 }}
+          />
+        ))}
+      </Box>
+
+      {saveError && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {saveError}
+        </Alert>
+      )}
+
+      <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+        <Button
+          variant="contained"
+          disabled={isSaving || !hasUnsavedChanges}
+          onClick={() => onSaveAllowedComputations(hostedVault.id, selectedComputationIds)}
+        >
+          {isSaving ? 'Saving...' : 'Save Allowed Computations'}
+        </Button>
+        <Button
+          variant="text"
+          disabled={isSaving || !hasUnsavedChanges}
+          onClick={() =>
+            setSelectedComputationIds(
+              hostedVault.allowedComputations.map((computation) => computation.id),
+            )
+          }
+        >
+          Reset
+        </Button>
+      </Box>
+    </Paper>
+  )
+}
+
+interface VaultServerRowProps {
+  allComputations: ComputationListItem[]
+  creatingServerId: string | null
+  saveError: string | null
+  savingVaultId: string | null
+  server: VaultServer
+  onCreateHostedVault: (
+    serverId: string,
+    input: { datasetKey: string; name: string; description: string },
+  ) => Promise<void>
+  onSaveAllowedComputations: (
+    vaultId: string,
+    computationIds: string[],
+  ) => Promise<void>
+}
+
+function VaultServerRow({
+  allComputations,
+  creatingServerId,
+  saveError,
+  savingVaultId,
+  server,
+  onCreateHostedVault,
+  onSaveAllowedComputations,
+}: VaultServerRowProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [newVaultDatasetKey, setNewVaultDatasetKey] = useState('')
+  const [newVaultName, setNewVaultName] = useState('')
+  const [newVaultDescription, setNewVaultDescription] = useState('')
+
+  const status = server.status
+  const online = status ? isOnline(status.lastHeartbeat) : false
+  const hasRunningComputations = (status?.runningComputations?.length ?? 0) > 0
+  const assignedDatasetKeys = useMemo(
+    () => new Set(server.vaults.map((hostedVault) => hostedVault.datasetKey)),
+    [server.vaults],
+  )
+  const availableDatasets = status?.availableDatasets ?? []
+  const unassignedDatasets = availableDatasets.filter(
+    (dataset) => !assignedDatasetKeys.has(dataset.key),
+  )
+  const isCreating = creatingServerId === server.id
+
+  useEffect(() => {
+    if (unassignedDatasets.length === 0) {
+      setNewVaultDatasetKey('')
+      return
+    }
+
+    const selectedDatasetStillExists = unassignedDatasets.some(
+      (dataset) => dataset.key === newVaultDatasetKey,
+    )
+
+    if (!selectedDatasetStillExists) {
+      setNewVaultDatasetKey(unassignedDatasets[0].key)
+    }
+  }, [newVaultDatasetKey, unassignedDatasets])
+
+  const handleCreateVault = async () => {
+    await onCreateHostedVault(server.id, {
+      datasetKey: newVaultDatasetKey,
+      name: newVaultName,
+      description: newVaultDescription,
+    })
+    setNewVaultName('')
+    setNewVaultDescription('')
+  }
 
   return (
     <>
@@ -184,9 +279,12 @@ function VaultRow({
               <ErrorIcon color="error" fontSize="small" />
             )}
             <Typography fontWeight="medium">
-              {vault.vault?.name || vault.username}
+              {server.name}
             </Typography>
           </Box>
+          <Typography variant="caption" color="text.secondary">
+            {server.username}
+          </Typography>
         </TableCell>
         <TableCell>
           {online ? (
@@ -201,12 +299,7 @@ function VaultRow({
           {status ? formatLastSeen(status.lastHeartbeat) : 'Never'}
         </TableCell>
         <TableCell>
-          <Chip
-            label={`${allowedComputations.length} allowed`}
-            size="small"
-            color={allowedComputations.length > 0 ? 'primary' : 'default'}
-            variant="outlined"
-          />
+          <Chip label={`${server.vaults.length} vaults`} size="small" color={server.vaults.length > 0 ? 'primary' : 'default'} variant="outlined" />
         </TableCell>
         <TableCell>
           {hasRunningComputations ? (
@@ -226,66 +319,9 @@ function VaultRow({
             <Box sx={{ margin: 2, display: 'grid', gap: 2 }}>
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Allowed Computations
+                  Server
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: 1,
-                  }}
-                >
-                  {allComputations.map((computation) => (
-                    <FormControlLabel
-                      key={computation.id}
-                      control={(
-                        <Checkbox
-                          checked={selectedComputationIds.includes(computation.id)}
-                          onChange={() => toggleComputation(computation.id)}
-                        />
-                      )}
-                      label={(
-                        <Box>
-                          <Typography variant="body2">{computation.title}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {computation.imageName}
-                          </Typography>
-                        </Box>
-                      )}
-                      sx={{ alignItems: 'flex-start', marginRight: 0 }}
-                    />
-                  ))}
-                </Box>
-                {saveError && (
-                  <Alert severity="error" sx={{ mt: 2 }}>
-                    {saveError}
-                  </Alert>
-                )}
-                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    disabled={isSaving || !hasUnsavedAllowedComputationChanges}
-                    onClick={() =>
-                      onSaveAllowedComputations(vault.id, selectedComputationIds)
-                    }
-                  >
-                    {isSavingAllowed ? 'Saving...' : 'Save Allowed Computations'}
-                  </Button>
-                  <Button
-                    variant="text"
-                    disabled={isSaving || !hasUnsavedAllowedComputationChanges}
-                    onClick={() => {
-                      setSelectedComputationIds(
-                        allowedComputations.map((computation) => computation.id),
-                      )
-                      setSelectedDatasetMappings(
-                        toDatasetMappingRecord(persistedDatasetMappings),
-                      )
-                    }}
-                  >
-                    Reset
-                  </Button>
-                </Box>
+                <Typography variant="body2">{server.description || 'No description'}</Typography>
               </Box>
 
               <Box>
@@ -309,9 +345,9 @@ function VaultRow({
                       variant="outlined"
                     />
                     <Chip
-                      label={`${mappedDatasetCount}/${allowedComputations.length} mapped`}
+                      label={`${server.vaults.length}/${availableDatasets.length} hosted`}
                       size="small"
-                      color={mappedDatasetCount > 0 ? 'primary' : 'default'}
+                      color={server.vaults.length > 0 ? 'primary' : 'default'}
                       variant="outlined"
                     />
                   </Box>
@@ -323,6 +359,7 @@ function VaultRow({
                       <TableRow>
                         <TableCell>Dataset Key</TableCell>
                         <TableCell>Path</TableCell>
+                        <TableCell>Hosted Vault</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -337,143 +374,99 @@ function VaultRow({
                               {dataset.path}
                             </Typography>
                           </TableCell>
+                          <TableCell>
+                            {server.vaults.find((hostedVault) => hostedVault.datasetKey === dataset.key)?.name || (
+                              <Typography color="text.secondary">Unassigned</Typography>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 ) : (
                   <Alert severity="warning">
-                    This vault has not reported any dataset directories yet.
+                    This server has not reported any dataset directories yet.
                   </Alert>
                 )}
               </Box>
 
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Computation Dataset Mapping
+                  Hosted Vaults
                 </Typography>
-                {hasUnsavedAllowedComputationChanges && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Save allowed computations before changing dataset mappings.
-                  </Alert>
-                )}
-                {allowedComputations.length > 0 ? (
+                {server.vaults.length > 0 ? (
                   <Box sx={{ display: 'grid', gap: 1.5 }}>
-                    {allowedComputations.map((computation) => {
-                      const selectedDatasetKey =
-                        selectedDatasetMappings[computation.id] ?? ''
-                      const selectedDataset = availableDatasets.find(
-                        (dataset) => dataset.key === selectedDatasetKey,
-                      )
-
-                      return (
-                        <Paper
-                          key={computation.id}
-                          sx={{ p: 2 }}
-                          variant="outlined"
-                        >
-                          <Box
-                            sx={{
-                              display: 'grid',
-                              gap: 1.5,
-                              gridTemplateColumns: 'minmax(0, 1fr) minmax(240px, 320px)',
-                            }}
-                          >
-                            <Box>
-                              <Typography variant="body2" fontWeight="medium">
-                                {computation.title}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {computation.imageName}
-                              </Typography>
-                            </Box>
-                            <FormControl
-                              disabled={hasUnsavedAllowedComputationChanges || isSaving}
-                              fullWidth
-                              size="small"
-                            >
-                              <InputLabel id={`dataset-mapping-${vault.id}-${computation.id}`}>
-                                Dataset
-                              </InputLabel>
-                              <Select
-                                label="Dataset"
-                                labelId={`dataset-mapping-${vault.id}-${computation.id}`}
-                                onChange={(event) =>
-                                  handleDatasetMappingChange(computation.id, event)
-                                }
-                                value={selectedDatasetKey}
-                              >
-                                <MenuItem value="">
-                                  <em>Unmapped</em>
-                                </MenuItem>
-                                {availableDatasets.map((dataset) => (
-                                  <MenuItem key={dataset.key} value={dataset.key}>
-                                    {dataset.label || dataset.key}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </Box>
-                          <Typography
-                            color="text.secondary"
-                            sx={{ mt: 1 }}
-                            variant="caption"
-                          >
-                            {selectedDataset
-                              ? `Path: ${selectedDataset.path}`
-                              : 'No dataset mapped for this computation'}
-                          </Typography>
-                        </Paper>
-                      )
-                    })}
+                    {server.vaults.map((hostedVault) => (
+                      <HostedVaultCard
+                        key={hostedVault.id}
+                        allComputations={allComputations}
+                        hostedVault={hostedVault}
+                        onSaveAllowedComputations={onSaveAllowedComputations}
+                        saveError={savingVaultId === hostedVault.id ? saveError : null}
+                        savingVaultId={savingVaultId}
+                      />
+                    ))}
                   </Box>
                 ) : (
                   <Typography color="text.secondary">
-                    No allowed computations selected for this vault.
+                    No hosted vaults created for this server yet.
                   </Typography>
                 )}
-                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    disabled={
-                      isSaving ||
-                      hasUnsavedAllowedComputationChanges ||
-                      !hasUnsavedDatasetMappingChanges
-                    }
-                    onClick={() =>
-                      onSaveDatasetMappings(
-                        vault.id,
-                        allowedComputations
-                          .map((computation) => ({
-                            computationId: computation.id,
-                            datasetKey:
-                              selectedDatasetMappings[computation.id] ?? '',
-                          }))
-                          .filter((mapping) => mapping.datasetKey.length > 0),
-                      )
-                    }
-                  >
-                    {isSavingDatasetMappings ? 'Saving...' : 'Save Dataset Mappings'}
-                  </Button>
-                  <Button
-                    variant="text"
-                    disabled={
-                      isSaving ||
-                      hasUnsavedAllowedComputationChanges ||
-                      !hasUnsavedDatasetMappingChanges
-                    }
-                    onClick={() =>
-                      setSelectedDatasetMappings(
-                        toDatasetMappingRecord(persistedDatasetMappings),
-                      )
-                    }
-                  >
-                    Reset
-                  </Button>
-                </Box>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  Create Hosted Vault
+                </Typography>
+                {saveError && creatingServerId === server.id && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {saveError}
+                  </Alert>
+                )}
+                {unassignedDatasets.length > 0 ? (
+                  <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(220px, 280px) minmax(220px, 1fr) minmax(220px, 1fr) auto' }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel id={`dataset-select-${server.id}`}>Dataset</InputLabel>
+                      <Select
+                        label="Dataset"
+                        labelId={`dataset-select-${server.id}`}
+                        value={newVaultDatasetKey}
+                        onChange={(event: SelectChangeEvent<string>) => setNewVaultDatasetKey(event.target.value)}
+                      >
+                        {unassignedDatasets.map((dataset) => (
+                          <MenuItem key={dataset.key} value={dataset.key}>
+                            {dataset.label || dataset.key}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Vault Name"
+                      value={newVaultName}
+                      onChange={(event) => setNewVaultName(event.target.value)}
+                    />
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Description"
+                      value={newVaultDescription}
+                      onChange={(event) => setNewVaultDescription(event.target.value)}
+                    />
+                    <Button
+                      variant="contained"
+                      disabled={isCreating || newVaultDatasetKey.length === 0}
+                      onClick={handleCreateVault}
+                    >
+                      {isCreating ? 'Creating...' : 'Create Vault'}
+                    </Button>
+                  </Box>
+                ) : (
+                  <Typography color="text.secondary">
+                    Every reported dataset on this server already has a hosted vault.
+                  </Typography>
+                )}
               </Box>
 
               <Box>
@@ -522,29 +515,29 @@ function VaultRow({
 
 export default function VaultStatus() {
   const {
-    adminSetVaultAllowedComputations,
-    adminSetVaultDatasetMappings,
+    adminCreateHostedVault,
+    adminSetHostedVaultAllowedComputations,
     getComputationList,
-    getVaultUserList,
+    getVaultServerList,
   } = useCentralApi()
-  const [vaults, setVaults] = useState<PublicUser[]>([])
+  const [vaultServers, setVaultServers] = useState<VaultServer[]>([])
   const [computations, setComputations] = useState<ComputationListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [savingVaultId, setSavingVaultId] = useState<string | null>(null)
-  const [savingAction, setSavingAction] = useState<'allowed' | 'datasetMappings' | null>(null)
+  const [creatingServerId, setCreatingServerId] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const loadVaults = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const [vaultResponse, computationResponse] = await Promise.all([
-        getVaultUserList(),
+      const [serverResponse, computationResponse] = await Promise.all([
+        getVaultServerList(),
         getComputationList(),
       ])
-      setVaults(vaultResponse)
+      setVaultServers(serverResponse)
       setComputations(computationResponse)
       setLastRefresh(new Date())
     } catch (err) {
@@ -554,7 +547,7 @@ export default function VaultStatus() {
     } finally {
       setLoading(false)
     }
-  }, [getComputationList, getVaultUserList])
+  }, [getComputationList, getVaultServerList])
 
   useEffect(() => {
     loadVaults()
@@ -566,9 +559,8 @@ export default function VaultStatus() {
     async (vaultId: string, computationIds: string[]) => {
       try {
         setSavingVaultId(vaultId)
-        setSavingAction('allowed')
         setSaveError(null)
-        await adminSetVaultAllowedComputations({ userId: vaultId, computationIds })
+        await adminSetHostedVaultAllowedComputations({ vaultId, computationIds })
         await loadVaults()
       } catch (err) {
         setSaveError(
@@ -578,40 +570,49 @@ export default function VaultStatus() {
         )
       } finally {
         setSavingVaultId(null)
-        setSavingAction(null)
       }
     },
-    [adminSetVaultAllowedComputations, loadVaults],
+    [adminSetHostedVaultAllowedComputations, loadVaults],
   )
 
-  const handleSaveDatasetMappings = useCallback(
-    async (vaultId: string, mappings: VaultDatasetMappingInput[]) => {
+  const handleCreateHostedVault = useCallback(
+    async (
+      serverId: string,
+      {
+        datasetKey,
+        description,
+        name,
+      }: { datasetKey: string; name: string; description: string },
+    ) => {
       try {
-        setSavingVaultId(vaultId)
-        setSavingAction('datasetMappings')
+        setCreatingServerId(serverId)
         setSaveError(null)
-        await adminSetVaultDatasetMappings({ userId: vaultId, mappings })
+        await adminCreateHostedVault({
+          serverId,
+          datasetKey,
+          name: name.trim().length > 0 ? name.trim() : datasetKey,
+          description: description.trim(),
+        })
         await loadVaults()
       } catch (err) {
         setSaveError(
           err instanceof Error
             ? err.message
-            : 'Failed to save dataset mappings',
+            : 'Failed to create hosted vault',
         )
       } finally {
-        setSavingVaultId(null)
-        setSavingAction(null)
+        setCreatingServerId(null)
       }
     },
-    [adminSetVaultDatasetMappings, loadVaults],
+    [adminCreateHostedVault, loadVaults],
   )
 
-  const onlineCount = vaults.filter(
-    (vault) => vault.vaultStatus && isOnline(vault.vaultStatus.lastHeartbeat),
+  const onlineCount = vaultServers.filter(
+    (server) => server.status && isOnline(server.status.lastHeartbeat),
   ).length
-  const offlineCount = vaults.length - onlineCount
+  const offlineCount = vaultServers.length - onlineCount
 
-  if (loading && vaults.length === 0) {
+  if (loading && vaultServers.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
         <CircularProgress />
@@ -668,9 +669,9 @@ export default function VaultStatus() {
         </Box>
       </Box>
 
-      {vaults.length === 0 ? (
+      {vaultServers.length === 0 ? (
         <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-          No vault users found
+          No vault servers found
         </Typography>
       ) : (
         <TableContainer component={Paper} variant="outlined">
@@ -683,21 +684,21 @@ export default function VaultStatus() {
                 <TableCell>Version</TableCell>
                 <TableCell>Uptime</TableCell>
                 <TableCell>Last Seen</TableCell>
-                <TableCell>Allowed</TableCell>
+                <TableCell>Hosted Vaults</TableCell>
                 <TableCell>Running</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {vaults.map((vault) => (
-                <VaultRow
-                  key={vault.id}
+              {vaultServers.map((server) => (
+                <VaultServerRow
+                  key={server.id}
                   allComputations={computations}
+                  creatingServerId={creatingServerId}
+                  onCreateHostedVault={handleCreateHostedVault}
                   onSaveAllowedComputations={handleSaveAllowedComputations}
-                  onSaveDatasetMappings={handleSaveDatasetMappings}
-                  saveError={savingVaultId === vault.id ? saveError : null}
-                  savingAction={savingVaultId === vault.id ? savingAction : null}
+                  saveError={saveError}
                   savingVaultId={savingVaultId}
-                  vault={vault}
+                  server={server}
                 />
               ))}
             </TableBody>

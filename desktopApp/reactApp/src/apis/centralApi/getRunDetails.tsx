@@ -17,9 +17,35 @@ const GET_RUN_DETAILS = gql`
           id
           username
         }
+        activeVaultMembers {
+          id
+          serverId
+          name
+          description
+          datasetKey
+          active
+          allowedComputations {
+            id
+            title
+            imageName
+          }
+        }
         readyMembers {
           id
           username
+        }
+        readyVaultMembers {
+          id
+          serverId
+          name
+          description
+          datasetKey
+          active
+          allowedComputations {
+            id
+            title
+            imageName
+          }
         }
       }
       createdAt
@@ -31,6 +57,19 @@ const GET_RUN_DETAILS = gql`
         vault {
           name
           description
+        }
+      }
+      vaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
         }
       }
       runErrors {

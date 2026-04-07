@@ -9,9 +9,14 @@ interface MembersListEditProps {
     isReady: boolean;
     isLeader: boolean;
     isMe: boolean;
+    isVaultUser: boolean;
   }[];
-  leaderSetMemberActive: (userId: string, isActive: boolean) => void;
-  leaderSetRemoveMember: (userId: string) => void;
+  leaderSetMemberActive: (
+    memberId: string,
+    isActive: boolean,
+    isVaultUser: boolean,
+  ) => void;
+  leaderSetRemoveMember: (memberId: string, isVaultUser: boolean) => void;
   setMemberReady: (memberId: string, isReady: boolean) => void;
 }
 
@@ -29,6 +34,7 @@ export default function MembersListEdit({
         isActive,
         isReady,
         isLeader,
+        isVaultUser,
       }, index) => (
         <Box
           key={`member-${id}-${index}`}
@@ -86,7 +92,7 @@ export default function MembersListEdit({
                     backgroundColor: '#f0f0f0',
                   },
                 }}
-                onClick={() => leaderSetMemberActive(id, !isActive)}
+                onClick={() => leaderSetMemberActive(id, !isActive, isVaultUser)}
               >
                 {isActive ? 'Set Inactive' : 'Set Active'}
               </Button>
@@ -101,7 +107,7 @@ export default function MembersListEdit({
                   minWidth: '7.5rem',
                   whiteSpace: 'nowrap',
                 }}
-                onClick={() => leaderSetRemoveMember(id)}
+                onClick={() => leaderSetRemoveMember(id, isVaultUser)}
               >
                 Remove
               </Button>

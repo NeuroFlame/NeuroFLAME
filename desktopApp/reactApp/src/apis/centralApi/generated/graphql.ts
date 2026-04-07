@@ -34,13 +34,16 @@ export type ComputationListItem = {
 export type ConsortiumDetails = {
   __typename?: 'ConsortiumDetails';
   activeMembers: Array<PublicUser>;
+  activeVaultMembers: Array<HostedVault>;
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   readyMembers: Array<PublicUser>;
+  readyVaultMembers: Array<HostedVault>;
   studyConfiguration: StudyConfiguration;
   title: Scalars['String']['output'];
+  vaultMembers: Array<HostedVault>;
   isPrivate: Scalars['Boolean']['output'];
 }
 
@@ -70,8 +73,10 @@ export type UserProfile = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  adminCreateHostedVault: Scalars['String']['output'];
   adminChangeUserPassword: Scalars['Boolean']['output'];
   adminChangeUserRoles: Scalars['Boolean']['output'];
+  adminSetHostedVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultDatasetMappings: Scalars['Boolean']['output'];
   computationCreate: Scalars['Boolean']['output'];
@@ -84,8 +89,11 @@ export type Mutation = {
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
   consortiumSetMemberReady: Scalars['Boolean']['output'];
+  leaderAddHostedVault: Scalars['Boolean']['output'];
   leaderAddVaultUser: Scalars['Boolean']['output'];
+  leaderRemoveHostedVault: Scalars['Boolean']['output'];
   leaderRemoveMember: Scalars['Boolean']['output'];
+  leaderSetHostedVaultActive: Scalars['Boolean']['output'];
   leaderSetMemberInactive: Scalars['Boolean']['output'];
   login: LoginOutput;
   reportRunComplete: Scalars['Boolean']['output'];
@@ -99,6 +107,13 @@ export type Mutation = {
   userChangePassword: Scalars['Boolean']['output'];
   userCreate: LoginOutput;
   runDelete: Scalars['Boolean']['output'];
+}
+
+export type MutationAdminCreateHostedVaultArgs = {
+  datasetKey: Scalars['String']['input'];
+  description: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  serverId: Scalars['String']['input'];
 }
 
 export type MutationAdminChangeUserPasswordArgs = {
@@ -119,6 +134,11 @@ export type MutationAdminSetVaultAllowedComputationsArgs = {
 export type MutationAdminSetVaultDatasetMappingsArgs = {
   mappings: Array<VaultDatasetMappingInput>;
   userId: Scalars['String']['input'];
+}
+
+export type MutationAdminSetHostedVaultAllowedComputationsArgs = {
+  computationIds: Array<Scalars['String']['input']>;
+  vaultId: Scalars['String']['input'];
 }
 
 export type MutationComputationCreateArgs = {
@@ -185,6 +205,22 @@ export type MutationConsortiumSetMemberReadyArgs = {
 export type MutationLeaderAddVaultUserArgs = {
   consortiumId: Scalars['String']['input'];
   userId: Scalars['String']['input'];
+}
+
+export type MutationLeaderAddHostedVaultArgs = {
+  consortiumId: Scalars['String']['input'];
+  vaultId: Scalars['String']['input'];
+}
+
+export type MutationLeaderRemoveHostedVaultArgs = {
+  consortiumId: Scalars['String']['input'];
+  vaultId: Scalars['String']['input'];
+}
+
+export type MutationLeaderSetHostedVaultActiveArgs = {
+  active: Scalars['Boolean']['input'];
+  consortiumId: Scalars['String']['input'];
+  vaultId: Scalars['String']['input'];
 }
 
 export type MutationLeaderRemoveMemberArgs = {
@@ -270,6 +306,17 @@ export type PublicUser = {
   vaultStatus?: Maybe<VaultStatus>;
 }
 
+export type HostedVault = {
+  __typename?: 'HostedVault';
+  active: Scalars['Boolean']['output'];
+  allowedComputations: Array<ComputationListItem>;
+  datasetKey: Scalars['String']['output'];
+  description: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  serverId: Scalars['String']['output'];
+}
+
 export type Vault = {
   __typename?: 'Vault';
   allowedComputations: Array<ComputationListItem>;
@@ -302,10 +349,12 @@ export type Query = {
   getComputationList: Array<ComputationListItem>;
   getConsortiumDetails: ConsortiumDetails;
   getConsortiumList: Array<ConsortiumListItem>;
+  getHostedVaultList: Array<HostedVault>;
   getMyVaultConfig: Vault;
   getRunDetails: RunDetails;
   getRunList: Array<RunListItem>;
   getVaultUserList: Array<PublicUser>;
+  getVaultServerList: Array<VaultServer>;
   getUserProfile: UserProfile;
 }
 
@@ -315,6 +364,10 @@ export type QueryGetComputationDetailsArgs = {
 
 export type QueryGetConsortiumDetailsArgs = {
   consortiumId: Scalars['String']['input'];
+}
+
+export type QueryGetHostedVaultListArgs = {
+  serverId?: InputMaybe<Scalars['String']['input']>;
 }
 
 export type QueryGetRunDetailsArgs = {
@@ -327,11 +380,13 @@ export type QueryGetRunListArgs = {
 
 export type RunDetailConsortium = {
   __typename?: 'RunDetailConsortium';
+  activeVaultMembers: Array<HostedVault>;
   id: Scalars['String']['output'];
   title: Scalars['String']['output'];
   leader: PublicUser;
   activeMembers: Array<PublicUser>;
   readyMembers: Array<PublicUser>;
+  readyVaultMembers: Array<HostedVault>;
 }
 
 export type RunDetails = {
@@ -344,6 +399,7 @@ export type RunDetails = {
   runId: Scalars['String']['output'];
   status: Scalars['String']['output'];
   studyConfiguration: StudyConfiguration;
+  vaultMembers: Array<HostedVault>;
 }
 
 export type RunError = {
@@ -377,8 +433,8 @@ export type RunStartCentralPayload = {
   computationParameters: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
+  participantIds: Array<Scalars['String']['output']>;
   runId: Scalars['String']['output'];
-  userIds: Array<Scalars['String']['output']>;
 }
 
 export type RunStartEdgePayload = {
@@ -388,7 +444,20 @@ export type RunStartEdgePayload = {
   downloadToken: Scalars['String']['output'];
   downloadUrl: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
+  participantId: Scalars['String']['output'];
   runId: Scalars['String']['output'];
+  vaultId?: Maybe<Scalars['String']['output']>;
+}
+
+export type VaultServer = {
+  __typename?: 'VaultServer';
+  description: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  status?: Maybe<VaultStatus>;
+  userId: Scalars['String']['output'];
+  username: Scalars['String']['output'];
+  vaults: Array<HostedVault>;
 }
 
 export type StartRunInput = {
