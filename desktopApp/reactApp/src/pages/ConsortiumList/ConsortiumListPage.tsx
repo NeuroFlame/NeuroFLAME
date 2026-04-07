@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { ConsortiumListItem } from '../../apis/centralApi/generated/graphql' // Import the type
 import ConsortiumList from './ConsortiumList' // Import the presentation component
+import { useUserState } from '../../contexts/UserStateContext'
 
 const ConsortiumListPageContainer: React.FC = () => {
   const { getConsortiumList } = useCentralApi()
+  const { userId } = useUserState()
   const [consortiumList, setConsortiumList] = useState<ConsortiumListItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -15,7 +17,25 @@ const ConsortiumListPageContainer: React.FC = () => {
     setError(null) // Reset error
     try {
       const result = await getConsortiumList()
-      setConsortiumList(result || []) // Ensure result is not null
+      const list = result || []
+
+      if (!userId) {
+        setConsortiumList(list)
+        return
+      }
+
+      const memberOf: ConsortiumListItem[] = []
+      const nonMemberOf: ConsortiumListItem[] = []
+
+      for (const consortium of list) {
+        const isMember = (consortium.members ?? []).some(
+          (m) => m?.id === userId,
+        )
+        if (isMember) memberOf.push(consortium)
+        else nonMemberOf.push(consortium)
+      }
+
+      setConsortiumList([...memberOf, ...nonMemberOf])
     } catch (err) {
       console.error('Error fetching consortium list:', err) // Log the error for debugging
       setError('Failed to fetch consortium list.')
