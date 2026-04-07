@@ -3,6 +3,11 @@ import path from 'path'
 import { expect, Page } from '@playwright/test'
 import { EXIST_TIMEOUT, COMPUTATION_TIMEOUT } from './constants'
 
+const SRR_FREESURFER_PARAMETER_FILE = path.resolve(
+  'tests/data/freesurfer-parameters.json',
+)
+const SRR_FREESURFER_SITE1_DIR = path.resolve('tests/data/freesurfer-site1')
+
 const selectComputation = async ({ name }, page: Page) => {
   // Select a computation
   await page.getByRole('button', { name: /select a computation/i }).click()
@@ -18,8 +23,7 @@ const selectComputation = async ({ name }, page: Page) => {
 
 const setDataForSRRFreesurfer = async (page: Page) => {
   // Set parameters
-  const parameterFilePath = path.resolve('tests/data/srr-freesurfer/server/parameters.json')
-  const jsonData = await fs.readFile(parameterFilePath, 'utf8')
+  const jsonData = await fs.readFile(SRR_FREESURFER_PARAMETER_FILE, 'utf8')
   const parameters = JSON.parse(jsonData)
 
   await page.getByRole('button', { name: /edit/i }).click()
@@ -36,7 +40,7 @@ const setDataForSRRFreesurfer = async (page: Page) => {
   await page.getByPlaceholder(/enter your data directory path/i)
     .fill(process.env.CI === 'true'
       ? (process.env.CI_DATA_DIR ?? (() => { throw new Error('CI_DATA_DIR is not set') })())
-      : path.resolve('tests/data/srr-freesurfer/site1'))
+      : SRR_FREESURFER_SITE1_DIR)
   await page.getByRole('button', { name: /save/i }).click()
 }
 

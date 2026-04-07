@@ -17,6 +17,7 @@ export interface IRun extends Document {
   consortiumLeader: mongoose.Types.ObjectId // Reference to the User model
   studyConfiguration: IStudyConfiguration
   members: mongoose.Types.ObjectId[] // Array of User references
+  vaultMembers: mongoose.Types.ObjectId[] // Array of HostedVault references
   status: string // Could be an enum or simple string
   runErrors: IRunError[] // Array of error objects
   lastUpdated: string // String representing the numeric timestamp
@@ -37,6 +38,7 @@ const runSchema: Schema = new Schema({
   },
   studyConfiguration: { type: studyConfigurationSchema, required: true },
   members: [{ type: mongoose.Types.ObjectId, ref: 'User', required: true }],
+  vaultMembers: [{ type: mongoose.Types.ObjectId, ref: 'HostedVault', required: true }],
   status: { type: String, required: true, default: 'Pending' },
   runErrors: [
     {

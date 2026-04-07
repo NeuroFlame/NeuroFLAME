@@ -1,5 +1,6 @@
 import * as runCoordinator from './runCoordinator/runCoordinator.js'
 import { VAULT_ACCESS_TOKEN, VAULT_LOG_PATH, VAULT_WS_URL } from './config.js'
+import { startImageManager, stopImageManager } from './imageManager.js'
 import { logger, logToPath } from './logger.js'
 import { startHeartbeat, stopHeartbeat } from './heartbeat.js'
 
@@ -63,6 +64,8 @@ async function gracefulShutdown(signal: string): Promise<void> {
     // Stop heartbeat (sends final "offline" heartbeat)
     await stopHeartbeat()
 
+    await stopImageManager()
+
     // Shutdown the WebSocket connection
     await runCoordinator.shutdown()
 
@@ -123,6 +126,8 @@ function setupSignalHandlers(): void {
       wsUrl: VAULT_WS_URL,
       accessToken: VAULT_ACCESS_TOKEN,
     })
+
+    await startImageManager()
 
     // Start sending heartbeats to central API
     startHeartbeat()
