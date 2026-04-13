@@ -704,10 +704,16 @@ export default {
         lastUpdated: Date.now(),
       })
 
+      const populatedConsortium = await Consortium.findById(consortium._id)
+        .populate('activeMembers', 'id username')
+
       pubsub.publish('RUN_START_CENTRAL', {
         runId: run._id.toString(),
         imageName: consortium.studyConfiguration.computation.imageName,
-        userIds: consortium.activeMembers.map((member) => member.toString()),
+        users: (populatedConsortium.activeMembers as any[]).map((member) => ({
+          id: member._id.toString(),
+          name: member.username,
+        })),
         consortiumId: consortium._id.toString(),
         computationParameters:
           consortium.studyConfiguration.computationParameters,

@@ -5,7 +5,7 @@ import { prepareHostingDirectory } from './prepareHostingDirectory.js'
 
 interface provisionRunArgs {
   imageName: string
-  userIds: string[]
+  users: { id: string; name: string }[]
   pathRun: string
   computationParameters: string
   fedLearnPort: number
@@ -15,7 +15,7 @@ interface provisionRunArgs {
 
 export async function provisionRun({
   imageName,
-  userIds,
+  users,
   computationParameters,
   pathRun,
   fedLearnPort,
@@ -29,7 +29,7 @@ export async function provisionRun({
 
   // make the input
   const provisionInput = {
-    user_ids: userIds,
+    users,
     computation_parameters: computationParameters,
     fed_learn_port: fedLearnPort,
     admin_port: adminPort,
