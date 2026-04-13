@@ -336,7 +336,7 @@ export type RunStartCentralPayload = {
   consortiumId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
   runId: Scalars['String']['output'];
-  userIds: Array<Scalars['String']['output']>;
+  users: Array<UserIdNamePair>;
 };
 
 export type RunStartEdgePayload = {
@@ -387,6 +387,12 @@ export type SubscriptionConsortiumLatestRunChangedArgs = {
 
 export type SubscriptionRunDetailsChangedArgs = {
   runId: Scalars['String']['input'];
+};
+
+export type UserIdNamePair = {
+  __typename?: 'UserIdNamePair';
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type Vault = {
