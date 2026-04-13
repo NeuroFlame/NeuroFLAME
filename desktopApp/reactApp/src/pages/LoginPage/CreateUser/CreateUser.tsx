@@ -1,7 +1,8 @@
 // CreateUser.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
 import { useCreateUser } from './useCreateUser'
+import { isValidEmail } from '../../../utils/helpers'
 
 export function CreateUser({ userCreated }: { userCreated?: () => void }) {
   const { handleUserCreate, loading, error, success } = useCreateUser()
@@ -13,6 +14,8 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
       userCreated()
     }
   }, [success, userCreated])
+
+  const isFormValid = useMemo(() => isValidEmail(username) && password, [username, password])
 
   return (
     <Box width='400px'>
@@ -26,7 +29,7 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
       )}
 
       <TextField
-        placeholder='Username'
+        placeholder='Username (Email)'
         value={username}
         fullWidth
         size='small'
@@ -64,7 +67,7 @@ export function CreateUser({ userCreated }: { userCreated?: () => void }) {
         variant='contained'
         color='primary'
         fullWidth
-        onClick={() => handleUserCreate(username, password)}
+        onClick={() => isFormValid && handleUserCreate(username, password)}
         disabled={loading}
       >
         {loading ? <CircularProgress size={24} /> : 'Create User'}

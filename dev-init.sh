@@ -13,18 +13,18 @@ load_env_file() {
             # Skip comments and empty lines
             [[ "$line" =~ ^[[:space:]]*# ]] && continue
             [[ -z "${line// }" ]] && continue
-            
+
             # Extract key and value
             if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
                 local key="${BASH_REMATCH[1]// /}"
                 local value="${BASH_REMATCH[2]}"
-                
+
                 # Remove surrounding quotes if present
                 value="${value#\"}"
                 value="${value%\"}"
                 value="${value#\'}"
                 value="${value%\'}"
-                
+
                 # Only export if not already set (allows shell override)
                 if [ -z "${!key}" ]; then
                     export "$key=$value"
@@ -67,4 +67,3 @@ echo "Seeding centralApi"
 (cd centralApi && npm run seed)
 
 echo "All tasks completed!"
-

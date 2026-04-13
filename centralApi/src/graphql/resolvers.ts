@@ -3,11 +3,12 @@ import {
   compare,
   hashPassword,
 } from '../authentication/authentication.js'
-import { CLIENT_FILE_SERVER_URL, RESEND_API_KEY } from '../config.js'
+import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
 import Run, { IRun } from '../database/models/Run.js'
 import User from '../database/models/User.js'
 import Computation from '../database/models/Computation.js'
+import Invite from '../database/models/Invite.js'
 import pubsub from './pubSubService.js'
 import { withFilter } from 'graphql-subscriptions'
 import {
@@ -19,10 +20,12 @@ import {
   RunStartEdgePayload,
   PublicUser,
   ConsortiumDetails,
+  InviteInfo,
   LoginOutput,
   RunEventPayload,
   RunListItem,
   RunDetails,
+  UserProfile,
 } from './generated/graphql.js'
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
@@ -35,10 +38,93 @@ interface Context {
 }
 
 const resend = new Resend(RESEND_API_KEY)
+const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const getInviteUrl = (token: string): string => {
+  const baseUrl = CONSORTIUM_INVITE_URL.endsWith('/')
+    ? CONSORTIUM_INVITE_URL
+    : `${CONSORTIUM_INVITE_URL}/`
+
+  return new URL(`invite/${token}`, baseUrl).toString()
+}
+
+const sendInviteEmail = async ({
+  email,
+  leaderName,
+  consortiumTitle,
+  token,
+}: {
+  email: string
+  leaderName: string
+  consortiumTitle: string
+  token: string
+}): Promise<void> => {
+  const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
+      Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
+
+  await resend.emails.send({
+    to: email,
+    from: 'no-reply@coinstac.org',
+    subject: `Invitation to join ${consortiumTitle}`,
+    html,
+  })
+}
+
 export default {
   Query: {
-    getConsortiumList: async (): Promise<ConsortiumListItem[]> => {
-      const consortiums = await Consortium.find()
+    getUserProfile: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ): Promise<UserProfile> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User is not authenticated')
+      }
+
+      const user = await User.findById(userId)
+
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      return {
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
+      }
+    },
+    getConsortiumList: async (
+      _: unknown,
+      _args: unknown,
+      context: Context,
+    ): Promise<ConsortiumListItem[]> => {
+      const { userId, roles } = context
+      const isAdmin = roles?.includes('admin')
+
+      const filter: Record<string, unknown> = (() => {
+        if (isAdmin) return {}
+        if (!userId) {
+          return {
+            $or: [
+              { isPrivate: { $exists: false } },
+              { isPrivate: false },
+            ],
+          }
+        }
+
+        return {
+          $or: [
+            { isPrivate: { $exists: false } },
+            { isPrivate: false },
+            { isPrivate: true, leader: userId },
+            { isPrivate: true, members: userId },
+          ],
+        }
+      })()
+
+      const consortiums = await Consortium.find(filter)
         .populate('leader')
         .populate('members')
         .lean() // Use lean() for better performance and to get plain JavaScript objects
@@ -56,6 +142,7 @@ export default {
           username: member.username,
           vault: member.vault,
         })),
+        isPrivate: consortium.isPrivate ?? false,
       }))
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
@@ -69,10 +156,11 @@ export default {
     getConsortiumDetails: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
+      context: Context,
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
-          .populate('leader', 'id username')
+          .populate('leader', 'id username vault')
           .populate('members', 'id username vault')
           .populate('activeMembers', 'id username')
           .populate('readyMembers', 'id username')
@@ -83,7 +171,22 @@ export default {
           .exec()
 
         if (!consortium) {
-          throw new Error('Consortium not found')
+          throw new Error('Consortium not found or inaccessible')
+        }
+
+        if (consortium.isPrivate) {
+          const { userId, roles } = context
+          const isAdmin = roles?.includes('admin')
+
+          if (!isAdmin) {
+            if (!userId) throw new Error('Consortium not found or inaccessible')
+            const leaderId = consortium.leader._id.toString()
+            const isLeader = leaderId === userId
+            const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
+            if (!isLeader && !isMember) {
+              throw new Error('Consortium not found or inaccessible')
+            }
+          }
         }
 
         const {
@@ -129,10 +232,11 @@ export default {
                 }
               : null,
           },
+          isPrivate: consortium.isPrivate ?? false,
         }
       } catch (error) {
         logger.error('Error in getConsortiumDetails:', error)
-        throw new Error(`Failed to fetch consortium details: ${error.message}`)
+        throw new Error('Failed to fetch consortium details')
       }
     },
     getComputationDetails: async (
@@ -226,15 +330,23 @@ export default {
 
       try {
         const run: IRun = await Run.findById(runId)
-          .populate('consortium', 'title')
+          .populate({
+            path: 'consortium',
+            select: 'title leader activeMembers readyMembers',
+            populate: [
+              { path: 'leader', select: 'id username' },
+              { path: 'activeMembers', select: 'id username' },
+              { path: 'readyMembers', select: 'id username' },
+            ],
+          })
           .populate({
             path: 'members',
-            select: 'id username',
+            select: 'id username vault',
             model: User,
           })
           .populate({
             path: 'runErrors.user',
-            select: 'id username', // Populate the user field in runErrors with id and username
+            select: 'id username', // Populate the user field in runErrors with id, username
             model: User,
           })
           .populate(
@@ -257,16 +369,35 @@ export default {
           throw new Error('Consortium data is missing or incomplete')
         }
 
+        const transformUser = (user: any): PublicUser => ({
+          id: user._id.toString(),
+          username: user.username,
+        })
+
+        const consortium = run.consortium as unknown as {
+          _id: any
+          title: string
+          leader: any
+          activeMembers: any[]
+          readyMembers: any[]
+        }
+
         return {
           runId: run._id.toString(),
-          consortiumId: run.consortium._id.toString(),
-          consortiumTitle: run.consortium.title as string,
+          consortium: {
+            id: consortium._id.toString(),
+            title: consortium.title as string,
+            leader: consortium.leader ? transformUser(consortium.leader) : null,
+            activeMembers: (consortium.activeMembers || []).map(transformUser),
+            readyMembers: (consortium.readyMembers || []).map(transformUser),
+          },
           status: run.status,
           lastUpdated: run.lastUpdated,
           createdAt: run.createdAt,
           members: run.members.map((member: any) => ({
             id: member._id.toString(),
             username: member.username,
+            vault: member.vault,
           })),
           studyConfiguration: {
             consortiumLeaderNotes: run.studyConfiguration.consortiumLeaderNotes,
@@ -297,14 +428,137 @@ export default {
     },
     getVaultUserList: async (): Promise<PublicUser[]> => {
       const users = await User.find({ roles: 'vault' }).exec()
+
+      // Get consortium titles for any running computations
+      const consortiumIds = new Set<string>()
+      users.forEach((user) => {
+        user.vaultStatus?.runningComputations?.forEach((comp) => {
+          consortiumIds.add(comp.consortiumId)
+        })
+      })
+
+      const consortiums = await Consortium.find({
+        _id: { $in: Array.from(consortiumIds) },
+      })
+        .select('_id title')
+        .lean()
+      const consortiumMap = new Map(
+        consortiums.map((c) => [c._id.toString(), c.title]),
+      )
+
       return users.map((user) => ({
         id: user._id.toString(),
         username: user.username,
         vault: user.vault,
+        vaultStatus: user.vaultStatus
+          ? {
+              status: user.vaultStatus.status,
+              version: user.vaultStatus.version,
+              uptime: user.vaultStatus.uptime,
+              websocketConnected: user.vaultStatus.websocketConnected,
+              lastHeartbeat: user.vaultStatus.lastHeartbeat.toISOString(),
+              runningComputations: user.vaultStatus.runningComputations.map(
+                (comp) => ({
+                  runId: comp.runId,
+                  consortiumId: comp.consortiumId,
+                  consortiumTitle: consortiumMap.get(comp.consortiumId) || null,
+                  runStartedAt: comp.startedAt.toISOString(),
+                  runningFor: Math.floor(
+                    (Date.now() - comp.startedAt.getTime()) / 1000,
+                  ),
+                }),
+              ),
+            }
+          : null,
       }))
+    },
+    getInviteInfo: async (
+      _: unknown,
+      { inviteToken }: { inviteToken: string },
+    ): Promise<InviteInfo> => {
+      const invite = await Invite.findOne({ token: inviteToken })
+        .populate('leader')
+        .populate('consortium')
+        .lean()
+
+      if (!invite) {
+        throw new Error('Invalid invite link')
+      }
+
+      const consortium: any = invite.consortium
+      const leader: any = invite.leader
+
+      if (!consortium || !leader) {
+        throw new Error('Invite is missing consortium or leader information')
+      }
+
+      const createdAtMs = new Date(invite.createdAt).getTime()
+      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
+
+      return {
+        consortiumName: consortium.title,
+        leaderName: leader.username,
+        isExpired,
+      }
     },
   },
   Mutation: {
+    // Vault heartbeat - updates vault status
+    vaultHeartbeat: async (
+      _: unknown,
+      {
+        heartbeat,
+      }: {
+        heartbeat: {
+          status: string
+          version: string
+          uptime: number
+          websocketConnected: boolean
+          runningComputations: Array<{
+            runId: string
+            consortiumId: string
+            startedAt: string
+          }>
+        }
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      // Authenticate the user
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      // Authorize - must be a vault user
+      if (!context.roles.includes('vault')) {
+        throw new Error('User not authorized - not a vault user')
+      }
+
+      // Update the user's vault status
+      await User.findByIdAndUpdate(context.userId, {
+        vaultStatus: {
+          status: heartbeat.status,
+          version: heartbeat.version,
+          uptime: heartbeat.uptime,
+          websocketConnected: heartbeat.websocketConnected,
+          lastHeartbeat: new Date(),
+          runningComputations: heartbeat.runningComputations.map((comp) => ({
+            runId: comp.runId,
+            consortiumId: comp.consortiumId,
+            startedAt: new Date(comp.startedAt),
+          })),
+        },
+      })
+
+      logger.debug('Vault heartbeat received', {
+        context: {
+          userId: context.userId,
+          status: heartbeat.status,
+          runningComputations: heartbeat.runningComputations.length,
+        },
+      })
+
+      return true
+    },
     login: async (
       _,
       {
@@ -327,7 +581,10 @@ export default {
       }
 
       // create a token
-      const tokens = generateTokens({ userId: user._id })
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+      })
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -351,7 +608,7 @@ export default {
       user.resetTokenExpiry = Date.now() + 1000 * 60 * 60 * 24 // 24 hours
       await user.save()
 
-      const email = user.username // assuming username is the email
+      const email = user.username
       const msg = {
         to: email,
         from: 'no-reply@coinstac.org',
@@ -395,7 +652,10 @@ export default {
         user.resetTokenExpiry = undefined
         await user.save()
 
-        const tokens = generateTokens({ userId: user._id })
+        const tokens = generateTokens({
+          userId: user._id,
+          roles: user.roles,
+        })
         const { accessToken } = tokens as { accessToken: string }
 
         return {
@@ -757,7 +1017,7 @@ export default {
     },
     consortiumCreate: async (
       _: unknown,
-      { title, description }: { title: string; description: string },
+      { title, description, isPrivate = false }: { title: string; description: string; isPrivate: boolean },
       context: Context,
     ): Promise<any> => {
       if (!title) {
@@ -781,10 +1041,10 @@ export default {
         activeMembers: [context.userId],
         readyMembers: [],
         studyConfiguration: {
-          consortiumLeaderNotes: '',
           computationParameters: '',
           computation: null,
         },
+        isPrivate,
       })
 
       return consortium._id.toString()
@@ -910,9 +1170,21 @@ export default {
         consortiumId,
         title,
         description,
-      }: { consortiumId: string; title?: string; description?: string },
+        isPrivate,
+      }: { consortiumId: string; title?: string; description?: string; isPrivate?: boolean },
       context: Context,
     ): Promise<boolean> => {
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      const isAdmin = context.roles?.includes('admin')
+      const isLeader = consortium.leader.toString() === context.userId
+      if (!isAdmin && !isLeader) {
+        throw new Error('User not authorized to edit this consortium')
+      }
+
       // Check if the title is provided and validate it against existing consortia
       if (title) {
         const otherConsortium = await Consortium.findOne({
@@ -925,14 +1197,15 @@ export default {
       }
 
       // Ensure at least one field is provided for update
-      if (!title && !description) {
+      if (!title && !description && isPrivate === undefined) {
         throw new Error('No fields provided to update')
       }
 
       // Prepare the update payload
-      const updatePayload: { [key: string]: string } = {}
+      const updatePayload: { [key: string]: string | boolean } = {}
       if (title) updatePayload.title = title
       if (description) updatePayload.description = description
+      if (isPrivate !== undefined) updatePayload.isPrivate = isPrivate
 
       // Perform the update operation
       try {
@@ -951,13 +1224,88 @@ export default {
       { consortiumId }: { consortiumId: string },
       context: Context,
     ): Promise<boolean> => {
+      const { userId, roles } = context
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      const isAdmin = roles?.includes('admin')
+      const isExistingMember = consortium.members
+        .map((memberId) => memberId.toString())
+        .includes(userId)
+      if (consortium.isPrivate && !isAdmin && !isExistingMember) {
+        throw new Error('This consortium is private and cannot be joined directly')
+      }
+
+      await Consortium.findByIdAndUpdate(consortiumId, {
+        $addToSet: { members: userId, activeMembers: userId },
+      })
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId,
+      })
+
+      return true
+    },
+    consortiumJoinByInvite: async (
+      _: unknown,
+      { inviteToken }: { inviteToken: string },
+      context: Context,
+    ): Promise<boolean> => {
       const { userId } = context
       if (!userId) {
         throw new Error('User not authenticated')
       }
+
+      const invite = await Invite.findOne({ token: inviteToken })
+        .populate('leader', 'id username')
+        .populate('consortium', 'id members') as any
+
+      if (!invite) {
+        throw new Error('Invalid invite link')
+      }
+
+      if (!invite.consortium || !invite.leader) {
+        throw new Error('Invite is missing consortium or leader information')
+      }
+
+      const consortiumId = invite.consortium._id?.toString?.() ?? invite.consortium.id
+      const isExistingMember = invite.consortium.members.some(
+        (memberId: { toString: () => string }) => memberId.toString() === userId,
+      )
+
+      if (isExistingMember) {
+        throw new Error('You\'re already a member of this consortium')
+      }
+
+      // Invite was sent to someone else.
+      const user = await User.findById(userId)
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (user.username !== invite.email) {
+        throw new Error('Invalid invite link')
+      }
+
+      const createdAtMs = new Date(invite.createdAt).getTime()
+      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
+
+      // Invite is expired
+      if (isExpired) {
+        throw new Error('Invite is expired')
+      }
+
       await Consortium.findByIdAndUpdate(consortiumId, {
         $addToSet: { members: userId, activeMembers: userId },
       })
+
+      await invite.deleteOne()
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
@@ -1101,11 +1449,87 @@ export default {
         throw new Error('Failed to update consortium ready members')
       }
     },
+    consortiumInvite: async (
+      _: unknown,
+      { consortiumId, email }: { consortiumId: string; email: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      // Provided email is not valid
+      if (!EMAIL_REGEX.test(email)) {
+        throw new Error('Invalid email')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+        .populate('leader', 'username')
+        .populate('members', 'id username vault')
+        .lean()
+
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      // Only consortium leader can send invites
+      if ((consortium.leader as any)._id.toString() !== context.userId) {
+        throw new Error('Only the consortium leader can send invites')
+      }
+
+      const isAlreadyMember = (consortium.members as any).some(
+        (member) => member.username === email,
+      )
+
+      // User is already a member of the consortium
+      if (isAlreadyMember) {
+        throw new Error('User is already a member of the consortium')
+      }
+
+      // Set current time on createdAt if invite already exists
+      const invite = await Invite.findOne({ email, consortium: consortiumId })
+      const token = randomBytes(32).toString('hex')
+
+      if (invite) {
+        invite.token = token
+        invite.createdAt = new Date()
+        await invite.save()
+      } else {
+        await Invite.create({
+          leader: context.userId,
+          consortium: consortiumId,
+          email,
+          token,
+          createdAt: Date.now(),
+        })
+      }
+
+      const leaderName = (consortium.leader as any).username
+      const consortiumTitle = consortium.title
+
+      try {
+        await sendInviteEmail({
+          email,
+          leaderName,
+          consortiumTitle,
+          token,
+        })
+      } catch (error: any) {
+        logger.error('Failed to send invite email', error)
+        throw new Error(`Failed to send invite email: ${error.message}`)
+      }
+
+      return true
+    },
     userCreate: async (
       _: unknown,
       { username, password }: { username: string; password: string },
     ): Promise<LoginOutput> => {
       try {
+        if (!EMAIL_REGEX.test(username)) {
+          throw new Error('Username should be email')
+        }
+
         const existingUser = await User.findOne({ username })
         if (existingUser) {
           throw new Error('User already exists')
@@ -1117,7 +1541,10 @@ export default {
           hash: hashedPassword,
         })
 
-        const tokens = generateTokens({ userId: user._id })
+        const tokens = generateTokens({
+          userId: user._id,
+          roles: user.roles,
+        })
         const { accessToken } = tokens as { accessToken: string }
 
         return {
@@ -1298,6 +1725,45 @@ export default {
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
+      })
+
+      return true
+    },
+    runDelete: async (
+      _: unknown,
+      { runId }: { runId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      const { userId } = context
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const run = await Run.findById(runId)
+        .populate('consortium', 'leader')
+
+      if (!run) {
+        throw new Error('Run not found')
+      }
+
+      if ((run as any).consortium.leader.toString() !== userId) {
+        throw new Error('You do not have permission to delete this run')
+      }
+
+      if (run.status !== 'Complete') {
+        throw new Error('You cannot delete uncompleted run')
+      }
+
+      const consortiumId = (run as any).consortium._id.toString()
+
+      await Run.findByIdAndDelete(runId)
+
+      pubsub.publish('CONSORTIUM_LATEST_RUN_CHANGED', {
+        consortiumId,
+      })
+
+      pubsub.publish('RUN_DETAILS_CHANGED', {
+        runId,
       })
 
       return true

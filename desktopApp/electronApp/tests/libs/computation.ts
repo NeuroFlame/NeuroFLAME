@@ -48,9 +48,28 @@ const runComputation = async (page: Page) => {
   // Go to next step
   await page.getByRole('button', { name: /go to next step/i }).click()
 
-  // Set ready status
-  await page.getByRole('button', { name: /Set Yourself as \"Ready\"/i }).click()
-  await page.getByRole('button', { name: /view consortium details/i }).click()
+  const readyButton = page.getByRole('button', { name: /Set Yourself as "Ready"|You're Ready!/i })
+  const hasWizardReadyButton = await readyButton
+    .first()
+    .isVisible({ timeout: EXIST_TIMEOUT / 6 })
+    .catch(() => false)
+
+  if (hasWizardReadyButton) {
+    if (await page.getByRole('button', { name: /Set Yourself as "Ready"/i }).isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: /Set Yourself as "Ready"/i }).click()
+    }
+    await page.getByRole('button', { name: /view consortium details/i }).click()
+  } else {
+    const activeToggle = page.getByRole('checkbox', { name: /^Active$/i })
+    if (!(await activeToggle.isChecked())) {
+      await activeToggle.click()
+    }
+
+    const readyToggle = page.getByRole('checkbox', { name: /^Ready$/i })
+    if (!(await readyToggle.isChecked())) {
+      await readyToggle.click()
+    }
+  }
 
   // Start run
   await page.getByRole('button', { name: /start run/i }).click()

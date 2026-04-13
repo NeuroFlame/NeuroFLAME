@@ -11,7 +11,7 @@ export interface IStudyConfiguration extends Document {
 // Create a schema for the Study Configuration
 export const studyConfigurationSchema: Schema = new Schema(
   {
-    consortiumLeaderNotes: { type: String, required: false, default: '' },
+    consortiumLeaderNotes: { type: String, required: false },
     computationParameters: { type: String, required: false, default: '{}' },
     computation: { type: computationSchema, required: false }, // Optional reference to Computation
   },

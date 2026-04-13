@@ -25,28 +25,25 @@ export default function ConsortiumLeaderNotes({
       borderRadius={2}
       bgcolor='white'
       marginBottom={0}
-      style={{ position: 'relative' }}
     >
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          margin: '0 0 1rem 0',
+          gap: 1,
+          marginBottom: 2,
         }}
       >
-        <Typography variant='h6' gutterBottom>
+        <Typography variant='h6'>
           Leader Notes
         </Typography>
-        {/* Only show the Edit button if the user is the leader */}
         {!isEditing && isLeader && (
           <Button
             variant='outlined'
             size='small'
             color='primary'
             onClick={handleEdit}
-            style={{ position: 'absolute', top: '1rem', right: '1rem' }}
           >
             Edit
           </Button>

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Box,
   Button,
-  CardActions,
   FormControlLabel,
   Switch,
   Typography,
@@ -44,15 +43,72 @@ export function MembersDisplay({
   const [editMembers, setEditMembers] = useState<boolean>(false)
 
   return (
-    <Box
-      p={2}
-      borderRadius={2}
-      marginBottom={2}
-      bgcolor='white'
-      style={{ position: 'relative' }}
-    >
-      <Box>
-        <Box sx={{ position: 'relative' }}>
+    <>
+      {itsMe && (
+        <Box
+          p={2}
+          borderRadius={2}
+          marginBottom={2}
+          bgcolor='white'
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '0.75rem 1.5rem',
+            }}
+          >
+            <Typography variant='h6'>
+              My Status
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-end',
+                gap: '0.5rem 1rem',
+              }}
+            >
+              <FormControlLabel
+                label='Active'
+                labelPlacement='start'
+                sx={{ color: '#333', margin: 0 }}
+                control={
+                  <Switch
+                    checked={itsMe.isActive}
+                    onChange={(_, checked) => setMemberActive(itsMe.id, checked)}
+                    size='small'
+                  />
+                }
+              />
+              <FormControlLabel
+                label='Ready'
+                labelPlacement='start'
+                sx={{ color: '#333', margin: 0 }}
+                control={
+                  <Switch
+                    color='primary'
+                    checked={itsMe.isActive && itsMe.isReady}
+                    onChange={(_, checked) => setMemberReady(itsMe.id, checked)}
+                    size='small'
+                    disabled={!itsMe.isActive}
+                  />
+                }
+              />
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      <Box
+        p={2}
+        borderRadius={2}
+        marginBottom={2}
+        bgcolor='white'
+      >
+        <Box>
           <Box
             sx={{
               display: 'flex',
@@ -89,87 +145,21 @@ export function MembersDisplay({
             <MembersListDisplay memberList={memberList} />
           )}
         </Box>
-        {!editMembers && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '5rem',
-              right: '1.5rem',
-            }}
-          >
-            <Box
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-end',
-                alignItems: 'flex-end',
-                paddingBottom: '0.5rem',
-                paddingRight: '0.5rem',
-              }}
-            >
-              <CardActions
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'flex-end',
-                  padding: 0,
-                  margin: 0,
-                }}
-              >
-                {/* Active/Inactive Switch */}
-                {itsMe && (
-                  <FormControlLabel
-                    label='Active'
-                    labelPlacement='start'
-                    sx={{ color: '#333' }}
-                    control={
-                      <Switch
-                        checked={itsMe.isActive}
-                        onChange={(_, checked) =>
-                          setMemberActive(itsMe.id, checked)} // Corrected onChange
-                        size='small'
-                      />
-                    }
-                  />
-                )}
-
-                {/* Ready/Not Ready Switch */}
-                {itsMe && itsMe.isActive && (
-                  <FormControlLabel
-                    label='Ready'
-                    labelPlacement='start'
-                    sx={{ color: '#333' }}
-                    control={(
-                      <Switch
-                        color='primary'
-                        checked={itsMe?.isReady}
-                        onChange={(_, checked) =>
-                          setMemberReady(itsMe.id, checked)} // Corrected onChange
-                        size='small'
-                      />
-                    )}
-                  />
-                )}
-              </CardActions>
-            </Box>
-          </div>
-        )}
+        <Box
+          sx={{
+            display: 'inline-flex',
+            flexDirection: 'row',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            gap: '1rem',
+            width: '100%',
+            margin: '1rem 0 0',
+          }}
+        >
+          {isLeader && <VaultUsersButton />}
+          <MemberLeaveButton handleLeave={handleLeave} />
+        </Box>
       </Box>
-      <Box
-        sx={{
-          display: 'inline-flex',
-          flexDirection: 'row',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          gap: '1rem',
-          width: '100%',
-          margin: '1rem 0 0',
-        }}
-      >
-        {isLeader && <VaultUsersButton />}
-        <MemberLeaveButton handleLeave={handleLeave} />
-      </Box>
-    </Box>
+    </>
   )
 }
