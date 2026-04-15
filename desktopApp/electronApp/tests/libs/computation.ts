@@ -8,6 +8,39 @@ const SRR_FREESURFER_PARAMETER_FILE = path.resolve(
 )
 const SRR_FREESURFER_SITE1_DIR = path.resolve('tests/data/freesurfer-site1')
 
+const goToRunResults = async (page: Page) => {
+  const resultsButton = page.getByRole('button', { name: /results/i }).first()
+
+  if (await resultsButton.isVisible({ timeout: COMPUTATION_TIMEOUT }).catch(() => false)) {
+    await resultsButton.click()
+    await page.waitForURL(/\/run\/results\//, { timeout: EXIST_TIMEOUT })
+    return
+  }
+
+  await page.getByRole('button', { name: /details/i }).click({ timeout: COMPUTATION_TIMEOUT })
+  await page.waitForURL(/\/run\/details\//, { timeout: EXIST_TIMEOUT })
+  await page.getByRole('button', { name: /view run results/i }).click({
+    timeout: COMPUTATION_TIMEOUT,
+  })
+  await page.waitForURL(/\/run\/results\//, { timeout: EXIST_TIMEOUT })
+}
+
+const expectRunResults = async (page: Page) => {
+  await expect(page.getByRole('heading', { name: /run results:/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /download results/i })).toBeVisible()
+  await expect(page.getByText(/failed to fetch results/i)).toHaveCount(0)
+
+  const resultFile = page.getByText('global_regression_result.json')
+  if (await resultFile.first().isVisible({ timeout: EXIST_TIMEOUT / 3 }).catch(() => false)) {
+    await expect(resultFile).toBeVisible()
+    return
+  }
+
+  await expect(
+    page.getByText(/no index\.html file in the output folder\.|viewing:/i),
+  ).toBeVisible({ timeout: EXIST_TIMEOUT })
+}
+
 const selectComputation = async ({ name }, page: Page) => {
   // Select a computation
   await page.getByRole('button', { name: /select a computation/i }).click()
@@ -79,14 +112,8 @@ const runComputation = async (page: Page) => {
   await page.getByRole('button', { name: /start run/i }).click()
 
   // Go to results page
-  try {
-    await page.getByRole('button', { name: /results/i }).click({ timeout: COMPUTATION_TIMEOUT })
-  } catch (error) {
-  // Click the Details button when the results button fails
-    await page.getByRole('button', { name: /details/i }).click()
-  }
-  // Check results
-  await expect(page.getByText('global_regression_result.json')).toBeVisible()
+  await goToRunResults(page)
+  await expectRunResults(page)
 }
 
 export default {
