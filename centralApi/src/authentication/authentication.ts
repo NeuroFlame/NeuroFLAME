@@ -5,9 +5,12 @@ export { compare } from 'bcrypt'
 
 const { sign } = jwt
 
-interface AccessTokenPayload extends JwtPayload {
-  userId: string;
+export interface AccessTokenPayload extends JwtPayload {
+  userId?: string;
   roles?: string[];
+  participantId?: string;
+  runId?: string;
+  consortiumId?: string;
 }
 
 export const generateTokens = (
@@ -28,7 +31,7 @@ export const generateTokens = (
 export const validateAccessToken = (token: string): AccessTokenPayload => {
   const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET)
 
-  if (typeof decoded !== 'object' || decoded === null || !('userId' in decoded)) {
+  if (typeof decoded !== 'object' || decoded === null) {
     throw new Error('Invalid token payload')
   }
 

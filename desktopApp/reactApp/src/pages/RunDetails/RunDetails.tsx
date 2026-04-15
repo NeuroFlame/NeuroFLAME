@@ -80,6 +80,26 @@ export function RunDetails() {
   const [isDeleting, setIsDeleting] = useState<boolean>(false)
   const [deleteError, setDeleteError] = useState<string>('')
 
+  const userToMember = useCallback((user: any) => ({
+    id: user.id,
+    username: user.username,
+    vault: user.vault
+      ? {
+          name: user.vault.name,
+          description: user.vault.description,
+        }
+      : undefined,
+  }), [])
+
+  const hostedVaultToMember = useCallback((vault: any) => ({
+    id: vault.id,
+    username: vault.name,
+    vault: {
+      name: vault.name,
+      description: vault.description,
+    },
+  }), [])
+
   const runId = runDetails?.runId
   const isLeader = runDetails?.consortium.leader.id === userId
 
@@ -164,10 +184,19 @@ export function RunDetails() {
             {/* Members */}
             <Grid size={{ xs: 12, sm: 6 }}>
               <MembersDisplay
-                members={runDetails.members}
-                activeMembers={runDetails.consortium.activeMembers}
-                readyMembers={runDetails.consortium.readyMembers}
-                leader={runDetails.consortium.leader}
+                members={[
+                  ...runDetails.members.map(userToMember),
+                  ...(runDetails.vaultMembers ?? []).map(hostedVaultToMember),
+                ]}
+                activeMembers={[
+                  ...runDetails.consortium.activeMembers.map(userToMember),
+                  ...(runDetails.consortium.activeVaultMembers ?? []).map(hostedVaultToMember),
+                ]}
+                readyMembers={[
+                  ...runDetails.consortium.readyMembers.map(userToMember),
+                  ...(runDetails.consortium.readyVaultMembers ?? []).map(hostedVaultToMember),
+                ]}
+                leader={userToMember(runDetails.consortium.leader)}
               />
             </Grid>
             {/* Errors */}

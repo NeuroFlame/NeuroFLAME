@@ -8,6 +8,10 @@ const logIn = async ({ username, password }, page: Page) => {
 }
 
 const logOut = async (page: Page) => {
+  if (page.isClosed()) {
+    return
+  }
+
   if (await page.getByRole('button', { name: /log in/i }).isVisible().catch(() => false)) {
     return
   }

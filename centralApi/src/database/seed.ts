@@ -6,6 +6,8 @@ import Consortium from './models/Consortium.js'
 import Computation from './models/Computation.js'
 import Run from './models/Run.js'
 import User from './models/User.js'
+import VaultServer from './models/VaultServer.js'
+import HostedVault from './models/HostedVault.js'
 // eslint-disable-next-line @stylistic/max-len
 import computationNotesSingleRoundRidgeRegressionFreesurfer from './seedContent/computationNotesSingleRoundRidgeRegressionFreesurfer.js'
 // eslint-disable-next-line @stylistic/max-len
@@ -23,6 +25,9 @@ const predefinedIds = {
   user3Id: new mongoose.Types.ObjectId('66289c79aebab67040a20070'),
   user4Id: new mongoose.Types.ObjectId('66289c79aebab67040a20071'),
   user5IdVault: new mongoose.Types.ObjectId('66289c79aebab67040a20072'),
+  vaultServer1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20073'),
+  hostedVault1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20074'),
+  hostedVault2Id: new mongoose.Types.ObjectId('66289c79aebab67040a20075'),
   computation1Id: new mongoose.Types.ObjectId('66289c79aebab67040a21000'),
   computation2Id: new mongoose.Types.ObjectId('66289c79aebab67040a21001'),
   computation3Id: new mongoose.Types.ObjectId('66289c79aebab67040a21002'),
@@ -67,6 +72,10 @@ const users = [
     vault: {
       name: 'TReNDS Cobre FreeSurfer Regression Vault',
       description: vaultDescriptionCobreFreeSurfer,
+      allowedComputations: [
+        predefinedIds.computation1Id,
+        predefinedIds.computation2Id,
+      ],
     },
   },
 ]
@@ -109,6 +118,9 @@ const consortia = [
     leader: predefinedIds.user1Id,
     members: [predefinedIds.user1Id, predefinedIds.user2Id],
     activeMembers: [predefinedIds.user1Id, predefinedIds.user2Id],
+    vaultMembers: [predefinedIds.hostedVault1Id],
+    activeVaultMembers: [predefinedIds.hostedVault1Id],
+    readyVaultMembers: [predefinedIds.hostedVault1Id],
     studyConfiguration: {
       consortiumLeaderNotes: 'Leader notes for single round ridge regression',
       computationParameters: JSON.stringify({
@@ -129,6 +141,41 @@ const consortia = [
   },
 ]
 
+const vaultServers = [
+  {
+    _id: predefinedIds.vaultServer1Id,
+    user: predefinedIds.user5IdVault,
+    name: 'TReNDS Cobre Dataset Server',
+    description: 'Development dataset server for hosted vault testing.',
+  },
+]
+
+const hostedVaults = [
+  {
+    _id: predefinedIds.hostedVault1Id,
+    server: predefinedIds.vaultServer1Id,
+    name: 'TReNDS Cobre FreeSurfer Site 1 Vault',
+    description: vaultDescriptionCobreFreeSurfer,
+    datasetKey: 'freesurfer-site1',
+    allowedComputations: [
+      predefinedIds.computation1Id,
+      predefinedIds.computation2Id,
+    ],
+    active: true,
+  },
+  {
+    _id: predefinedIds.hostedVault2Id,
+    server: predefinedIds.vaultServer1Id,
+    name: 'TReNDS Cobre VBM Vault',
+    description: 'Hosted VBM dataset vault on the shared dataset server.',
+    datasetKey: 'vbm-data',
+    allowedComputations: [
+      predefinedIds.computation2Id,
+    ],
+    active: true,
+  },
+]
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const runs = [
   {
@@ -137,6 +184,7 @@ const runs = [
     consortiumLeader: predefinedIds.user1Id,
     studyConfiguration: consortia[0].studyConfiguration,
     members: consortia[0].members,
+    vaultMembers: consortia[0].vaultMembers,
     status: 'Pending',
     runErrors: [],
     createdAt: new Date(),
@@ -153,6 +201,8 @@ const seedDatabase = async () => {
     // Clear existing data
     await Promise.all([
       User.deleteMany({}),
+      VaultServer.deleteMany({}),
+      HostedVault.deleteMany({}),
       Consortium.deleteMany({}),
       Computation.deleteMany({}),
       Run.deleteMany({}),
@@ -164,6 +214,12 @@ const seedDatabase = async () => {
 
     await Computation.insertMany(computations)
     logger.info('Computations seeded successfully!')
+
+    await VaultServer.insertMany(vaultServers)
+    logger.info('Vault servers seeded successfully!')
+
+    await HostedVault.insertMany(hostedVaults)
+    logger.info('Hosted vaults seeded successfully!')
 
     await Consortium.insertMany(consortia)
     logger.info('Consortia seeded successfully!')

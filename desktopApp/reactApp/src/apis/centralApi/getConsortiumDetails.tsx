@@ -11,6 +11,15 @@ const GET_CONSORTIUM_DETAILS = gql`
       leader {
         id
         username
+        vault {
+          name
+          description
+          allowedComputations {
+            id
+            title
+            imageName
+          }
+        }
       }
       members {
         id
@@ -18,15 +27,77 @@ const GET_CONSORTIUM_DETAILS = gql`
         vault {
           name,
           description
+          allowedComputations {
+            id
+            title
+            imageName
+          }
         }
       }
       activeMembers {
         id
         username
+        vault {
+          name
+          description
+          allowedComputations {
+            id
+            title
+            imageName
+          }
+        }
       }
       readyMembers {
         id
         username
+        vault {
+          name
+          description
+          allowedComputations {
+            id
+            title
+            imageName
+          }
+        }
+      }
+      vaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
+      }
+      activeVaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
+      }
+      readyVaultMembers {
+        id
+        serverId
+        name
+        description
+        datasetKey
+        active
+        allowedComputations {
+          id
+          title
+          imageName
+        }
       }
       studyConfiguration {
         consortiumLeaderNotes

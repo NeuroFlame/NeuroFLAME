@@ -1,8 +1,12 @@
 import {
   VAULT_BASE_DIR,
   VAULT_CONTAINER_SERVICE,
-  VAULT_DATASET_DIR,
 } from '../../../config.js'
+import {
+  ensureImageReadyForRun,
+  registerTrackedImage,
+} from '../../../imageManager.js'
+import { resolveDatasetPathForVault } from '../../../vaultConfigManager.js'
 import downloadFile from './downloadFile.js'
 import { launchNode } from '../../nodeManager/launchNode.js'
 import path from 'path'
@@ -16,6 +20,9 @@ export const RUN_START_SUBSCRIPTION = `
     runStartEdge {
       consortiumId
       runId
+      participantId
+      vaultId
+      computationId
       imageName
       downloadUrl
       downloadToken
@@ -33,13 +40,19 @@ export const runStartHandler = {
       const {
         consortiumId,
         runId,
+        participantId,
+        vaultId,
+        computationId,
         imageName,
         downloadUrl,
         downloadToken,
       } = data.runStartEdge
 
+      await registerTrackedImage(imageName)
+      await ensureImageReadyForRun(imageName, VAULT_CONTAINER_SERVICE)
+
       const consortiumPath = path.join(VAULT_BASE_DIR, consortiumId)
-      const runPath = path.join(consortiumPath, runId)
+      const runPath = path.join(consortiumPath, runId, participantId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')
 
@@ -80,16 +93,15 @@ export const runStartHandler = {
         },
       ]
 
-      // Load mount configuration and add data path
-      try {
-        directoriesToMount.push({
-          hostDirectory: VAULT_DATASET_DIR,
-          containerDirectory: '/workspace/data',
-        })
-      } catch (e) {
-        logger.error(`Failed to read or parse mount configuration: ${e}`)
-        throw new Error('Failed to load mount configuration')
+      if (!vaultId) {
+        throw new Error('No hosted vault id was provided for this vault run')
       }
+
+      const datasetPath = await resolveDatasetPathForVault(vaultId, computationId)
+      directoriesToMount.push({
+        hostDirectory: datasetPath,
+        containerDirectory: '/workspace/data',
+      })
 
       // Launch the node
       await launchNode({

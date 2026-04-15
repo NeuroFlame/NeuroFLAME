@@ -7,16 +7,16 @@ import { BASE_DIR } from '../config.js'
 const router = Router()
 
 router.post(
-  '/download/:consortiumId/:runId/:userId',
+  '/download/:consortiumId/:runId/:participantId',
   decodeAndValidateJWT,
   async (req: Request, res: Response) => {
-    const { consortiumId, runId, userId } = req.params
+    const { consortiumId, runId, participantId } = req.params
     const tokenPayload = res.locals.tokenPayload
 
     if (
       !tokenPayload?.consortiumId ||
       !tokenPayload?.runId ||
-      !tokenPayload?.userId
+      !tokenPayload?.participantId
     ) {
       return res.status(400).send('Missing required token payload data')
     }
@@ -24,7 +24,7 @@ router.post(
     if (
       tokenPayload.consortiumId !== consortiumId ||
       tokenPayload.runId !== runId ||
-      tokenPayload.userId !== userId
+      tokenPayload.participantId !== participantId
     ) {
       return res
         .status(400)
@@ -34,7 +34,7 @@ router.post(
       BASE_DIR,
       tokenPayload.consortiumId,
       tokenPayload.runId,
-      `${tokenPayload.userId}.zip`,
+      `${tokenPayload.participantId}.zip`,
     )
     if (fs.existsSync(filePath)) {
       res.sendFile(filePath)
