@@ -27,7 +27,7 @@ const goToRunResults = async (page: Page) => {
 
 const expectRunResults = async (page: Page) => {
   await expect(page.getByRole('heading', { name: /run results:/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /download results/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /download results/i })).toBeVisible()
   await expect(page.getByText(/failed to fetch results/i)).toHaveCount(0)
 
   const resultFile = page.getByText('global_regression_result.json')
