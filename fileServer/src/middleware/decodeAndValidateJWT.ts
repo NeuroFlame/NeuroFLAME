@@ -21,6 +21,10 @@ const decodeAndValidateJWT = async (
     }
   } catch (error) {
     logger.error('Authentication error:', error)
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      res.status(401).send('Invalid token')
+      return
+    }
     res.status(500).send('Authentication service error')
   }
 }
