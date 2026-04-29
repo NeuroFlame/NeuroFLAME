@@ -11,6 +11,7 @@ import { BASE_DIR, FQDN, HOSTING_PORT_END, HOSTING_PORT_START } from '../../../c
 interface StartRunArgs {
   imageName: string
   users: { id: string; name: string }[]
+  participantIds: string[]
   consortiumId: string
   runId: string
   computationParameters: string
@@ -19,6 +20,7 @@ interface StartRunArgs {
 export default async function startRun({
   imageName,
   users,
+  participantIds,
   consortiumId,
   runId,
   computationParameters,
@@ -50,6 +52,7 @@ export default async function startRun({
     await provisionRun({
       imageName,
       users,
+      participantIds,
       pathRun,
       computationParameters,
       fedLearnPort,

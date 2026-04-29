@@ -1,12 +1,12 @@
 import { useMembers } from './useMembers' // Functional hook
 import { MembersDisplay } from './MembersDisplay' // Display component
-import { PublicUser } from '../../../apis/centralApi/generated/graphql'
+import { ConsortiumMemberLike } from '../ConsortiumDetailsContext'
 
 interface MembersProps {
-  members: PublicUser[];
-  activeMembers: PublicUser[];
-  readyMembers: PublicUser[];
-  leader: PublicUser;
+  members: ConsortiumMemberLike[];
+  activeMembers: ConsortiumMemberLike[];
+  readyMembers: ConsortiumMemberLike[];
+  leader: ConsortiumMemberLike;
 }
 
 export function Members({

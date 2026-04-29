@@ -7,6 +7,8 @@ import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '.
 import Consortium from '../database/models/Consortium.js'
 import Run, { IRun } from '../database/models/Run.js'
 import User from '../database/models/User.js'
+import VaultServer from '../database/models/VaultServer.js'
+import HostedVault from '../database/models/HostedVault.js'
 import Computation from '../database/models/Computation.js'
 import Invite from '../database/models/Invite.js'
 import pubsub from './pubSubService.js'
@@ -40,6 +42,326 @@ interface Context {
 const resend = new Resend(RESEND_API_KEY)
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const mapAllowedComputations = (
+  computations: any[] | undefined,
+): ComputationListItem[] => (
+  Array.isArray(computations)
+    ? computations
+      .filter(
+        (computation) =>
+          computation &&
+          typeof computation === 'object' &&
+          'title' in computation &&
+          'imageName' in computation,
+      )
+      .map((computation: any) => ({
+        id: computation._id.toString(),
+        title: computation.title,
+        imageName: computation.imageName,
+      }))
+    : []
+)
+
+const ensureValidComputationParameters = (
+  rawParameters: string | null | undefined,
+): string => {
+  const normalizedParameters =
+    typeof rawParameters === 'string' ? rawParameters.trim() : ''
+
+  if (normalizedParameters.length === 0) {
+    throw new Error(
+      'Computation parameters are required before starting a run.',
+    )
+  }
+
+  let parsedParameters: unknown
+  try {
+    parsedParameters = JSON.parse(normalizedParameters)
+  } catch (error) {
+    throw new Error(
+      `Computation parameters must be valid JSON before starting a run: ${(error as Error).message}`,
+    )
+  }
+
+  if (
+    parsedParameters === null ||
+    Array.isArray(parsedParameters) ||
+    typeof parsedParameters !== 'object'
+  ) {
+    throw new Error(
+      'Computation parameters must be a JSON object before starting a run.',
+    )
+  }
+
+  return normalizedParameters
+}
+
+const mapDatasetMappings = (
+  datasetMappings: Array<{ computationId: unknown; datasetKey?: string | null }> | undefined,
+): Array<{ computationId: string; datasetKey: string }> => (
+  Array.isArray(datasetMappings)
+    ? datasetMappings
+      .filter(
+        (mapping) =>
+          mapping &&
+          typeof mapping === 'object' &&
+          mapping.computationId &&
+          typeof mapping.datasetKey === 'string' &&
+          mapping.datasetKey.trim().length > 0,
+      )
+      .map((mapping) => ({
+        computationId: mapping.computationId.toString(),
+        datasetKey: mapping.datasetKey!.trim(),
+      }))
+    : []
+)
+
+const mapAvailableDatasets = (
+  datasets:
+    | Array<{
+        key?: string | null
+        path?: string | null
+        label?: string | null
+      }>
+    | undefined,
+): Array<{
+  key: string
+  path: string
+  label: string | null
+}> => (
+  Array.isArray(datasets)
+    ? datasets
+      .filter(
+        (dataset) =>
+          dataset &&
+          typeof dataset === 'object' &&
+          typeof dataset.key === 'string' &&
+          dataset.key.trim().length > 0 &&
+          typeof dataset.path === 'string' &&
+          dataset.path.trim().length > 0,
+      )
+      .map((dataset) => ({
+        key: dataset.key!.trim(),
+        path: dataset.path!.trim(),
+        label:
+          typeof dataset.label === 'string' && dataset.label.trim().length > 0
+            ? dataset.label.trim()
+            : null,
+      }))
+    : []
+)
+
+const mapVault = (
+  vault:
+    | {
+        name?: string | null
+        description?: string | null
+        allowedComputations?: any[]
+        datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
+      }
+    | null
+    | undefined,
+) => (
+  vault &&
+  typeof vault.name === 'string' &&
+  typeof vault.description === 'string'
+    ? {
+        name: vault.name,
+        description: vault.description,
+        allowedComputations: mapAllowedComputations(vault.allowedComputations),
+        datasetMappings: mapDatasetMappings(vault.datasetMappings),
+      }
+    : null
+)
+
+const mapVaultStatus = (
+  vaultStatus:
+    | {
+        status: string
+        version: string
+        uptime: number
+        websocketConnected: boolean
+        lastHeartbeat: Date
+        runningComputations: Array<{
+          runId: string
+          consortiumId: string
+          startedAt: Date
+        }>
+        availableDatasets?: Array<{
+          key?: string | null
+          path?: string | null
+          label?: string | null
+        }>
+      }
+    | null
+    | undefined,
+  consortiumMap?: Map<string, string>,
+) => (
+  vaultStatus
+    ? {
+        status: vaultStatus.status,
+        version: vaultStatus.version,
+        uptime: vaultStatus.uptime,
+        websocketConnected: vaultStatus.websocketConnected,
+        lastHeartbeat: vaultStatus.lastHeartbeat.toISOString(),
+        runningComputations: vaultStatus.runningComputations.map((comp) => ({
+          runId: comp.runId,
+          consortiumId: comp.consortiumId,
+          consortiumTitle: consortiumMap?.get(comp.consortiumId) || null,
+          runStartedAt: comp.startedAt.toISOString(),
+          runningFor: Math.floor(
+            (Date.now() - comp.startedAt.getTime()) / 1000,
+          ),
+        })),
+        availableDatasets: mapAvailableDatasets(vaultStatus.availableDatasets),
+      }
+    : null
+)
+
+const mapHostedVault = (
+  vault:
+    | {
+        _id?: unknown
+        server?: unknown
+        name?: string | null
+        description?: string | null
+        datasetKey?: string | null
+        allowedComputations?: any[]
+        active?: boolean | null
+      }
+    | null
+    | undefined,
+) => (
+  vault &&
+  vault._id &&
+  vault.server &&
+  typeof vault.name === 'string' &&
+  typeof vault.description === 'string' &&
+  typeof vault.datasetKey === 'string'
+    ? {
+        id: vault._id.toString(),
+        serverId: vault.server.toString(),
+        name: vault.name,
+        description: vault.description,
+        datasetKey: vault.datasetKey,
+        allowedComputations: mapAllowedComputations(vault.allowedComputations),
+        active: vault.active !== false,
+      }
+    : null
+)
+
+const mapVaultServerRecord = ({
+  hostedVaults,
+  server,
+  status,
+  user,
+  consortiumMap,
+}: {
+  hostedVaults: any[]
+  server:
+    | {
+        _id?: unknown
+        user?: unknown
+        name?: string | null
+        description?: string | null
+      }
+    | null
+    | undefined
+  status?: {
+    status: string
+    version: string
+    uptime: number
+    websocketConnected: boolean
+    lastHeartbeat: Date
+    runningComputations: Array<{
+      runId: string
+      consortiumId: string
+      startedAt: Date
+    }>
+    availableDatasets?: Array<{
+      key?: string | null
+      path?: string | null
+      label?: string | null
+    }>
+  } | null
+  user:
+    | {
+        _id?: unknown
+        username?: string | null
+      }
+    | null
+    | undefined
+  consortiumMap?: Map<string, string>
+}) => (
+  server &&
+  server._id &&
+  server.user &&
+  typeof server.name === 'string' &&
+  typeof server.description === 'string' &&
+  user &&
+  user._id &&
+  typeof user.username === 'string'
+    ? {
+        id: server._id.toString(),
+        userId: server.user.toString(),
+        username: user.username,
+        name: server.name,
+        description: server.description,
+        status: mapVaultStatus(status ?? null, consortiumMap),
+        vaults: hostedVaults
+          .map((hostedVault) => mapHostedVault(hostedVault))
+          .filter(Boolean),
+      }
+    : null
+)
+
+const getOrCreateVaultServerForUser = async (
+  userId: string,
+): Promise<any> => {
+  const existingServer = await VaultServer.findOne({ user: userId }).exec()
+  if (existingServer) {
+    return existingServer
+  }
+
+  const user = await User.findById(userId).exec()
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  const name =
+    typeof user.vault?.name === 'string' && user.vault.name.trim().length > 0
+      ? user.vault.name.trim()
+      : `${user.username} Vault Server`
+  const description =
+    typeof user.vault?.description === 'string'
+      ? user.vault.description
+      : ''
+
+  return VaultServer.create({
+    user: user._id,
+    name,
+    description,
+  })
+}
+
+const allowsComputation = (
+  user: { vault?: { allowedComputations?: Array<{ _id: unknown }> } },
+  computationId: string,
+): boolean =>
+  Array.isArray(user.vault?.allowedComputations) &&
+  user.vault.allowedComputations.some(
+    (computation) => computation._id.toString() === computationId,
+  )
+
+const hostedVaultAllowsComputation = (
+  vault: { allowedComputations?: Array<{ _id: unknown }> },
+  computationId: string,
+): boolean =>
+  Array.isArray(vault.allowedComputations) &&
+  vault.allowedComputations.some(
+    (computation) => computation._id.toString() === computationId,
+  )
 
 const getInviteUrl = (token: string): string => {
   const baseUrl = CONSORTIUM_INVITE_URL.endsWith('/')
@@ -140,7 +462,7 @@ export default {
         members: (consortium.members as any[]).map((member) => ({
           id: member._id.toString(),
           username: member.username,
-          vault: member.vault,
+          vault: mapVault(member.vault),
         })),
         isPrivate: consortium.isPrivate ?? false,
       }))
@@ -153,6 +475,85 @@ export default {
         imageName: computation.imageName,
       }))
     },
+    getMyVaultConfig: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ) => {
+      if (!context.userId) {
+        throw new Error('User is not authenticated')
+      }
+
+      const user = await User.findById(context.userId)
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
+
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      if (!user.vault) {
+        throw new Error('Vault settings not found for this user')
+      }
+
+      return mapVault(user.vault)
+    },
+    getMyVaultServerConfig: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ) => {
+      if (!context.userId) {
+        throw new Error('User is not authenticated')
+      }
+
+      const user = await User.findById(context.userId).exec()
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      const server = await getOrCreateVaultServerForUser(context.userId)
+      const hostedVaults = await HostedVault.find({ server: server._id })
+        .populate('allowedComputations', 'title imageName')
+        .sort({ name: 1 })
+        .exec()
+
+      const consortiumIds = new Set<string>()
+      server.status?.runningComputations?.forEach((comp) => {
+        consortiumIds.add(comp.consortiumId)
+      })
+
+      const consortiums = await Consortium.find({
+        _id: { $in: Array.from(consortiumIds) },
+      })
+        .select('_id title')
+        .lean()
+      const consortiumMap = new Map(
+        consortiums.map((consortium) => [consortium._id.toString(), consortium.title]),
+      )
+
+      const mappedServer = mapVaultServerRecord({
+        hostedVaults,
+        server,
+        status: server.status,
+        user,
+        consortiumMap,
+      })
+
+      if (!mappedServer) {
+        throw new Error('Vault server settings not found for this user')
+      }
+
+      return mappedServer
+    },
     getConsortiumDetails: async (
       _: unknown,
       { consortiumId }: { consortiumId: string },
@@ -160,10 +561,59 @@ export default {
     ): Promise<ConsortiumDetails | null> => {
       try {
         const consortium = await Consortium.findById(consortiumId)
-          .populate('leader', 'id username vault')
-          .populate('members', 'id username vault')
-          .populate('activeMembers', 'id username')
-          .populate('readyMembers', 'id username')
+          .populate({
+            path: 'leader',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'members',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'activeMembers',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'readyMembers',
+            select: 'id username vault',
+            populate: {
+              path: 'vault.allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'vaultMembers',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'activeVaultMembers',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
+          })
+          .populate({
+            path: 'readyVaultMembers',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
+          })
           .populate(
             'studyConfiguration.computation',
             'title imageName imageDownloadUrl notes owner hasLocalParameters',
@@ -183,7 +633,17 @@ export default {
             const leaderId = consortium.leader._id.toString()
             const isLeader = leaderId === userId
             const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
-            if (!isLeader && !isMember) {
+            const vaultServers = await VaultServer.find({
+              _id: {
+                $in: (consortium.vaultMembers as any[]).map((vault) => vault.server),
+              },
+            })
+              .select('user')
+              .lean()
+            const isVaultServerMember = vaultServers.some(
+              (server: any) => server.user.toString() === userId,
+            )
+            if (!isLeader && !isMember && !isVaultServerMember) {
               throw new Error('Consortium not found or inaccessible')
             }
           }
@@ -197,6 +657,9 @@ export default {
           members,
           activeMembers,
           readyMembers,
+          vaultMembers,
+          activeVaultMembers,
+          readyVaultMembers,
           studyConfiguration: {
             consortiumLeaderNotes,
             computationParameters,
@@ -207,7 +670,7 @@ export default {
         const transformUser = (user: any): PublicUser => ({
           id: user.id,
           username: user.username,
-          vault: user.vault,
+          vault: mapVault(user.vault),
         })
 
         return {
@@ -218,6 +681,9 @@ export default {
           members: members ? members.map(transformUser) : [],
           activeMembers: activeMembers ? activeMembers.map(transformUser) : [],
           readyMembers: readyMembers ? readyMembers.map(transformUser) : [],
+          vaultMembers: (vaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+          activeVaultMembers: (activeVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+          readyVaultMembers: (readyVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
           studyConfiguration: {
             consortiumLeaderNotes,
             computationParameters,
@@ -282,7 +748,23 @@ export default {
       try {
         // Build the query filter
         const query: any = {
-          members: userId,
+          $or: [
+            { members: userId },
+          ],
+        }
+
+        const viewerServer = await VaultServer.findOne({ user: userId }).select('_id').lean()
+        if (viewerServer?._id) {
+          const hostedVaultIds = await HostedVault.find({ server: viewerServer._id })
+            .select('_id')
+            .lean()
+          if (hostedVaultIds.length > 0) {
+            query.$or.push({
+              vaultMembers: {
+                $in: hostedVaultIds.map((vault) => vault._id),
+              },
+            })
+          }
         }
 
         // Add consortiumId to the query if it's specified
@@ -332,17 +814,38 @@ export default {
         const run: IRun = await Run.findById(runId)
           .populate({
             path: 'consortium',
-            select: 'title leader activeMembers readyMembers',
+            select: 'title leader activeMembers readyMembers activeVaultMembers readyVaultMembers',
             populate: [
               { path: 'leader', select: 'id username' },
               { path: 'activeMembers', select: 'id username' },
               { path: 'readyMembers', select: 'id username' },
+              {
+                path: 'activeVaultMembers',
+                populate: {
+                  path: 'allowedComputations',
+                  select: 'title imageName',
+                },
+              },
+              {
+                path: 'readyVaultMembers',
+                populate: {
+                  path: 'allowedComputations',
+                  select: 'title imageName',
+                },
+              },
             ],
           })
           .populate({
             path: 'members',
             select: 'id username vault',
             model: User,
+          })
+          .populate({
+            path: 'vaultMembers',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
           })
           .populate({
             path: 'runErrors.user',
@@ -357,11 +860,19 @@ export default {
           .exec()
 
         // if the userId is not in the members array, throw an error
-        if (
-          !run.members
-            .map((member: any) => member._id.toString())
-            .includes(userId)
-        ) {
+        const isHumanRunMember = run.members
+          .map((member: any) => member._id.toString())
+          .includes(userId)
+        let isVaultRunMember = false
+        if (!isHumanRunMember) {
+          const viewerServer = await VaultServer.findOne({ user: userId }).select('_id').lean()
+          if (viewerServer?._id) {
+            isVaultRunMember = (run.vaultMembers as any[]).some(
+              (vault: any) => vault.server.toString() === viewerServer._id.toString(),
+            )
+          }
+        }
+        if (!isHumanRunMember && !isVaultRunMember) {
           throw new Error('User not authorized to view this run')
         }
 
@@ -380,6 +891,8 @@ export default {
           leader: any
           activeMembers: any[]
           readyMembers: any[]
+          activeVaultMembers: any[]
+          readyVaultMembers: any[]
         }
 
         return {
@@ -390,6 +903,8 @@ export default {
             leader: consortium.leader ? transformUser(consortium.leader) : null,
             activeMembers: (consortium.activeMembers || []).map(transformUser),
             readyMembers: (consortium.readyMembers || []).map(transformUser),
+            activeVaultMembers: (consortium.activeVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            readyVaultMembers: (consortium.readyVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
           },
           status: run.status,
           lastUpdated: run.lastUpdated,
@@ -397,8 +912,9 @@ export default {
           members: run.members.map((member: any) => ({
             id: member._id.toString(),
             username: member.username,
-            vault: member.vault,
+            vault: mapVault(member.vault),
           })),
+          vaultMembers: (run.vaultMembers as any[]).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
           studyConfiguration: {
             consortiumLeaderNotes: run.studyConfiguration.consortiumLeaderNotes,
             computationParameters: run.studyConfiguration.computationParameters,
@@ -427,7 +943,9 @@ export default {
       }
     },
     getVaultUserList: async (): Promise<PublicUser[]> => {
-      const users = await User.find({ roles: 'vault' }).exec()
+      const users = await User.find({ roles: 'vault' })
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
 
       // Get consortium titles for any running computations
       const consortiumIds = new Set<string>()
@@ -449,28 +967,86 @@ export default {
       return users.map((user) => ({
         id: user._id.toString(),
         username: user.username,
-        vault: user.vault,
-        vaultStatus: user.vaultStatus
-          ? {
-              status: user.vaultStatus.status,
-              version: user.vaultStatus.version,
-              uptime: user.vaultStatus.uptime,
-              websocketConnected: user.vaultStatus.websocketConnected,
-              lastHeartbeat: user.vaultStatus.lastHeartbeat.toISOString(),
-              runningComputations: user.vaultStatus.runningComputations.map(
-                (comp) => ({
-                  runId: comp.runId,
-                  consortiumId: comp.consortiumId,
-                  consortiumTitle: consortiumMap.get(comp.consortiumId) || null,
-                  runStartedAt: comp.startedAt.toISOString(),
-                  runningFor: Math.floor(
-                    (Date.now() - comp.startedAt.getTime()) / 1000,
-                  ),
-                }),
-              ),
-            }
-          : null,
+        vault: mapVault(user.vault),
+        vaultStatus: mapVaultStatus(user.vaultStatus, consortiumMap),
       }))
+    },
+    getVaultServerList: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ) => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const servers = await VaultServer.find({})
+        .populate('user', 'username')
+        .sort({ name: 1 })
+        .exec()
+      const serverIds = servers.map((server) => server._id)
+
+      const hostedVaults = await HostedVault.find({ server: { $in: serverIds } })
+        .populate('allowedComputations', 'title imageName')
+        .sort({ name: 1 })
+        .exec()
+
+      const consortiumIds = new Set<string>()
+      servers.forEach((server) => {
+        server.status?.runningComputations?.forEach((comp) => {
+          consortiumIds.add(comp.consortiumId)
+        })
+      })
+
+      const consortiums = await Consortium.find({
+        _id: { $in: Array.from(consortiumIds) },
+      })
+        .select('_id title')
+        .lean()
+      const consortiumMap = new Map(
+        consortiums.map((consortium) => [consortium._id.toString(), consortium.title]),
+      )
+
+      const hostedVaultsByServerId = new Map<string, any[]>()
+      hostedVaults.forEach((hostedVault) => {
+        const serverId = hostedVault.server.toString()
+        const vaultsForServer = hostedVaultsByServerId.get(serverId) ?? []
+        vaultsForServer.push(hostedVault)
+        hostedVaultsByServerId.set(serverId, vaultsForServer)
+      })
+
+      return servers
+        .map((server) => mapVaultServerRecord({
+          hostedVaults: hostedVaultsByServerId.get(server._id.toString()) ?? [],
+          server,
+          status: server.status,
+          user: server.user as any,
+          consortiumMap,
+        }))
+        .filter(Boolean)
+    },
+    getHostedVaultList: async (
+      _: unknown,
+      { serverId }: { serverId?: string },
+      context: Context,
+    ) => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const query = serverId ? { server: serverId } : {}
+      const hostedVaults = await HostedVault.find(query)
+        .populate('allowedComputations', 'title imageName')
+        .sort({ name: 1 })
+        .exec()
+
+      return hostedVaults
+        .map((hostedVault) => mapHostedVault(hostedVault))
+        .filter(Boolean)
     },
     getInviteInfo: async (
       _: unknown,
@@ -519,6 +1095,11 @@ export default {
             consortiumId: string
             startedAt: string
           }>
+          availableDatasets: Array<{
+            key: string
+            path: string
+            label?: string | null
+          }>
         }
       },
       context: Context,
@@ -533,27 +1114,39 @@ export default {
         throw new Error('User not authorized - not a vault user')
       }
 
+      const normalizedStatus = {
+        status: heartbeat.status,
+        version: heartbeat.version,
+        uptime: heartbeat.uptime,
+        websocketConnected: heartbeat.websocketConnected,
+        lastHeartbeat: new Date(),
+        runningComputations: heartbeat.runningComputations.map((comp) => ({
+          runId: comp.runId,
+          consortiumId: comp.consortiumId,
+          startedAt: new Date(comp.startedAt),
+        })),
+        availableDatasets: heartbeat.availableDatasets.map((dataset) => ({
+          key: dataset.key.trim(),
+          path: dataset.path.trim(),
+          label: dataset.label?.trim() || undefined,
+        })),
+      }
+
       // Update the user's vault status
       await User.findByIdAndUpdate(context.userId, {
-        vaultStatus: {
-          status: heartbeat.status,
-          version: heartbeat.version,
-          uptime: heartbeat.uptime,
-          websocketConnected: heartbeat.websocketConnected,
-          lastHeartbeat: new Date(),
-          runningComputations: heartbeat.runningComputations.map((comp) => ({
-            runId: comp.runId,
-            consortiumId: comp.consortiumId,
-            startedAt: new Date(comp.startedAt),
-          })),
-        },
+        vaultStatus: normalizedStatus,
       })
+
+      const server = await getOrCreateVaultServerForUser(context.userId)
+      server.status = normalizedStatus
+      await server.save()
 
       logger.debug('Vault heartbeat received', {
         context: {
           userId: context.userId,
           status: heartbeat.status,
           runningComputations: heartbeat.runningComputations.length,
+          availableDatasets: heartbeat.availableDatasets.length,
         },
       })
 
@@ -692,12 +1285,24 @@ export default {
         )
       }
 
+      if (!consortium.studyConfiguration?.computation) {
+        throw new Error('A computation must be selected before starting a run.')
+      }
+
+      const computationParameters = ensureValidComputationParameters(
+        consortium.studyConfiguration?.computationParameters,
+      )
+
       // create a new run in the database
       const run = await Run.create({
         consortium: consortium._id,
         consortiumLeader: consortium.leader,
-        studyConfiguration: consortium.studyConfiguration,
+        studyConfiguration: {
+          ...consortium.studyConfiguration,
+          computationParameters,
+        },
         members: consortium.activeMembers,
+        vaultMembers: consortium.activeVaultMembers ?? [],
         status: 'Provisioning',
         runErrors: [],
         createdAt: Date.now(),
@@ -714,9 +1319,12 @@ export default {
           id: member._id.toString(),
           name: member.username,
         })),
+        participantIds: [
+          ...consortium.activeMembers.map((member) => member.toString()),
+          ...(consortium.activeVaultMembers ?? []).map((vaultId) => vaultId.toString()),
+        ],
         consortiumId: consortium._id.toString(),
-        computationParameters:
-          consortium.studyConfiguration.computationParameters,
+        computationParameters,
       })
 
       pubsub.publish('RUN_EVENT', {
@@ -761,14 +1369,47 @@ export default {
         { status: 'In Progress', lastUpdated: Date.now() },
       )
       const imageName = run.studyConfiguration.computation.imageName
+      const computationId = run.studyConfiguration.computation._id.toString()
       const consortiumId = run.consortium._id
 
       const consortium = await Consortium.findById(consortiumId)
 
-      pubsub.publish('RUN_START_EDGE', {
-        runId,
-        imageName,
-        consortiumId,
+      run.members.forEach((memberId) => {
+        pubsub.publish('RUN_START_EDGE', {
+          runId,
+          participantId: memberId.toString(),
+          vaultId: null,
+          targetUserId: memberId.toString(),
+          computationId,
+          imageName,
+          consortiumId,
+        })
+      })
+
+      const hostedVaults = await HostedVault.find({
+        _id: { $in: run.vaultMembers ?? [] },
+      })
+        .populate({
+          path: 'server',
+          select: 'user',
+        })
+        .exec()
+
+      hostedVaults.forEach((vault: any) => {
+        const serverUserId = vault.server?.user?.toString?.() ?? vault.server?.user
+        if (!serverUserId) {
+          return
+        }
+
+        pubsub.publish('RUN_START_EDGE', {
+          runId,
+          participantId: vault._id.toString(),
+          vaultId: vault._id.toString(),
+          targetUserId: serverUserId.toString(),
+          computationId,
+          imageName,
+          consortiumId,
+        })
       })
 
       pubsub.publish('RUN_EVENT', {
@@ -810,8 +1451,21 @@ export default {
       const isUserMember = run.members.some((memberId) =>
         memberId.equals(context.userId),
       )
+      let isHostedVaultServerMember = false
+      if (!isUserCentral && !isUserMember && (run.vaultMembers?.length ?? 0) > 0) {
+        const viewerServer = await VaultServer.findOne({ user: context.userId })
+          .select('_id')
+          .lean()
+        if (viewerServer?._id) {
+          const hostedVaultCount = await HostedVault.countDocuments({
+            _id: { $in: run.vaultMembers ?? [] },
+            server: viewerServer._id,
+          })
+          isHostedVaultServerMember = hostedVaultCount > 0
+        }
+      }
 
-      if (!isUserCentral && !isUserMember) {
+      if (!isUserCentral && !isUserMember && !isHostedVaultServerMember) {
         throw new Error('User not authorized')
       }
 
@@ -927,6 +1581,25 @@ export default {
         const computation = await Computation.findById(computationId)
         if (!computation) {
           throw new Error('Computation not found')
+        }
+
+        const vaultMembers = await HostedVault.find({
+          _id: { $in: consortium.vaultMembers ?? [] },
+          active: true,
+        })
+          .populate('allowedComputations', 'title imageName')
+          .exec()
+
+        const incompatibleVaults = vaultMembers.filter(
+          (member) => !hostedVaultAllowsComputation(member as any, computationId.toString()),
+        )
+        if (incompatibleVaults.length > 0) {
+          const vaultNames = incompatibleVaults.map(
+            (member) => member.name,
+          )
+          throw new Error(
+            `The following vaults do not allow "${computation.title}": ${vaultNames.join(', ')}`,
+          )
         }
 
         // Set the computation in the study configuration
@@ -1625,9 +2298,441 @@ export default {
         throw new Error('Failed to change roles')
       }
     },
+    adminSetVaultAllowedComputations: async (
+      _: unknown,
+      {
+        userId,
+        computationIds,
+      }: { userId: string; computationIds: string[] },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const user = await User.findById(userId).exec()
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      const uniqueComputationIds = Array.from(new Set(computationIds))
+      const computations = await Computation.find({
+        _id: { $in: uniqueComputationIds },
+      })
+        .select('title')
+        .exec()
+
+      if (computations.length !== uniqueComputationIds.length) {
+        throw new Error('One or more computations were not found')
+      }
+
+      const incompatibleConsortia = await Consortium.find({
+        members: user._id,
+        'studyConfiguration.computation': { $exists: true, $ne: null },
+      })
+        .populate('studyConfiguration.computation', 'title')
+        .select('title studyConfiguration')
+        .exec()
+
+      const blockedConsortia = incompatibleConsortia.filter((consortium) => {
+        const selectedComputation = consortium.studyConfiguration?.computation as any
+        if (!selectedComputation?._id) {
+          return false
+        }
+        return !uniqueComputationIds.includes(selectedComputation._id.toString())
+      })
+
+      if (blockedConsortia.length > 0) {
+        const consortiumTitles = blockedConsortia.map((consortium) => consortium.title)
+        throw new Error(
+          `Cannot remove required computations while this vault belongs to: ${consortiumTitles.join(', ')}`,
+        )
+      }
+
+      if (!user.vault) {
+        throw new Error('Vault settings not found for this user')
+      }
+
+      user.vault.allowedComputations = uniqueComputationIds as any
+      user.vault.datasetMappings = (user.vault.datasetMappings ?? []).filter(
+        (mapping) => uniqueComputationIds.includes(mapping.computationId.toString()),
+      ) as any
+      await user.save()
+
+      return true
+    },
+    adminSetVaultDatasetMappings: async (
+      _: unknown,
+      {
+        userId,
+        mappings,
+      }: {
+        userId: string
+        mappings: Array<{ computationId: string; datasetKey: string }>
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const user = await User.findById(userId)
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
+      if (!user) {
+        throw new Error('User not found')
+      }
+
+      if (!user.roles.includes('vault')) {
+        throw new Error('User is not a vault user')
+      }
+
+      if (!user.vault) {
+        throw new Error('Vault settings not found for this user')
+      }
+
+      const normalizedMappings = mappings.map((mapping) => ({
+        computationId: mapping.computationId,
+        datasetKey: mapping.datasetKey.trim(),
+      }))
+
+      if (normalizedMappings.some((mapping) => mapping.datasetKey.length === 0)) {
+        throw new Error('Dataset key is required for every mapping')
+      }
+
+      const uniqueComputationIds = new Set<string>()
+      for (const mapping of normalizedMappings) {
+        if (uniqueComputationIds.has(mapping.computationId)) {
+          throw new Error('Each computation may only have one dataset mapping')
+        }
+        uniqueComputationIds.add(mapping.computationId)
+      }
+
+      const computations = await Computation.find({
+        _id: { $in: Array.from(uniqueComputationIds) },
+      })
+        .select('title')
+        .exec()
+
+      if (computations.length !== uniqueComputationIds.size) {
+        throw new Error('One or more computations were not found')
+      }
+
+      const allowedComputationIds = new Set(
+        (user.vault.allowedComputations as any[]).map((computation) =>
+          computation._id.toString(),
+        ),
+      )
+
+      for (const mapping of normalizedMappings) {
+        if (!allowedComputationIds.has(mapping.computationId)) {
+          throw new Error('Dataset mappings must reference allowed computations')
+        }
+      }
+
+      user.vault.datasetMappings = normalizedMappings as any
+      await user.save()
+
+      return true
+    },
+    adminCreateHostedVault: async (
+      _: unknown,
+      {
+        serverId,
+        name,
+        description,
+        datasetKey,
+      }: {
+        serverId: string
+        name: string
+        description: string
+        datasetKey: string
+      },
+      context: Context,
+    ): Promise<string> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const normalizedName = name.trim()
+      const normalizedDescription = description.trim()
+      const normalizedDatasetKey = datasetKey.trim()
+
+      if (normalizedName.length === 0) {
+        throw new Error('Vault name is required')
+      }
+
+      if (normalizedDatasetKey.length === 0) {
+        throw new Error('Dataset key is required')
+      }
+
+      const availableDatasetKeys = new Set(
+        (server.status?.availableDatasets ?? []).map((dataset) => dataset.key),
+      )
+
+      if (availableDatasetKeys.size === 0) {
+        throw new Error(
+          'This server has not reported any datasets yet, so a hosted vault cannot be created',
+        )
+      }
+
+      if (!availableDatasetKeys.has(normalizedDatasetKey)) {
+        throw new Error(
+          `Dataset "${normalizedDatasetKey}" is not currently available on this server`,
+        )
+      }
+
+      const existingVault = await HostedVault.findOne({
+        server: server._id,
+        datasetKey: normalizedDatasetKey,
+      }).exec()
+
+      if (existingVault) {
+        throw new Error(
+          `A hosted vault already exists for dataset "${normalizedDatasetKey}" on this server`,
+        )
+      }
+
+      const hostedVault = await HostedVault.create({
+        server: server._id,
+        name: normalizedName,
+        description: normalizedDescription,
+        datasetKey: normalizedDatasetKey,
+        allowedComputations: [],
+        active: true,
+      })
+
+      return hostedVault._id.toString()
+    },
+    adminSetHostedVaultAllowedComputations: async (
+      _: unknown,
+      {
+        vaultId,
+        computationIds,
+      }: {
+        vaultId: string
+        computationIds: string[]
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId).exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const uniqueComputationIds = Array.from(new Set(computationIds))
+      const computations = await Computation.find({
+        _id: { $in: uniqueComputationIds },
+      })
+        .select('title')
+        .exec()
+
+      if (computations.length !== uniqueComputationIds.length) {
+        throw new Error('One or more computations were not found')
+      }
+
+      const incompatibleConsortia = await Consortium.find({
+        vaultMembers: hostedVault._id,
+        'studyConfiguration.computation': { $exists: true, $ne: null },
+      })
+        .populate('studyConfiguration.computation', 'title')
+        .select('title studyConfiguration')
+        .exec()
+
+      const blockedConsortia = incompatibleConsortia.filter((consortium) => {
+        const selectedComputation = consortium.studyConfiguration?.computation as any
+        if (!selectedComputation?._id) {
+          return false
+        }
+        return !uniqueComputationIds.includes(selectedComputation._id.toString())
+      })
+
+      if (blockedConsortia.length > 0) {
+        const consortiumTitles = blockedConsortia.map((consortium) => consortium.title)
+        throw new Error(
+          `Cannot remove required computations while this hosted vault belongs to: ${consortiumTitles.join(', ')}`,
+        )
+      }
+
+      hostedVault.allowedComputations = uniqueComputationIds as any
+      await hostedVault.save()
+
+      return true
+    },
+    leaderAddHostedVault: async (
+      _: unknown,
+      { consortiumId, vaultId }: { consortiumId: string; vaultId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      if (consortium.leader.toString() !== context.userId) {
+        throw new Error('User not authorized')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId)
+        .populate('allowedComputations', 'title imageName')
+        .exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      if (!hostedVault.active) {
+        throw new Error('Hosted vault is inactive')
+      }
+
+      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      if (
+        selectedComputationId &&
+        !hostedVaultAllowsComputation(hostedVault as any, selectedComputationId)
+      ) {
+        const selectedComputation = await Computation.findById(selectedComputationId)
+          .select('title')
+          .exec()
+        throw new Error(
+          `Vault ${hostedVault.name} does not allow "${selectedComputation?.title || 'the selected computation'}"`,
+        )
+      }
+
+      await consortium.updateOne({
+        $addToSet: {
+          vaultMembers: vaultId,
+          activeVaultMembers: vaultId,
+          readyVaultMembers: vaultId,
+        },
+      })
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId,
+      })
+
+      return true
+    },
+    leaderSetHostedVaultActive: async (
+      _: unknown,
+      {
+        consortiumId,
+        vaultId,
+        active,
+      }: {
+        consortiumId: string
+        vaultId: string
+        active: boolean
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      if (consortium.leader.toString() !== context.userId) {
+        throw new Error('User not authorized')
+      }
+
+      if (!(consortium.vaultMembers ?? []).map((member) => member.toString()).includes(vaultId)) {
+        throw new Error('Hosted vault not a member of the consortium')
+      }
+
+      if (active) {
+        await consortium.updateOne({
+          $addToSet: { activeVaultMembers: vaultId },
+        })
+      } else {
+        await consortium.updateOne({
+          $pull: { activeVaultMembers: vaultId, readyVaultMembers: vaultId },
+        })
+      }
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId,
+      })
+
+      return true
+    },
+    leaderRemoveHostedVault: async (
+      _: unknown,
+      { consortiumId, vaultId }: { consortiumId: string; vaultId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+
+      if (consortium.leader.toString() !== context.userId) {
+        throw new Error('User not authorized')
+      }
+
+      await consortium.updateOne({
+        $pull: {
+          vaultMembers: vaultId,
+          activeVaultMembers: vaultId,
+          readyVaultMembers: vaultId,
+        },
+      })
+
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+        consortiumId,
+      })
+
+      return true
+    },
     leaderSetMemberInactive: async (
       _: unknown,
-      { consortiumId, userId },
+      {
+        consortiumId,
+        userId,
+        active,
+      }: {
+        consortiumId: string
+        userId: string
+        active: boolean
+      },
       context,
     ): Promise<Boolean> => {
       // is the user authenticated?
@@ -1644,13 +2749,18 @@ export default {
         throw new Error('User not authorized')
       }
       // is the user a member of the consortium
-      if (!consortium.members.includes(userId)) {
+      if (!consortium.members.map((member) => member.toString()).includes(userId)) {
         throw new Error('User not a member of the consortium')
       }
-      // remove from the active members
-      await consortium.updateOne({
-        $pull: { activeMembers: userId },
-      })
+      if (active) {
+        await consortium.updateOne({
+          $addToSet: { activeMembers: userId },
+        })
+      } else {
+        await consortium.updateOne({
+          $pull: { activeMembers: userId, readyMembers: userId },
+        })
+      }
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
@@ -1709,9 +2819,29 @@ export default {
 
       // is the user a vault user
       const user = await User.findById(userId)
+        .populate('vault.allowedComputations', 'title imageName')
+        .exec()
+      if (!user) {
+        throw new Error('User not found')
+      }
       // does the user have the role of vault?
       if (!user.roles.includes('vault')) {
         throw new Error('User is not a vault user')
+      }
+
+      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      if (
+        selectedComputationId &&
+        !allowsComputation(user as any, selectedComputationId)
+      ) {
+        const selectedComputation = await Computation.findById(
+          selectedComputationId,
+        )
+          .select('title')
+          .exec()
+        throw new Error(
+          `Vault ${user.vault?.name || user.username} does not allow "${selectedComputation?.title || 'the selected computation'}"`,
+        )
       }
 
       // add the user to the members, active members, and ready members
@@ -1805,27 +2935,34 @@ export default {
     },
     runStartEdge: {
       resolve: async (
-        payload: RunStartEdgePayload,
+        payload: RunStartEdgePayload & { participantId: string; targetUserId: string; vaultId?: string | null },
         args: unknown,
         context: Context,
       ): Promise<RunStartEdgePayload> => {
-        const { runId, imageName, consortiumId } = payload
-        // get the user's id from the context
-        const userId = context.userId
+        const {
+          runId,
+          participantId,
+          vaultId,
+          computationId,
+          imageName,
+          consortiumId,
+        } = payload
         // create a token
         const tokens = generateTokens(
-          { userId, runId, consortiumId },
+          { participantId, runId, consortiumId },
           { shouldExpire: true },
         )
 
         const { accessToken } = tokens as { accessToken: string }
 
         const output = {
-          userId,
           runId,
+          participantId,
+          vaultId: vaultId ?? null,
+          computationId,
           imageName,
           consortiumId,
-          downloadUrl: `${CLIENT_FILE_SERVER_URL}/download/${consortiumId}/${runId}/${userId}`,
+          downloadUrl: `${CLIENT_FILE_SERVER_URL}/download/${consortiumId}/${runId}/${participantId}`,
           downloadToken: accessToken,
         }
 
@@ -1834,25 +2971,13 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['RUN_START_EDGE']),
         async (
-          payload: RunStartEdgePayload,
+          payload: RunStartEdgePayload & { participantId: string; targetUserId: string; vaultId?: string | null },
           variables: unknown,
           context: Context,
         ) => {
-          const { consortiumId } = payload
+          const { targetUserId } = payload
           const { userId } = context
-
-          // Check if the user is part of the consortium's active members
-          const consortium = await Consortium.findById(consortiumId).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          const isActiveMember = consortium.activeMembers.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
-          )
-
-          return isActiveMember
+          return userId === targetUserId
         },
       ),
     },

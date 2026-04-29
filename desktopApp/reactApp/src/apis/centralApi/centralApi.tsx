@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useApolloClients } from '../../contexts/ApolloClientsContext'
 import { login } from './login'
 import { getConsortiumList } from './getConsortiumList'
@@ -19,6 +20,10 @@ import { consortiumSetMemberReady } from './consortiumSetMemberReady'
 // New imports
 import { adminChangeUserPassword } from './adminChangeUserPassword'
 import { adminChangeUserRoles } from './adminChangeUserRoles'
+import { adminCreateHostedVault } from './adminCreateHostedVault'
+import { adminSetHostedVaultAllowedComputations } from './adminSetHostedVaultAllowedComputations'
+import { adminSetVaultAllowedComputations } from './adminSetVaultAllowedComputations'
+import { adminSetVaultDatasetMappings } from './adminSetVaultDatasetMappings'
 import { computationCreate } from './computationCreate'
 import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
@@ -36,8 +41,13 @@ import { resetPassword } from './resetPassword'
 
 // Import generated types
 import {
+  MutationLeaderAddHostedVaultArgs,
+  MutationAdminCreateHostedVaultArgs,
   MutationAdminChangeUserPasswordArgs,
   MutationAdminChangeUserRolesArgs,
+  MutationAdminSetHostedVaultAllowedComputationsArgs,
+  MutationAdminSetVaultAllowedComputationsArgs,
+  MutationAdminSetVaultDatasetMappingsArgs,
   MutationComputationCreateArgs,
   MutationComputationEditArgs,
   MutationConsortiumCreateArgs,
@@ -60,14 +70,22 @@ import {
   MutationConsortiumSetMemberReadyArgs,
   MutationStartRunArgs,
   MutationStudySetNotesArgs,
+  MutationLeaderRemoveHostedVaultArgs,
+  MutationLeaderSetHostedVaultActiveArgs,
   MutationLeaderAddVaultUserArgs,
   MutationLeaderRemoveMemberArgs,
   MutationLeaderSetMemberInactiveArgs,
   MutationRequestPasswordResetArgs,
   MutationResetPasswordArgs,
   MutationRunDeleteArgs,
+  QueryGetHostedVaultListArgs,
 } from './generated/graphql'
+import { getHostedVaultList } from './getHostedVaultList'
+import { getVaultServerList } from './getVaultServerList'
 import { getVaultUserList } from './getVaultUserList'
+import { leaderAddHostedVault } from './leaderAddHostedVault'
+import { leaderRemoveHostedVault } from './leaderRemoveHostedVault'
+import { leaderSetHostedVaultActive } from './leaderSetHostedVaultActive'
 import { leaderAddVaultUser } from './leaderAddVaultUser'
 import { leaderRemoveMember } from './leaderRemoveMember'
 import { leaderSetMemberInactive } from './leaderSetMemberInactive'
@@ -80,8 +98,7 @@ export const useCentralApi = () => {
     throw new Error('Apollo Client is not defined')
   }
 
-  return {
-    // Existing methods
+  return useMemo(() => ({
     getConsortiumList: () => getConsortiumList(centralApiApolloClient),
     getComputationList: () => getComputationList(centralApiApolloClient),
     getConsortiumDetails: (input: QueryGetConsortiumDetailsArgs) =>
@@ -111,6 +128,17 @@ export const useCentralApi = () => {
       adminChangeUserPassword(centralApiApolloClient, input),
     adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) =>
       adminChangeUserRoles(centralApiApolloClient, input),
+    adminCreateHostedVault: (input: MutationAdminCreateHostedVaultArgs) =>
+      adminCreateHostedVault(centralApiApolloClient, input),
+    adminSetHostedVaultAllowedComputations: (
+      input: MutationAdminSetHostedVaultAllowedComputationsArgs,
+    ) => adminSetHostedVaultAllowedComputations(centralApiApolloClient, input),
+    adminSetVaultAllowedComputations: (
+      input: MutationAdminSetVaultAllowedComputationsArgs,
+    ) => adminSetVaultAllowedComputations(centralApiApolloClient, input),
+    adminSetVaultDatasetMappings: (
+      input: MutationAdminSetVaultDatasetMappingsArgs,
+    ) => adminSetVaultDatasetMappings(centralApiApolloClient, input),
     computationCreate: (input: MutationComputationCreateArgs) =>
       computationCreate(centralApiApolloClient, input),
     computationEdit: (input: MutationComputationEditArgs) =>
@@ -133,7 +161,16 @@ export const useCentralApi = () => {
       userCreate(centralApiApolloClient, input),
     getComputationDetails: (input: QueryGetComputationDetailsArgs) =>
       getComputationDetails(centralApiApolloClient, input),
+    getHostedVaultList: (input: QueryGetHostedVaultListArgs) =>
+      getHostedVaultList(centralApiApolloClient, input),
+    getVaultServerList: () => getVaultServerList(centralApiApolloClient),
     getVaultUserList: () => getVaultUserList(centralApiApolloClient),
+    leaderAddHostedVault: (input: MutationLeaderAddHostedVaultArgs) =>
+      leaderAddHostedVault(centralApiApolloClient, input),
+    leaderSetHostedVaultActive: (input: MutationLeaderSetHostedVaultActiveArgs) =>
+      leaderSetHostedVaultActive(centralApiApolloClient, input),
+    leaderRemoveHostedVault: (input: MutationLeaderRemoveHostedVaultArgs) =>
+      leaderRemoveHostedVault(centralApiApolloClient, input),
     leaderAddVaultUser: (input: MutationLeaderAddVaultUserArgs) =>
       leaderAddVaultUser(centralApiApolloClient, input),
     leaderRemoveMember: (input: MutationLeaderRemoveMemberArgs) =>
@@ -144,7 +181,6 @@ export const useCentralApi = () => {
       requestPasswordReset(centralApiApolloClient, input),
     resetPassword: (input: MutationResetPasswordArgs) =>
       resetPassword(centralApiApolloClient, input),
-
     subscriptions: {
       consortiumDetailsChanged: (input: { consortiumId: string }) =>
         consortiumDetailsChanged(centralApiApolloClient, input),
@@ -153,5 +189,5 @@ export const useCentralApi = () => {
       runDetailsChanged: (input: { runId: string }) =>
         runDetailsChanged(centralApiApolloClient, input),
     },
-  }
+  }), [centralApiApolloClient])
 }

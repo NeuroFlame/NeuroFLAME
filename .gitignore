@@ -6,4 +6,3 @@ configs/*.json
 *.log
 .DS_Store
 *.env
-centralFederatedClientDir/
