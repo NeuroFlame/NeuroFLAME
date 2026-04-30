@@ -74,7 +74,10 @@ export const listRunFiles = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
-    const participantId = (req as any).user?.userId as string | undefined
+    const participantId = (
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
     const directoryPath = resolveResultsDirectory(
       filesDirectory,
       consortiumId,
@@ -102,7 +105,10 @@ export const serveRunFile = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
-    const participantId = (req as any).user?.userId as string | undefined
+    const participantId = (
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
     const filePathParam = req.params[0] // catch-all route segment
 
     const baseDirectory = resolveResultsDirectory(
@@ -214,7 +220,10 @@ export const serveRunFolder = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
-    const participantId = (req as any).user?.userId as string | undefined
+    const participantId = (
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
     const directoryPath = resolveResultsDirectory(
       filesDirectory,
       consortiumId,

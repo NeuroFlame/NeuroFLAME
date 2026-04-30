@@ -4,6 +4,9 @@ import { logger } from '../logger.js'
 
 export type TokenPayload = {
   userId?: string
+  participantId?: string
+  runId?: string
+  consortiumId?: string
   roles?: string[]
 }
 

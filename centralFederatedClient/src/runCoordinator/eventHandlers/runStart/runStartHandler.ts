@@ -8,11 +8,13 @@ export const RUN_START_SUBSCRIPTION = `
     runStartCentral {
       consortiumId
       runId
-      users {
-        id
-        name
+      activeParticipants {
+        participantId
+        kind
+        displayName
+        userId
+        vaultId
       }
-      participantIds
       computationParameters
       imageName
     }
@@ -28,8 +30,7 @@ export const runStartHandler = {
     const {
       consortiumId,
       runId,
-      users,
-      participantIds,
+      activeParticipants,
       computationParameters,
       imageName,
     } = data.runStartCentral
@@ -37,8 +38,7 @@ export const runStartHandler = {
     try {
       await startRun({
         imageName,
-        users,
-        participantIds,
+        activeParticipants,
         consortiumId,
         runId,
         computationParameters,

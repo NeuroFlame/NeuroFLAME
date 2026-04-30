@@ -14,6 +14,15 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type ActiveParticipant = {
+  __typename?: 'ActiveParticipant';
+  displayName: Scalars['String']['output'];
+  kind: Scalars['String']['output'];
+  participantId: Scalars['String']['output'];
+  userId?: Maybe<Scalars['String']['output']>;
+  vaultId?: Maybe<Scalars['String']['output']>;
+};
+
 export type Computation = {
   __typename?: 'Computation';
   hasLocalParameters: Scalars['Boolean']['output'];
@@ -463,12 +472,11 @@ export type RunListItem = {
 
 export type RunStartCentralPayload = {
   __typename?: 'RunStartCentralPayload';
+  activeParticipants: Array<ActiveParticipant>;
   computationParameters: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
-  participantIds: Array<Scalars['String']['output']>;
   runId: Scalars['String']['output'];
-  users: Array<UserIdNamePair>;
 };
 
 export type RunStartEdgePayload = {
@@ -529,12 +537,6 @@ export type UserProfile = {
   roles: Array<Scalars['String']['output']>;
   userId: Scalars['String']['output'];
   username: Scalars['String']['output'];
-};
-
-export type UserIdNamePair = {
-  __typename?: 'UserIdNamePair';
-  id: Scalars['String']['output'];
-  name: Scalars['String']['output'];
 };
 
 export type Vault = {

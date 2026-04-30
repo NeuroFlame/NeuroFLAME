@@ -1311,18 +1311,29 @@ export default {
 
       const populatedConsortium = await Consortium.findById(consortium._id)
         .populate('activeMembers', 'id username')
+        .populate('activeVaultMembers', 'id name')
+
+      const activeParticipants = [
+        ...((populatedConsortium?.activeMembers as any[]) ?? []).map((member) => ({
+          participantId: member._id.toString(),
+          kind: 'user',
+          displayName: member.username,
+          userId: member._id.toString(),
+          vaultId: null,
+        })),
+        ...((populatedConsortium?.activeVaultMembers as any[]) ?? []).map((vault) => ({
+          participantId: vault._id.toString(),
+          kind: 'hostedVault',
+          displayName: vault.name,
+          userId: null,
+          vaultId: vault._id.toString(),
+        })),
+      ]
 
       pubsub.publish('RUN_START_CENTRAL', {
         runId: run._id.toString(),
         imageName: consortium.studyConfiguration.computation.imageName,
-        users: (populatedConsortium.activeMembers as any[]).map((member) => ({
-          id: member._id.toString(),
-          name: member.username,
-        })),
-        participantIds: [
-          ...consortium.activeMembers.map((member) => member.toString()),
-          ...(consortium.activeVaultMembers ?? []).map((vaultId) => vaultId.toString()),
-        ],
+        activeParticipants,
         consortiumId: consortium._id.toString(),
         computationParameters,
       })

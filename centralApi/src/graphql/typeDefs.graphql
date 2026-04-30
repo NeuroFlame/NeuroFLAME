@@ -5,9 +5,12 @@ type PublicUser {
   vaultStatus: VaultStatus
 }
 
-type UserIdNamePair {
-  id: String!
-  name: String!
+type ActiveParticipant {
+  participantId: String!
+  kind: String!
+  displayName: String!
+  userId: String
+  vaultId: String
 }
 
 type Vault {
@@ -115,8 +118,7 @@ input StartRunInput {
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
-  users: [UserIdNamePair!]! 
-  participantIds: [String!]!
+  activeParticipants: [ActiveParticipant!]!
   consortiumId: String!
   computationParameters: String!
 }
