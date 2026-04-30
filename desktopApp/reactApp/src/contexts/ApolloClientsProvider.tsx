@@ -23,9 +23,7 @@ const ApolloClientsProvider: React.FC<Props> = ({ children, config }) => {
 
   useEffect(() => {
     startClients()
-  },
-  [config],
-  )
+  }, [config])
 
   const startClients = async () => {
     if (centralApiApolloClient) {

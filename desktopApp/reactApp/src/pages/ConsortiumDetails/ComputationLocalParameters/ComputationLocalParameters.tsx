@@ -1,4 +1,3 @@
-import { HashLink } from 'react-router-hash-link'
 import { Button, Box, Typography } from '@mui/material'
 import ComputationLocalParametersDisplay from './ComputationLocalParametersDisplay'
 import ComputationLocalParametersEdit from './ComputationLocalParametersEdit'
@@ -13,7 +12,7 @@ export function ComputationLocalParameters() {
     isEditing,
     isDifferent,
     handleEdit,
-    handleSave
+    handleSave,
   } = useComputationLocalParameters()
 
   return (
@@ -40,7 +39,7 @@ export function ComputationLocalParameters() {
         />
       )}
       <Box display='flex' justifyContent='space-between' alignItems='center'>
-        {!isEditing &&  (
+        {!isEditing && (
           <Button
             variant='outlined'
             color='primary'

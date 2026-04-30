@@ -211,7 +211,7 @@ const launchSingularityNode = async ({
     // Note: Singularity uses host networking by default, so ports are directly accessible.
     // Port information is communicated to the computation via provision_input.json file,
     // not through environment variables.
-    
+
     // Pass through CI environment variable if set
     if (process.env.CI === 'true') {
       envVars.push('CI=true')
@@ -260,7 +260,9 @@ const launchSingularityNode = async ({
     logger.info(`Singularity container started successfully: ${containerId}`)
 
     // Handle stdout and stderr
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let stdout = ''
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let stderr = ''
 
     instanceProcess.stdout?.on('data', (data: Buffer) => {

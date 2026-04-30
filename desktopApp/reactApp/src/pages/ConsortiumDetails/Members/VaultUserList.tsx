@@ -50,7 +50,6 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -122,51 +121,51 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
           ) : (
             <List>
               {vaultUserList.map(({ id, username, vault }, index) => (
-              <React.Fragment key={id}>
-                <ListItem
-                  sx={{
-                    padding: '1rem 0',
-                    display: 'flex',
-                  }}
-                  secondaryAction={
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        marginRight: '-1rem',
-                        flex: '0.25',
-                      }}
-                    >
-                      <Button
-                        variant='outlined'
-                        color='primary'
-                        size='small'
-                        onClick={() => setSelectedVaultInfo(index)}
+                <React.Fragment key={id}>
+                  <ListItem
+                    sx={{
+                      padding: '1rem 0',
+                      display: 'flex',
+                    }}
+                    secondaryAction={
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                          marginRight: '-1rem',
+                          flex: '0.25',
+                        }}
                       >
-                        Info
-                      </Button>
-                      <Button
-                        variant='contained'
-                        color='primary'
-                        size='small'
-                        onClick={() => handleAdd(id)}
-                      >
-                        Add
-                      </Button>
-                    </Box>
+                        <Button
+                          variant='outlined'
+                          color='primary'
+                          size='small'
+                          onClick={() => setSelectedVaultInfo(index)}
+                        >
+                          Info
+                        </Button>
+                        <Button
+                          variant='contained'
+                          color='primary'
+                          size='small'
+                          onClick={() => handleAdd(id)}
+                        >
+                          Add
+                        </Button>
+                      </Box>
                   }
-                >
-                  <ListItemText
-                    primary={vault?.name || 'No Vault Assigned'}
-                    secondary={username}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                    sx={{ flex: '0.75' }}
-                  />
-                </ListItem>
-                <Divider component='li' />
-              </React.Fragment>
-            ))}
+                  >
+                    <ListItemText
+                      primary={vault?.name || 'No Vault Assigned'}
+                      secondary={username}
+                      primaryTypographyProps={{ fontWeight: 'bold' }}
+                      sx={{ flex: '0.75' }}
+                    />
+                  </ListItem>
+                  <Divider component='li' />
+                </React.Fragment>
+              ))}
             </List>
           )}
         </Box>

@@ -76,20 +76,20 @@ function VaultRow({ vault }: VaultRowProps) {
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {online ? (
-              <CheckCircleIcon color="success" fontSize="small" />
+              <CheckCircleIcon color='success' fontSize='small' />
             ) : (
-              <ErrorIcon color="error" fontSize="small" />
+              <ErrorIcon color='error' fontSize='small' />
             )}
-            <Typography fontWeight="medium">
+            <Typography fontWeight='medium'>
               {vault.vault?.name || vault.username}
             </Typography>
           </Box>
         </TableCell>
         <TableCell>
           {online ? (
-            <Chip label="Online" size="small" color="success" />
+            <Chip label='Online' size='small' color='success' />
           ) : (
-            <Chip label="Offline" size="small" color="error" />
+            <Chip label='Offline' size='small' color='error' />
           )}
         </TableCell>
         <TableCell>{status?.version || '-'}</TableCell>
@@ -102,30 +102,30 @@ function VaultRow({ vault }: VaultRowProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip
                 label={`${status!.runningComputations.length} running`}
-                size="small"
-                color="primary"
+                size='small'
+                color='primary'
               />
               <IconButton
-                size="small"
+                size='small'
                 onClick={() => setExpanded(!expanded)}
               >
                 {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </IconButton>
             </Box>
           ) : (
-            <Typography color="text.secondary">None</Typography>
+            <Typography color='text.secondary'>None</Typography>
           )}
         </TableCell>
       </TableRow>
       {hasRunningComputations && (
         <TableRow>
           <TableCell colSpan={6} sx={{ py: 0 }}>
-            <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <Collapse in={expanded} timeout='auto' unmountOnExit>
               <Box sx={{ margin: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant='subtitle2' gutterBottom>
                   Running Computations
                 </Typography>
-                <Table size="small">
+                <Table size='small'>
                   <TableHead>
                     <TableRow>
                       <TableCell>Consortium</TableCell>
@@ -141,7 +141,7 @@ function VaultRow({ vault }: VaultRowProps) {
                         </TableCell>
                         <TableCell>
                           <Typography
-                            variant="body2"
+                            variant='body2'
                             sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
                           >
                             {comp.runId.substring(0, 8)}...
@@ -182,7 +182,6 @@ export default function VaultStatus() {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -208,10 +207,10 @@ export default function VaultStatus() {
   if (error) {
     return (
       <Box>
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity='error' sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button variant="contained" onClick={loadVaults}>
+        <Button variant='contained' onClick={loadVaults}>
           Retry
         </Button>
       </Box>
@@ -232,34 +231,34 @@ export default function VaultStatus() {
           <Chip
             icon={<CheckCircleIcon />}
             label={`${onlineCount} Online`}
-            color="success"
-            variant="outlined"
+            color='success'
+            variant='outlined'
           />
           {offlineCount > 0 && (
             <Chip
               icon={<ErrorIcon />}
               label={`${offlineCount} Offline`}
-              color="error"
-              variant="outlined"
+              color='error'
+              variant='outlined'
             />
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant='caption' color='text.secondary'>
             Last updated: {lastRefresh.toLocaleTimeString()}
           </Typography>
-          <IconButton onClick={loadVaults} disabled={loading} size="small">
+          <IconButton onClick={loadVaults} disabled={loading} size='small'>
             <RefreshIcon />
           </IconButton>
         </Box>
       </Box>
 
       {vaults.length === 0 ? (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+        <Typography color='text.secondary' sx={{ textAlign: 'center', py: 4 }}>
           No vault users found
         </Typography>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Paper} variant='outlined'>
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>

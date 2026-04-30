@@ -51,7 +51,6 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -60,6 +59,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
 
   // Example usage of handleAdd if you surface an "Add" button
   // Note: This would require consortiumId to be passed as a prop or selected from context
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAdd = async (userId: string) => {
     try {
       await leaderAddVaultUser({ consortiumId, userId })
@@ -125,33 +125,33 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
         ) : (
           <List>
             {vaultUserList.map(({ id, username, vault }, index) => (
-            <React.Fragment key={id}>
-              <ListItem
-                sx={{
-                  padding: '1rem 0',
-                  display: 'flex',
-                }}
-                secondaryAction={
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem',
-                      marginRight: '-1rem',
-                      flex: '0.2',
-                    }}
-                  >
-                    <Button
-                      variant='outlined'
-                      color='primary'
-                      size='small'
-                      onClick={() => setSelectedVaultInfo(index)}
+              <React.Fragment key={id}>
+                <ListItem
+                  sx={{
+                    padding: '1rem 0',
+                    display: 'flex',
+                  }}
+                  secondaryAction={
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                        marginRight: '-1rem',
+                        flex: '0.2',
+                      }}
                     >
-                      Info
-                    </Button>
+                      <Button
+                        variant='outlined'
+                        color='primary'
+                        size='small'
+                        onClick={() => setSelectedVaultInfo(index)}
+                      >
+                        Info
+                      </Button>
 
-                    {/* Example usage of handleAdd if you surface an "Add" button */}
-                    {/* <Button
+                      {/* Example usage of handleAdd if you surface an "Add" button */}
+                      {/* <Button
                       variant='contained'
                       color='primary'
                       size='small'
@@ -159,23 +159,23 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
                     >
                       Add
                     </Button> */}
-                  </Box>
+                    </Box>
                 }
-              >
-                <ListItemText
-                  primary={vault?.name || 'No Vault Assigned'}
-                  secondary={username}
-                  primaryTypographyProps={{
-                    fontWeight: 'bold',
-                    fontSize: '1.5rem',
-                    lineHeight: 1,
-                  }}
-                  sx={{ flex: '0.80' }}
-                />
-              </ListItem>
-              <Divider component='li' />
-            </React.Fragment>
-          ))}
+                >
+                  <ListItemText
+                    primary={vault?.name || 'No Vault Assigned'}
+                    secondary={username}
+                    primaryTypographyProps={{
+                      fontWeight: 'bold',
+                      fontSize: '1.5rem',
+                      lineHeight: 1,
+                    }}
+                    sx={{ flex: '0.80' }}
+                  />
+                </ListItem>
+                <Divider component='li' />
+              </React.Fragment>
+            ))}
           </List>
         )}
       </Box>

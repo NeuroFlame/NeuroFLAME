@@ -51,7 +51,7 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
         const config = await getConfig()
         const usingSingularity = config?.edgeClientConfig?.containerService === 'singularity'
         setIsSingularity(usingSingularity || false)
-        
+
         if (usingSingularity) {
           // Check if Singularity image exists
           const imageName = command.replace(/^docker\s+pull\s+/i, '')
@@ -112,7 +112,6 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
         removeTerminalOutputListener()
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSingularity]) // run when singularity status changes
 
   // Set up Singularity pull output listener when Singularity mode is active
@@ -120,15 +119,15 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
     if (isSingularity) {
       const handleSingularityOutput = (_event: any, data: string) => {
         setOutput((prev) => {
-          const lines = data.split('\n').filter(line => line.trim() || line === '')
+          const lines = data.split('\n').filter((line) => line.trim() || line === '')
           const next = [...prev, ...lines]
           queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }))
           return next
         })
       }
-      
+
       singularityPullOutput(handleSingularityOutput)
-      
+
       return () => {
         removeSingularityPullOutputListener()
       }
@@ -171,8 +170,8 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
     <>
       {!imageExists && !showTerminal && !isPulling && (
         <Button
-          variant="contained"
-          size="small"
+          variant='contained'
+          size='small'
           onClick={() => handleButtonPress(command)}
           style={{ backgroundColor: '#0066FF' }}
           disabled={isPulling}
@@ -180,22 +179,22 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
           {isSingularity ? 'Run Singularity Pull' : 'Run Docker Pull'}
         </Button>
       )}
-      
+
       {isPulling && (
-        <Box display="flex" alignItems="center" gap={1} sx={{ mb: 1 }}>
+        <Box display='flex' alignItems='center' gap={1} sx={{ mb: 1 }}>
           <CircularProgress size={20} />
-          <Typography variant="body2">Pulling Singularity image...</Typography>
+          <Typography variant='body2'>Pulling Singularity image...</Typography>
         </Box>
       )}
-      
+
       {pullError && (
-        <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+        <Typography variant='body2' color='error' sx={{ mt: 1 }}>
           Error: {pullError}
         </Typography>
       )}
 
       {(showTerminal || isPulling) && (
-        <ScrollToBottomWrapper className="terminalWindow">
+        <ScrollToBottomWrapper className='terminalWindow'>
           {output.map((item, index) => (
             <div key={index} style={{ whiteSpace: 'nowrap' }}>
               &gt; {item}
@@ -205,9 +204,9 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
         </ScrollToBottomWrapper>
       )}
 
-      <Box display="flex" justifyContent="space-between" alignContent="center">
+      <Box display='flex' justifyContent='space-between' alignContent='center'>
         {imageExists && (
-          <Box display="flex" justifyContent="flex-start" alignContent="center">
+          <Box display='flex' justifyContent='flex-start' alignContent='center'>
             <CheckCircleIcon sx={{ color: '#2FB600' }} />
             <Typography
               style={{
@@ -221,7 +220,7 @@ const TerminalWindow: React.FC<{ command: string }> = ({ command }) => {
           </Box>
         )}
         {showTerminal && (
-          <Button size="small" onClick={() => setShowTerminal(false)}>
+          <Button size='small' onClick={() => setShowTerminal(false)}>
             Hide Terminal
           </Button>
         )}
