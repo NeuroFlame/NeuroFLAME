@@ -6,11 +6,15 @@ import { List, ListItem, ListItemText, Button } from '@mui/material'
 
 interface ComputationListProps {
   computations: ComputationListItem[];
+  disabledComputationIds?: string[];
+  disabledReasons?: Record<string, string>;
   onSelect: (computationId: string) => void;
 }
 
 const ComputationList: React.FC<ComputationListProps> = ({
   computations,
+  disabledComputationIds = [],
+  disabledReasons = {},
   onSelect,
 }) => (
   <List>
@@ -23,12 +27,17 @@ const ComputationList: React.FC<ComputationListProps> = ({
         <ListItemText
           sx={{ maxWidth: '400px' }}
           primary={computation.title}
-          secondary={computation.imageName ? `${computation.imageName}` : ''}
+          secondary={
+            disabledReasons[computation.id]
+              ? `${computation.imageName} - ${disabledReasons[computation.id]}`
+              : computation.imageName
+          }
         />
         <Button
           variant='contained'
           color='primary'
           data-testid={computation.imageName}
+          disabled={disabledComputationIds.includes(computation.id)}
           onClick={() => onSelect(computation.id)}
         >
           Select

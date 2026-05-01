@@ -1,13 +1,12 @@
 import { Box, Typography } from '@mui/material'
-import { useMembers } from './useMembers'
+import { RunMemberLike, useMembers } from './useMembers'
 import MembersListDisplay from '../ConsortiumDetails/Members/MembersListDisplay'
-import { PublicUser } from '../../apis/centralApi/generated/graphql'
 
 interface MembersDisplayProps {
-  members: PublicUser[];
-  activeMembers: PublicUser[];
-  readyMembers: PublicUser[];
-  leader: PublicUser;
+  members: RunMemberLike[];
+  activeMembers: RunMemberLike[];
+  readyMembers: RunMemberLike[];
+  leader: RunMemberLike;
 }
 
 export function MembersDisplay({

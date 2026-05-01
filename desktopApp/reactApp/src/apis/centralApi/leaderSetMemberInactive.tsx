@@ -6,8 +6,16 @@ export const leaderSetMemberInactive = async (
   input: MutationLeaderSetMemberInactiveArgs, // Use MutationleaderSetMemberInactiveArgs type for input
 ): Promise<void> => {
   const LEADER_SET_MEMBER_INACTIVE_MUTATION = gql`
-    mutation leaderSetMemberInactive($consortiumId: String!, $userId: String!) {
-      leaderSetMemberInactive(consortiumId: $consortiumId, userId: $userId)
+    mutation leaderSetMemberInactive(
+      $consortiumId: String!
+      $userId: String!
+      $active: Boolean!
+    ) {
+      leaderSetMemberInactive(
+        consortiumId: $consortiumId
+        userId: $userId
+        active: $active
+      )
     }
   `
 

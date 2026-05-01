@@ -14,6 +14,29 @@ interface FileInfo {
   url: string;
 }
 
+const resolveResultsDirectory = (
+  filesDirectory: string,
+  consortiumId: string,
+  runId: string,
+  participantId?: string,
+): string => {
+  if (participantId) {
+    const participantResultsPath = path.join(
+      filesDirectory,
+      consortiumId,
+      runId,
+      participantId,
+      'results',
+    )
+
+    if (fs.existsSync(participantResultsPath)) {
+      return participantResultsPath
+    }
+  }
+
+  return path.join(filesDirectory, consortiumId, runId, 'results')
+}
+
 const walkDirectory = (
   dirPath: string,
   baseUrl: string,
@@ -51,7 +74,16 @@ export const listRunFiles = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
-    const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results')
+    const participantId = (
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
+    const directoryPath = resolveResultsDirectory(
+      filesDirectory,
+      consortiumId,
+      runId,
+      participantId,
+    )
 
     if (!fs.existsSync(directoryPath)) {
       logger.warn(`Directory not found: ${directoryPath}`)
@@ -73,9 +105,18 @@ export const serveRunFile = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
+    const participantId = (
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
     const filePathParam = req.params[0] // catch-all route segment
 
-    const baseDirectory = path.join(filesDirectory, consortiumId, runId, 'results')
+    const baseDirectory = resolveResultsDirectory(
+      filesDirectory,
+      consortiumId,
+      runId,
+      participantId,
+    )
     const resolvedBase = path.resolve(baseDirectory)
     const resolvedFile = path.resolve(baseDirectory, filePathParam)
     const currentFileName = path.basename(resolvedFile)
@@ -102,7 +143,7 @@ export const serveRunFile = async (req: Request, res: Response) => {
         const entryPath = path.join(resolvedFile, entry.name)
         const entryStat = fs.statSync(entryPath)
         const relativeUrl = path.relative(
-          path.join(filesDirectory, consortiumId, runId, 'results'),
+          baseDirectory,
           entryPath,
         )
 
@@ -179,7 +220,16 @@ export const serveRunFolder = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
     const { consortiumId, runId } = req.params
-    const directoryPath = path.join(filesDirectory, consortiumId, runId, 'results')
+    const participantId = (
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
+    const directoryPath = resolveResultsDirectory(
+      filesDirectory,
+      consortiumId,
+      runId,
+      participantId,
+    )
 
     if (!fs.existsSync(directoryPath)) {
       logger.warn(`Directory not found: ${directoryPath}`)

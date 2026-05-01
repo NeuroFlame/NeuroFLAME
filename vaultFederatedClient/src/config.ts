@@ -1,3 +1,5 @@
+import path from 'path'
+
 const requireEnv = (name: string): string => {
   const value = process.env[name]
   if (!value) {
@@ -13,6 +15,14 @@ const requireEnvOptional = (name: string): string | undefined => {
     console.log(`[CONFIG] Loaded optional environment variable: ${name}`)
   }
   return value
+}
+
+const requireAbsoluteEnvPath = (name: string): string =>
+  path.resolve(requireEnv(name))
+
+const requireAbsoluteEnvOptionalPath = (name: string): string | undefined => {
+  const value = requireEnvOptional(name)
+  return value ? path.resolve(value) : undefined
 }
 
 const resolveContainerService = (): 'docker' | 'singularity' => {
@@ -37,7 +47,7 @@ const resolveContainerService = (): 'docker' | 'singularity' => {
 export const VAULT_HTTP_URL = requireEnv('VAULT_HTTP_URL')
 export const VAULT_WS_URL = requireEnv('VAULT_WS_URL')
 export const VAULT_ACCESS_TOKEN = requireEnv('VAULT_ACCESS_TOKEN')
-export const VAULT_BASE_DIR = requireEnv('VAULT_BASE_DIR')
-export const VAULT_DATASET_DIR = requireEnv('VAULT_DATASET_DIR')
-export const VAULT_LOG_PATH = requireEnvOptional('VAULT_LOG_PATH')
+export const VAULT_BASE_DIR = requireAbsoluteEnvPath('VAULT_BASE_DIR')
+export const VAULT_DATASET_DIR = requireAbsoluteEnvPath('VAULT_DATASET_DIR')
+export const VAULT_LOG_PATH = requireAbsoluteEnvOptionalPath('VAULT_LOG_PATH')
 export const VAULT_CONTAINER_SERVICE = resolveContainerService()

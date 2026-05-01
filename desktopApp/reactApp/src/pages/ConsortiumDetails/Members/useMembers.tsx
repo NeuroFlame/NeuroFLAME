@@ -1,14 +1,16 @@
-import { PublicUser } from '../../../apis/centralApi/generated/graphql'
 import { useUserState } from '../../../contexts/UserStateContext'
 import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
+import {
+  ConsortiumMemberLike,
+  useConsortiumDetailsContext,
+} from '../ConsortiumDetailsContext'
 
 interface UseMembersProps {
-  members: PublicUser[];
-  activeMembers: PublicUser[];
-  readyMembers: PublicUser[];
-  leader: PublicUser;
+  members: ConsortiumMemberLike[];
+  activeMembers: ConsortiumMemberLike[];
+  readyMembers: ConsortiumMemberLike[];
+  leader: ConsortiumMemberLike;
 }
 
 export const useMembers = ({
@@ -22,6 +24,8 @@ export const useMembers = ({
     consortiumSetMemberActive,
     consortiumSetMemberReady,
     consortiumLeave,
+    leaderSetHostedVaultActive,
+    leaderRemoveHostedVault,
     leaderSetMemberInactive,
     leaderRemoveMember,
   } = useCentralApi()
@@ -29,10 +33,10 @@ export const useMembers = ({
   const { refetch } = useConsortiumDetailsContext()
   const navigate = useNavigate()
 
-  const isActiveMember = (member: PublicUser) =>
+  const isActiveMember = (member: ConsortiumMemberLike) =>
     activeMembers.some((activeMember) => activeMember.id === member.id)
 
-  const isReadyMember = (member: PublicUser) =>
+  const isReadyMember = (member: ConsortiumMemberLike) =>
     readyMembers.some((readyMember) => readyMember.id === member.id)
 
   const memberList = members
@@ -70,18 +74,40 @@ export const useMembers = ({
     }
   }
 
-  const leaderSetMemberActive = async (userId: string) => {
+  const leaderSetMemberActive = async (
+    memberId: string,
+    isActive: boolean,
+    isVaultUser: boolean,
+  ) => {
     try {
-      await leaderSetMemberInactive({ consortiumId, userId })
+      if (isVaultUser) {
+        await leaderSetHostedVaultActive({
+          consortiumId,
+          vaultId: memberId,
+          active: isActive,
+        })
+      } else {
+        await leaderSetMemberInactive({ consortiumId, userId: memberId, active: isActive })
+      }
       refetch()
     } catch (error) {
       console.error('Failed to update member status:', error)
     }
   }
 
-  const leaderSetRemoveMember = async (userId: string) => {
+  const leaderSetRemoveMember = async (
+    memberId: string,
+    isVaultUser: boolean,
+  ) => {
     try {
-      await leaderRemoveMember({ consortiumId, userId })
+      if (isVaultUser) {
+        await leaderRemoveHostedVault({
+          consortiumId,
+          vaultId: memberId,
+        })
+      } else {
+        await leaderRemoveMember({ consortiumId, userId: memberId })
+      }
       refetch()
     } catch (error) {
       console.error('Failed to update member status:', error)
@@ -100,5 +126,12 @@ export const useMembers = ({
     }
   }
 
-  return { memberList, setMemberActive, setMemberReady, handleLeave, leaderSetMemberActive, leaderSetRemoveMember }
+  return {
+    memberList,
+    setMemberActive,
+    setMemberReady,
+    handleLeave,
+    leaderSetMemberActive,
+    leaderSetRemoveMember,
+  }
 }

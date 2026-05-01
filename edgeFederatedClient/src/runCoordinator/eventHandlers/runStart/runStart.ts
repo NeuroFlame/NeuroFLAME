@@ -12,6 +12,7 @@ export const RUN_START_SUBSCRIPTION = `
     runStartEdge {
       consortiumId
       runId
+      participantId
       imageName
       downloadUrl
       downloadToken
@@ -29,6 +30,7 @@ export const runStartHandler = {
       const {
         consortiumId,
         runId,
+        participantId,
         imageName,
         downloadUrl,
         downloadToken,
@@ -38,7 +40,7 @@ export const runStartHandler = {
       const { pathBaseDirectory, containerService = 'docker' } = config
 
       const consortiumPath = path.join(pathBaseDirectory, consortiumId)
-      const runPath = path.join(consortiumPath, runId)
+      const runPath = path.join(consortiumPath, runId, participantId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')
 
