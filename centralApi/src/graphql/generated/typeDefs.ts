@@ -5,6 +5,14 @@ export const typeDefs = `type PublicUser {
   vaultStatus: VaultStatus
 }
 
+type ActiveParticipant {
+  participantId: String!
+  kind: String!
+  displayName: String!
+  userId: String
+  vaultId: String
+}
+
 type Vault {
   name: String!
   description: String!
@@ -110,7 +118,7 @@ input StartRunInput {
 type RunStartCentralPayload {
   runId: String!
   imageName: String!
-  participantIds: [String!]!
+  activeParticipants: [ActiveParticipant!]!
   consortiumId: String!
   computationParameters: String!
 }

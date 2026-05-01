@@ -188,7 +188,7 @@ export default function RunResults() {
                 title='Run Result'
                 width='100%'
                 height='100%'
-                sandbox='allow-same-origin'
+                sandbox='allow-scripts allow-same-origin'
                 style={{
                   border: 'none',
                   background: 'white',

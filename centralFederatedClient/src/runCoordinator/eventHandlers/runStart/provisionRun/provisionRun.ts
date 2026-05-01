@@ -3,9 +3,17 @@ import fs from 'fs'
 import { launchNode } from '../../../nodeManager/launchNode.js'
 import { prepareHostingDirectory } from './prepareHostingDirectory.js'
 
+interface ActiveParticipant {
+  participantId: string
+  kind: string
+  displayName: string
+  userId?: string | null
+  vaultId?: string | null
+}
+
 interface provisionRunArgs {
   imageName: string
-  participantIds: string[]
+  activeParticipants: ActiveParticipant[]
   pathRun: string
   computationParameters: string
   fedLearnPort: number
@@ -15,7 +23,7 @@ interface provisionRunArgs {
 
 export async function provisionRun({
   imageName,
-  participantIds,
+  activeParticipants,
   computationParameters,
   pathRun,
   fedLearnPort,
@@ -27,8 +35,11 @@ export async function provisionRun({
   await ensureDirectoryExists(pathRun)
   await ensureDirectoryExists(pathHosting)
 
+  const participantIds = activeParticipants.map((participant) => participant.participantId)
+
   // make the input
   const provisionInput = {
+    active_participants: activeParticipants,
     user_ids: participantIds,
     computation_parameters: computationParameters,
     fed_learn_port: fedLearnPort,

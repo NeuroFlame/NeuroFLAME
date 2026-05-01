@@ -31,6 +31,15 @@ export type ComputationListItem = {
   title: Scalars['String']['output'];
 }
 
+export type ActiveParticipant = {
+  __typename?: 'ActiveParticipant';
+  displayName: Scalars['String']['output'];
+  kind: Scalars['String']['output'];
+  participantId: Scalars['String']['output'];
+  userId?: Maybe<Scalars['String']['output']>;
+  vaultId?: Maybe<Scalars['String']['output']>;
+}
+
 export type ConsortiumDetails = {
   __typename?: 'ConsortiumDetails';
   activeMembers: Array<PublicUser>;
@@ -430,10 +439,10 @@ export type RunListItem = {
 
 export type RunStartCentralPayload = {
   __typename?: 'RunStartCentralPayload';
+  activeParticipants: Array<ActiveParticipant>;
   computationParameters: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
-  participantIds: Array<Scalars['String']['output']>;
   runId: Scalars['String']['output'];
 }
 

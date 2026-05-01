@@ -8,9 +8,17 @@ import reportRunComplete from '../../report/reportRunComplete.js'
 import { logger } from '../../../logger.js'
 import { BASE_DIR, FQDN, HOSTING_PORT_END, HOSTING_PORT_START } from '../../../config.js'
 
+interface ActiveParticipant {
+  participantId: string
+  kind: string
+  displayName: string
+  userId?: string | null
+  vaultId?: string | null
+}
+
 interface StartRunArgs {
   imageName: string
-  participantIds: string[]
+  activeParticipants: ActiveParticipant[]
   consortiumId: string
   runId: string
   computationParameters: string
@@ -18,7 +26,7 @@ interface StartRunArgs {
 
 export default async function startRun({
   imageName,
-  participantIds,
+  activeParticipants,
   consortiumId,
   runId,
   computationParameters,
@@ -49,7 +57,7 @@ export default async function startRun({
     logger.info(`Provisioning run ${runId}`)
     await provisionRun({
       imageName,
-      participantIds,
+      activeParticipants,
       pathRun,
       computationParameters,
       fedLearnPort,
