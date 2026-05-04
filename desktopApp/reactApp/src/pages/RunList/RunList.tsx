@@ -21,6 +21,10 @@ import {
   readRunFilterFromStorage,
   writeRunFilterToStorage,
 } from './runFilterStorage'
+import {
+  RUN_STATUS_OPTIONS,
+  sortRunStatuses,
+} from './runStatuses'
 
 export function RunList() {
   const { userId } = useUserState()
@@ -29,6 +33,13 @@ export function RunList() {
   const { starredIds, toggleStar, isStarred } = useStarredRuns(userId)
   const [consortiumList, setConsortiumList] = useState<ConsortiumListItem[]>([])
   const [filter, setFilter] = useState<RunFilterType>(DEFAULT_RUN_FILTER)
+  const statusOptions = useMemo(
+    () => sortRunStatuses(Array.from(new Set([
+      ...RUN_STATUS_OPTIONS,
+      ...((runList || []).map((run) => run.status)),
+    ]))),
+    [runList],
+  )
 
   useEffect(() => {
     if (!userId) {
@@ -50,15 +61,15 @@ export function RunList() {
       return []
     }
 
+    const selectedStatuses = new Set(filter.statuses)
+
     return runList.filter((run) => {
       if (filter.consortia.length > 0 && !filter.consortia.includes(run.consortiumId)) {
         return false
       }
 
-      if (filter.statuses.length > 0) {
-        const runStatus = run.status.toLowerCase()
-        const matches = filter.statuses.some((s) => s.toLowerCase() === runStatus)
-        if (!matches) {
+      if (selectedStatuses.size > 0) {
+        if (!selectedStatuses.has(run.status)) {
           return false
         }
       }
@@ -136,6 +147,7 @@ export function RunList() {
 
       <RunFilter
         consortiumList={consortiumList}
+        statusOptions={statusOptions}
         filter={filter}
         onFilterChange={handleFilterChange}
       />

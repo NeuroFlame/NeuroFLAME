@@ -15,8 +15,6 @@ import {
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { ConsortiumListItem } from '../../apis/centralApi/generated/graphql'
 
-const STATUS_OPTIONS = ['Complete', 'Running', 'Failed', 'Pending'] as const
-
 export interface RunFilterType {
   consortia: string[];
   statuses: string[];
@@ -27,11 +25,12 @@ export interface RunFilterType {
 
 interface RunFilterProps {
   consortiumList: ConsortiumListItem[];
+  statusOptions: string[];
   filter: RunFilterType;
   onFilterChange: (filter: RunFilterType) => void;
 }
 
-const RunFilter = ({ consortiumList, filter, onFilterChange }: RunFilterProps) => {
+const RunFilter = ({ consortiumList, statusOptions, filter, onFilterChange }: RunFilterProps) => {
   const hasActiveFilters = useMemo(
     () =>
       filter.consortia.length > 0 ||
@@ -156,7 +155,7 @@ const RunFilter = ({ consortiumList, filter, onFilterChange }: RunFilterProps) =
             </Box>
           )}
         >
-          {STATUS_OPTIONS.map((status) => (
+          {statusOptions.map((status) => (
             <MenuItem key={status} value={status}>
               {status}
             </MenuItem>
