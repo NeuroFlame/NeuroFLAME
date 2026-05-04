@@ -49,7 +49,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
-        isVaultUser
+        isVaultUser,
       }, index) => {
         if (isReady && isActive && !isLeader) {
           return (
@@ -75,7 +75,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
-        isVaultUser
+        isVaultUser,
       }, index) => {
         if (!isActive && isReady && !isLeader) {
           return (
@@ -101,7 +101,7 @@ export default function MembersListDisplay({
         isActive,
         isReady,
         isLeader,
-        isVaultUser
+        isVaultUser,
       }, index) => {
         if (isActive && !isReady && !isLeader) {
           return (

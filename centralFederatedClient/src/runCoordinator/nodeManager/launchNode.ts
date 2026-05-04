@@ -39,7 +39,7 @@ export async function launchNode({
   if (containerService !== 'docker') {
     throw new Error(`Central client only supports Docker, not ${containerService}`)
   }
-  
+
   await launchDockerNode({
     imageName,
     directoriesToMount,
@@ -174,4 +174,3 @@ const doesImageExist = async (imageName: string) => {
     )
   }
 }
-

@@ -5,16 +5,13 @@ import { useParams } from 'react-router-dom'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 
 export function useComputationLocalParameters() {
-    const {
-    refetch,
-    data: consortiumDetails,
-  } = useConsortiumDetailsContext()
+  const { refetch } = useConsortiumDetailsContext()
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
   const { getLocalParams, setLocalParams, getMountDir } = useEdgeApi()
   const [isEditing, setIsEditing] = useState(false)
   const [mountDir, setMountDir] = useState('')
   const handleEdit = () => setIsEditing(true)
-  const cancelEdit = () => setIsEditing(false)  
+  const cancelEdit = () => setIsEditing(false)
 
   // Use the generic useEditableValue hook for managing value state
   const {
@@ -27,7 +24,7 @@ export function useComputationLocalParameters() {
     // Fetch function for the directory
     fetchValue: async () => {
       const mountDir = await getMountDir(consortiumId)
-      setMountDir(mountDir);
+      setMountDir(mountDir)
       const localParams = await getLocalParams(consortiumId, mountDir)
       return localParams
     },
@@ -57,6 +54,6 @@ export function useComputationLocalParameters() {
     isDifferent,
     handleEdit,
     handleSave,
-    commit
+    commit,
   }
 }

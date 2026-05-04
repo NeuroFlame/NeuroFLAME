@@ -128,7 +128,7 @@ async function readTail(filePath: string, maxBytes: number): Promise<string> {
     const bytesToRead = Math.min(maxBytes, stats.size)
     const start = Math.max(0, stats.size - bytesToRead)
     const buffer = Buffer.alloc(bytesToRead)
-    
+
     // Explicitly handle read errors
     try {
       await handle.read(buffer, 0, bytesToRead, start)
@@ -136,7 +136,7 @@ async function readTail(filePath: string, maxBytes: number): Promise<string> {
       const message = readError instanceof Error ? readError.message : 'Failed to read file'
       throw new Error(`Error reading log file: ${message}`)
     }
-    
+
     return buffer.toString('utf8')
   } catch (error) {
     // Re-throw with context if not already an Error

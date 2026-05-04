@@ -6,15 +6,20 @@ import {
   Typography,
   Button,
   Box,
+  IconButton,
 } from '@mui/material'
+import StarIcon from '@mui/icons-material/Star'
+import StarBorderIcon from '@mui/icons-material/StarBorder'
 import { useNavigate } from 'react-router-dom'
-import { RunListItem as GeneratedRunListItem } from '../../apis/centralApi/generated/graphql' // Import the generated RunListItem type
+import { RunListItem as RunListItemType } from '../../apis/centralApi/generated/graphql'
 
 interface RunListItemProps {
-  run: GeneratedRunListItem; // Use the generated type instead of defining a new one
+  run: RunListItemType;
+  isStarred: boolean;
+  onToggleStar: () => void;
 }
 
-export const RunListItem: React.FC<RunListItemProps> = ({ run }) => {
+export const RunListItem: React.FC<RunListItemProps> = ({ run, isStarred, onToggleStar }) => {
   const navigate = useNavigate() // Initialize navigation
 
   const handleViewDetails = () => {
@@ -31,9 +36,22 @@ export const RunListItem: React.FC<RunListItemProps> = ({ run }) => {
       }}
     >
       <CardContent sx={{ flexSize: '3' }}>
-        <Typography variant='h6' component='div' fontWeight='600' gutterBottom>
-          {run.consortiumTitle}
-        </Typography>
+        <Box display='flex' justifyContent='space-between' alignItems='flex-start' gap={1}>
+          <Typography variant='h6' component='div' fontWeight='600' gutterBottom>
+            {run.consortiumTitle}
+          </Typography>
+          <IconButton
+            size='small'
+            aria-label={isStarred ? 'Unstar run' : 'Star run'}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleStar()
+            }}
+            color={isStarred ? 'warning' : 'default'}
+          >
+            {isStarred ? <StarIcon fontSize='small' /> : <StarBorderIcon fontSize='small' />}
+          </IconButton>
+        </Box>
         <Typography variant='body2' color='textSecondary'>
           <strong>Status:</strong> {run.status}
         </Typography>

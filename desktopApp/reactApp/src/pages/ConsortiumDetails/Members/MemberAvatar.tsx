@@ -64,7 +64,6 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
     isActive,
     isReady,
     isVaultUser,
-    index,
     direction,
     nameSize,
   } = props

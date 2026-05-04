@@ -1,5 +1,7 @@
 import ComputationDisplay from '../../ConsortiumDetails/ComputationDisplay/ComputationDisplay'
-import ComputationParameters, { ComputationLocalParameters } from '../../ConsortiumDetails/ComputationLocalParameters/ComputationLocalParameters'
+import {
+  ComputationLocalParameters,
+} from '../../ConsortiumDetails/ComputationLocalParameters/ComputationLocalParameters'
 import { Grid, Box } from '@mui/material'
 
 export default function StepSetParameters() {
@@ -15,7 +17,9 @@ export default function StepSetParameters() {
     >
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <div style={{margin: '1.5rem 1rem 0 1rem'}}>Refer to the Computation Notes for guidance on configuring your Local Settings</div>
+          <div style={{ margin: '1.5rem 1rem 0 1rem' }}>
+            Refer to the Computation Notes for guidance on configuring your Local Settings
+          </div>
           <ComputationLocalParameters />
         </Grid>
         <Grid item xs={6}>

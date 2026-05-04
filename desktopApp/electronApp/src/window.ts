@@ -4,6 +4,7 @@ import url from 'url'
 
 export async function createMainWindow(): Promise<BrowserWindow> {
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
+  const persistentSession = session.fromPartition('persist:neuroflame-main')
 
   // Window configuration
   const mainWindow = new BrowserWindow({
@@ -13,7 +14,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      session: session.fromPartition(Date.now().toString()),
+      session: persistentSession,
     },
   })
 

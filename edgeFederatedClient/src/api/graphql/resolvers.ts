@@ -55,7 +55,7 @@ export const resolvers = {
         // If the file simply doesn't exist, warn and return a safe default
         if (err?.code === 'ENOENT') {
           logger.warn(
-            `local_parameters.json not found at ${configPath} (consortiumId=${consortiumId}, userId=${userId}). Returning default "{}".`
+            `local_parameters.json not found at ${configPath} (consortiumId=${consortiumId}, userId=${userId}). Returning default "{}".`,
           )
           // Return valid, empty JSON so downstream JSON.parse won't explode
           return '{}'
@@ -119,7 +119,7 @@ export const resolvers = {
       try {
         // Validate JSON format before writing
         JSON.parse(localParams)
-        
+
         const configPath = path.join(mountDir, 'local_parameters.json')
         await fs.writeFile(configPath, localParams)
 
@@ -130,7 +130,7 @@ export const resolvers = {
           logger.error('Invalid JSON in setLocalParams:', error)
           throw new Error('Invalid JSON format in local parameters')
         }
-        
+
         logger.error('Error in setLocalParams:', error)
         throw new Error('Failed to set/save local parameters')
       }

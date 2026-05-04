@@ -23,7 +23,7 @@ export const useEdgeApi = () => {
     setMountDir: (consortiumId: string, mountDir: string) =>
       setMountDir(edgeClientApolloClient, consortiumId, mountDir),
 
-     // Get the local parameters for a consortium
+    // Get the local parameters for a consortium
     getLocalParams: (consortiumId: string, mountDir: string) =>
       getLocalParams(edgeClientApolloClient, consortiumId, mountDir),
 

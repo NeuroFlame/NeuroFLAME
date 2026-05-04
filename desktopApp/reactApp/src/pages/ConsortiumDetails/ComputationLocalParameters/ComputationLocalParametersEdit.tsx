@@ -40,15 +40,15 @@ export default function ComputationLocalParametersEdit({
         fullWidth
         multiline
         rows={10}
-        variant="outlined"
+        variant='outlined'
         value={ComputationLocalParameters}
         onChange={handleChange}
         error={!isValidJson}
         helperText={!isValidJson ? 'Invalid JSON format' : 'Enter valid JSON'}
       />
       <div style={{ marginTop: 16 }}>
-        <Button size="small" variant="contained" onClick={saveHandler} disabled={!isValidJson}>Save</Button>
-        <Button size="small" variant="outlined" onClick={onCancel}>Cancel</Button>
+        <Button size='small' variant='contained' onClick={saveHandler} disabled={!isValidJson}>Save</Button>
+        <Button size='small' variant='outlined' onClick={onCancel}>Cancel</Button>
       </div>
     </div>
   )

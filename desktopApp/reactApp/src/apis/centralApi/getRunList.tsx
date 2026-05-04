@@ -6,6 +6,7 @@ const GET_RUN_LIST_QUERY = gql`
   query GetRunList($consortiumId: String) {
     getRunList(consortiumId: $consortiumId) {
       runId
+      consortiumId
       consortiumTitle
       createdAt
       lastUpdated

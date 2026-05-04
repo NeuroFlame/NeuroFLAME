@@ -3,7 +3,6 @@ import path from 'path'
 const requireEnv = (name: string): string => {
   const value = process.env[name]
   if (!value) {
-    // eslint-disable-next-line no-console
     console.error(`[CONFIG] Missing required environment variable: ${name}`)
     process.exit(1)
   }
@@ -13,7 +12,6 @@ const requireEnv = (name: string): string => {
 const requireEnvOptional = (name: string): string | undefined => {
   const value = process.env[name]
   if (value) {
-    // eslint-disable-next-line no-console
     console.log(`[CONFIG] Loaded optional environment variable: ${name}`)
   }
   return value
@@ -39,7 +37,7 @@ const resolveContainerService = (): 'docker' | 'singularity' => {
   if (normalized === 'singularity') {
     return 'singularity'
   }
-  // eslint-disable-next-line no-console
+
   console.error(
     `[CONFIG] Invalid VAULT_CONTAINER_SERVICE="${raw}". Expected docker|singularity.`,
   )

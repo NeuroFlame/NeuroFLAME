@@ -274,9 +274,9 @@ function VaultServerRow({
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {online ? (
-              <CheckCircleIcon color="success" fontSize="small" />
+              <CheckCircleIcon color='success' fontSize='small' />
             ) : (
-              <ErrorIcon color="error" fontSize="small" />
+              <ErrorIcon color='error' fontSize='small' />
             )}
             <Typography fontWeight="medium">
               {server.name}
@@ -288,9 +288,9 @@ function VaultServerRow({
         </TableCell>
         <TableCell>
           {online ? (
-            <Chip label="Online" size="small" color="success" />
+            <Chip label='Online' size='small' color='success' />
           ) : (
-            <Chip label="Offline" size="small" color="error" />
+            <Chip label='Offline' size='small' color='error' />
           )}
         </TableCell>
         <TableCell>{status?.version || '-'}</TableCell>
@@ -309,7 +309,7 @@ function VaultServerRow({
               color="primary"
             />
           ) : (
-            <Typography color="text.secondary">None</Typography>
+            <Typography color='text.secondary'>None</Typography>
           )}
         </TableCell>
       </TableRow>
@@ -623,10 +623,10 @@ export default function VaultStatus() {
   if (error) {
     return (
       <Box>
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity='error' sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button variant="contained" onClick={loadVaults}>
+        <Button variant='contained' onClick={loadVaults}>
           Retry
         </Button>
       </Box>
@@ -647,23 +647,23 @@ export default function VaultStatus() {
           <Chip
             icon={<CheckCircleIcon />}
             label={`${onlineCount} Online`}
-            color="success"
-            variant="outlined"
+            color='success'
+            variant='outlined'
           />
           {offlineCount > 0 && (
             <Chip
               icon={<ErrorIcon />}
               label={`${offlineCount} Offline`}
-              color="error"
-              variant="outlined"
+              color='error'
+              variant='outlined'
             />
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant='caption' color='text.secondary'>
             Last updated: {lastRefresh.toLocaleTimeString()}
           </Typography>
-          <IconButton onClick={loadVaults} disabled={loading} size="small">
+          <IconButton onClick={loadVaults} disabled={loading} size='small'>
             <RefreshIcon />
           </IconButton>
         </Box>
@@ -674,7 +674,7 @@ export default function VaultStatus() {
           No vault servers found
         </Typography>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Paper} variant='outlined'>
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>

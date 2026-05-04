@@ -16,9 +16,9 @@ export const createMarkdownComponents = (): Components => ({
     const text =
       Array.isArray(children)
         ? children
-            .map((c) => (typeof c === 'string' ? c : ''))
-            .join('')
-            .trim()
+          .map((c) => (typeof c === 'string' ? c : ''))
+          .join('')
+          .trim()
         : typeof children === 'string'
           ? children.trim()
           : ''

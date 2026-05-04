@@ -4,7 +4,6 @@ import * as path from 'path'
 import { logger } from './logger.js'
 import { getConfig } from './config.js'
 import https from 'https'
-import http from 'http'
 
 /**
  * Get Docker image digest from Docker Hub using network API call
@@ -16,12 +15,12 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
   const parts = imageWithoutTag.split(':')
   const namePart = parts[0]
   const tag = parts[1] || 'latest'
-  
+
   // Handle Docker Hub official images (no namespace)
   const nameParts = namePart.split('/')
   let namespace: string
   let repository: string
-  
+
   if (nameParts.length === 1) {
     // Official image like "ubuntu" -> library/ubuntu
     namespace = 'library'
@@ -33,7 +32,7 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
 
   // Docker Registry API v2 endpoint
   const registryUrl = `https://registry-1.docker.io/v2/${namespace}/${repository}/manifests/${tag}`
-  
+
   return new Promise((resolve, reject) => {
     const url = new URL(registryUrl)
     const options = {
@@ -42,7 +41,7 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
       path: url.pathname,
       method: 'HEAD', // Use HEAD to get headers only
       headers: {
-        'Accept': 'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json',
+        Accept: 'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json',
       },
     }
 
@@ -63,14 +62,14 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
         ...options,
         method: 'GET',
       }
-      
+
       const getReq = https.request(getOptions, (getRes) => {
         let data = ''
-        
+
         getRes.on('data', (chunk) => {
           data += chunk.toString()
         })
-        
+
         getRes.on('end', () => {
           try {
             const manifest = JSON.parse(data)
@@ -106,7 +105,7 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
           }
         })
       })
-      
+
       getReq.on('error', (error) => {
         logger.warn(
           `Network error getting manifest for ${dockerImageName}: ${error.message}, using fallback`,
@@ -114,7 +113,7 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
         const fallbackHash = Buffer.from(dockerImageName).toString('base64').slice(0, 12)
         resolve(fallbackHash)
       })
-      
+
       getReq.end()
     })
 
@@ -124,14 +123,14 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
         ...options,
         method: 'GET',
       }
-      
+
       const getReq = https.request(getOptions, (getRes) => {
         let data = ''
-        
+
         getRes.on('data', (chunk) => {
           data += chunk.toString()
         })
-        
+
         getRes.on('end', () => {
           try {
             const manifest = JSON.parse(data)
@@ -156,7 +155,7 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
           }
         })
       })
-      
+
       getReq.on('error', (getError) => {
         logger.warn(
           `Network error getting manifest for ${dockerImageName}: ${getError.message}, using fallback`,
@@ -164,7 +163,7 @@ async function getDockerImageDigest(dockerImageName: string): Promise<string> {
         const fallbackHash = Buffer.from(dockerImageName).toString('base64').slice(0, 12)
         resolve(fallbackHash)
       })
-      
+
       getReq.end()
     })
 
@@ -355,4 +354,3 @@ export async function checkSingularityImageExists(
     return false
   }
 }
-
