@@ -20,6 +20,7 @@ export function useRunResults() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [frameSrc, setFrameSrc] = useState<string | null>(null)
+  const [indexSrc, setIndexSrc] = useState<string | null>(null)
   const [
     edgeClientRunResultsUrl,
     setEdgeClientRunResultsUrl,
@@ -38,15 +39,12 @@ export function useRunResults() {
 
   const fetchRecursive = async (
     relativePath: string,
-    token: string,
   ): Promise<FileInfo[]> => {
     const normalizedPath = relativePath.replace(/^\/+/, '') // remove leading slashes
     const fullUrl = `${edgeClientRunResultsUrl}/${normalizedPath}${normalizedPath.endsWith('/') ? '' : '/'}`
 
     try {
-      const response = await axios.get<FileInfo[]>(fullUrl, {
-        headers: { 'x-access-token': token },
-      })
+      const response = await axios.get<FileInfo[]>(fullUrl)
 
       const files: FileInfo[] = []
 
@@ -55,7 +53,7 @@ export function useRunResults() {
 
         if (file.isDirectory) {
           try {
-            const nested = await fetchRecursive(file.url, token)
+            const nested = await fetchRecursive(file.url)
             files.push(...nested)
           } catch (err) {
             console.warn(`Skipping inaccessible directory: ${file.url}`, err)
@@ -82,22 +80,18 @@ export function useRunResults() {
     if (!edgeClientRunResultsUrl || !consortiumId || !runId) return
 
     const fetchResultsFilesList = async () => {
-      const accessToken = localStorage.getItem('accessToken')
-      if (!accessToken) {
-        setError('Missing access token')
-        return
-      }
-
       try {
         const basePath = `${consortiumId}/${runId}`
-        const files = await fetchRecursive(basePath, accessToken)
+        const files = await fetchRecursive(basePath)
 
         const indexFile = files.find((file) =>
           file.name === 'index.html' && file.url.endsWith('/index.html'),
         )
 
         if (indexFile && !frameSrc) {
-          setFrameSrc(`${edgeClientRunResultsUrl}/${indexFile.url}?x-access-token=${accessToken}`)
+          const src = `${edgeClientRunResultsUrl}/${indexFile.url}`
+          setFrameSrc(src)
+          setIndexSrc(src)
         }
 
         setFileList(files)
@@ -136,6 +130,7 @@ export function useRunResults() {
     error,
     frameSrc,
     setFrameSrc,
+    indexSrc,
     edgeClientRunResultsUrl,
     filesPanelWidth,
     filesPanelShow,

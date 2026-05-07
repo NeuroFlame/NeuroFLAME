@@ -532,6 +532,12 @@ export type SubscriptionRunDetailsChangedArgs = {
   runId: Scalars['String']['input'];
 };
 
+export type UserIdNamePair = {
+  __typename?: 'UserIdNamePair';
+  id: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
 export type UserProfile = {
   __typename?: 'UserProfile';
   roles: Array<Scalars['String']['output']>;

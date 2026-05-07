@@ -9,6 +9,7 @@ import { useServer } from 'graphql-ws/lib/use/ws'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import path from 'path'
+import { fileURLToPath } from 'url'
 import { logger } from '../logger.js'
 import runResultsRoute from './routes/runResultsRoutes.js'
 
@@ -73,6 +74,13 @@ export async function start({ port }: { port: number }) {
       context: httpServerContext,
     }),
   )
+
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
+  const staticDir = path.resolve(__dirname, '../../static')
+
+  // NiiVue viewer and its bundled assets
+  app.use('/static', express.static(staticDir))
+  app.get('/nii-viewer', (_req, res) => res.sendFile(path.join(staticDir, 'nii-viewer.html')))
 
   logger.info('[STATIC FILES] Serving from: ' + path.resolve(filesDirectory))
 

@@ -85,7 +85,7 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({
 
   return (
     <Box
-      className='computation-notes consortium-summary-card'
+      className='computation-notes consortium-summary-card window-height'
       borderRadius={2}
       marginBottom={2}
       bgcolor='white'
