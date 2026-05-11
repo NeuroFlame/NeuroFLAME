@@ -1,18 +1,33 @@
-const STATUS_ORDER: Record<string, number> = {
-  'In Progress': 0,
-  'Starting': 1,
-  'Provisioning': 2,
-  'Pending': 3,
-  'Complete': 4,
-  'Error': 5,
-}
+export const RUN_STATUS_OPTIONS = [
+  'Pending',
+  'Provisioning',
+  'Starting',
+  'In Progress',
+  'Complete',
+  'Error',
+] as const
 
-export const RUN_STATUS_OPTIONS: string[] = Object.keys(STATUS_ORDER)
+const RUN_STATUS_ORDER = new Map<string, number>(
+  RUN_STATUS_OPTIONS.map((status, index) => [status, index]),
+)
 
 export function sortRunStatuses(statuses: string[]): string[] {
-  return [...statuses].sort((a, b) => {
-    const aOrder = STATUS_ORDER[a] ?? 99
-    const bOrder = STATUS_ORDER[b] ?? 99
-    return aOrder - bOrder
+  return [...statuses].sort((left, right) => {
+    const leftOrder = RUN_STATUS_ORDER.get(left)
+    const rightOrder = RUN_STATUS_ORDER.get(right)
+
+    if (leftOrder !== undefined && rightOrder !== undefined) {
+      return leftOrder - rightOrder
+    }
+
+    if (leftOrder !== undefined) {
+      return -1
+    }
+
+    if (rightOrder !== undefined) {
+      return 1
+    }
+
+    return left.localeCompare(right)
   })
 }
