@@ -73,8 +73,9 @@ const walkDirectory = (
 export const listRunFiles = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
-    const { consortiumId, runId } = req.params
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
     const participantId = (
+      routeParticipantId ??
       (req as any).user?.participantId ??
       (req as any).user?.userId
     ) as string | undefined
@@ -90,7 +91,9 @@ export const listRunFiles = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Run directory not found' })
     }
 
-    const baseUrl = `${consortiumId}/${runId}`
+    const baseUrl = participantId
+      ? `${consortiumId}/${runId}/${participantId}`
+      : `${consortiumId}/${runId}`
     const rootPath = directoryPath
     const fileList = walkDirectory(directoryPath, baseUrl, rootPath)
 
@@ -104,8 +107,9 @@ export const listRunFiles = async (req: Request, res: Response) => {
 export const serveRunFile = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
-    const { consortiumId, runId } = req.params
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
     const participantId = (
+      routeParticipantId ??
       (req as any).user?.participantId ??
       (req as any).user?.userId
     ) as string | undefined
@@ -119,7 +123,6 @@ export const serveRunFile = async (req: Request, res: Response) => {
     )
     const resolvedBase = path.resolve(baseDirectory)
     const resolvedFile = path.resolve(baseDirectory, filePathParam)
-    const currentFileName = path.basename(resolvedFile)
 
     // Ensure path is within allowed directory
     if (!resolvedFile.startsWith(resolvedBase)) {
@@ -153,7 +156,7 @@ export const serveRunFile = async (req: Request, res: Response) => {
           size: entryStat.size,
           isDirectory: entry.isDirectory(),
           lastModified: entryStat.mtime,
-          url: `${consortiumId}/${runId}/${relativeUrl}`.replace(/\\/g, '/'),
+          url: `${participantId ? `${consortiumId}/${runId}/${participantId}` : `${consortiumId}/${runId}`}/${relativeUrl}`.replace(/\\/g, '/'),
         }
       })
 
@@ -166,37 +169,6 @@ export const serveRunFile = async (req: Request, res: Response) => {
 
       if (!contents.includes('<base')) {
         contents = contents.replace('<head>', '<head><base href="./">')
-      }
-
-      const token = req.query['x-access-token']
-      if (token) {
-        contents = contents.replace(
-          /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*?>/gi,
-          (match, src) => {
-            const hasToken = src.includes('x-access-token=')
-            const connector = src.includes('?') ? '&' : '?'
-            return match.replace(src, hasToken ? src : `${src}${connector}x-access-token=${token}`)
-          },
-        )
-
-        contents = contents.replace(
-          /<a\s+[^>]*?href\s*=\s*["']#([^"']+)["']/gi,
-          (match, anchor) => {
-            const connector = currentFileName.includes('?') ? '&' : '?'
-            return match.replace(`#${anchor}`, `${currentFileName}${connector}x-access-token=${token}#${anchor}`)
-          },
-        )
-
-        contents = contents.replace(
-          /<a\b[^>]*?\bhref\s*=\s*["']([^"']+\.html)["'][^>]*?>/gi,
-          (match, href) => {
-            if (href.startsWith('mailto:') || href.startsWith('tel:')) {
-              return match
-            }
-            const connector = href.includes('?') ? '&' : '?'
-            return match.replace(href, `${href}${connector}x-access-token=${token}`)
-          },
-        )
       }
 
       res.setHeader('Content-Type', 'text/html')
@@ -219,8 +191,9 @@ export const serveRunFile = async (req: Request, res: Response) => {
 export const serveRunFolder = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
-    const { consortiumId, runId } = req.params
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
     const participantId = (
+      routeParticipantId ??
       (req as any).user?.participantId ??
       (req as any).user?.userId
     ) as string | undefined

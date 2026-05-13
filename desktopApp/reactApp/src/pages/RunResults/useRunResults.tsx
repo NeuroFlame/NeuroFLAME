@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
+import { useUserState } from '../../contexts/UserStateContext'
 
 export interface FileInfo {
   name: string;
@@ -8,10 +9,11 @@ export interface FileInfo {
   size: number;
   isDirectory: boolean;
   lastModified: string;
-  url: string; // This is relative: consortiumId/runId/results/...
+  url: string; // This is relative: consortiumId/runId/participantId/...
 }
 
 export function useRunResults() {
+  const { userId } = useUserState()
   const {
     consortiumId,
     runId,
@@ -20,6 +22,7 @@ export function useRunResults() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [frameSrc, setFrameSrc] = useState<string | null>(null)
+  const [indexSrc, setIndexSrc] = useState<string | null>(null)
   const [
     edgeClientRunResultsUrl,
     setEdgeClientRunResultsUrl,
@@ -38,15 +41,12 @@ export function useRunResults() {
 
   const fetchRecursive = async (
     relativePath: string,
-    token: string,
   ): Promise<FileInfo[]> => {
     const normalizedPath = relativePath.replace(/^\/+/, '') // remove leading slashes
     const fullUrl = `${edgeClientRunResultsUrl}/${normalizedPath}${normalizedPath.endsWith('/') ? '' : '/'}`
 
     try {
-      const response = await axios.get<FileInfo[]>(fullUrl, {
-        headers: { 'x-access-token': token },
-      })
+      const response = await axios.get<FileInfo[]>(fullUrl)
 
       const files: FileInfo[] = []
 
@@ -55,7 +55,7 @@ export function useRunResults() {
 
         if (file.isDirectory) {
           try {
-            const nested = await fetchRecursive(file.url, token)
+            const nested = await fetchRecursive(file.url)
             files.push(...nested)
           } catch (err) {
             console.warn(`Skipping inaccessible directory: ${file.url}`, err)
@@ -79,25 +79,21 @@ export function useRunResults() {
   }, [])
 
   useEffect(() => {
-    if (!edgeClientRunResultsUrl || !consortiumId || !runId) return
+    if (!edgeClientRunResultsUrl || !consortiumId || !runId || !userId) return
 
     const fetchResultsFilesList = async () => {
-      const accessToken = localStorage.getItem('accessToken')
-      if (!accessToken) {
-        setError('Missing access token')
-        return
-      }
-
       try {
-        const basePath = `${consortiumId}/${runId}`
-        const files = await fetchRecursive(basePath, accessToken)
+        const basePath = `${consortiumId}/${runId}/${userId}`
+        const files = await fetchRecursive(basePath)
 
         const indexFile = files.find((file) =>
           file.name === 'index.html' && file.url.endsWith('/index.html'),
         )
 
         if (indexFile && !frameSrc) {
-          setFrameSrc(`${edgeClientRunResultsUrl}/${indexFile.url}?x-access-token=${accessToken}`)
+          const src = `${edgeClientRunResultsUrl}/${indexFile.url}`
+          setFrameSrc(src)
+          setIndexSrc(src)
         }
 
         setFileList(files)
@@ -110,7 +106,7 @@ export function useRunResults() {
     }
 
     fetchResultsFilesList()
-  }, [edgeClientRunResultsUrl, consortiumId, runId, frameSrc])
+  }, [edgeClientRunResultsUrl, consortiumId, runId, userId, frameSrc])
 
   const handleHideFiles = () => {
     setFilesPanelWidth({ sm: 0, md: 0 })
@@ -136,6 +132,7 @@ export function useRunResults() {
     error,
     frameSrc,
     setFrameSrc,
+    indexSrc,
     edgeClientRunResultsUrl,
     filesPanelWidth,
     filesPanelShow,

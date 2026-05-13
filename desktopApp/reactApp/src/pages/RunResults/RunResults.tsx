@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Box, Button, Typography } from '@mui/material'
 import Grid from '@mui/material/Grid2'
 import { useNavigate } from 'react-router-dom'
@@ -8,9 +8,11 @@ import CSVViewer from './CSVViewer'
 import MatViewer from './MatViewer'
 import NiiVueViewer from './NiiVueViewer'
 import TextViewer from './TextViewer'
+import { useUserState } from '../../contexts/UserStateContext'
 
 export default function RunResults() {
   const navigate = useNavigate()
+  const { userId } = useUserState()
 
   const {
     consortiumId,
@@ -20,6 +22,7 @@ export default function RunResults() {
     error,
     frameSrc,
     setFrameSrc,
+    indexSrc,
     edgeClientRunResultsUrl,
     filesPanelWidth,
     filesPanelShow,
@@ -31,6 +34,17 @@ export default function RunResults() {
   } = useRunResults()
 
   const [currentFile, setCurrentFile] = useState<string>('')
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'view-nifti' && typeof event.data.url === 'string') {
+        setCurrentFile(event.data.url.split('/').pop()?.split('?')[0] ?? '')
+        setFrameSrc(event.data.url)
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [setFrameSrc])
 
   if (loading) {
     return (
@@ -114,7 +128,7 @@ export default function RunResults() {
               variant='outlined'
               color='primary'
               style={{ margin: '0 0 1rem 1rem' }}
-              href={`${edgeClientRunResultsUrl}/zip/${consortiumId}/${runId}/?x-access-token=${localStorage.getItem('accessToken')}&window=self`}
+              href={`${edgeClientRunResultsUrl}/zip/${consortiumId}/${runId}/${userId}/`}
             >
               Download Results
             </Button>
@@ -161,6 +175,16 @@ export default function RunResults() {
         >
           Expand Results Panel
         </Button>
+        {indexSrc && frameSrc !== indexSrc && (
+          <Button
+            variant='outlined'
+            size='small'
+            onClick={() => { setFrameSrc(indexSrc); setCurrentFile('') }}
+            style={{ background: 'white' }}
+          >
+            ← Back to Report
+          </Button>
+        )}
         <Box
           style={{
             background: '#fff',
@@ -188,7 +212,6 @@ export default function RunResults() {
                 title='Run Result'
                 width='100%'
                 height='100%'
-                sandbox='allow-scripts allow-same-origin'
                 style={{
                   border: 'none',
                   background: 'white',

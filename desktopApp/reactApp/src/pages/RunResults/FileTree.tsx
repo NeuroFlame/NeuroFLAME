@@ -79,7 +79,6 @@ type RenderTreeProps = {
   setFrameSrc: (src: string) => void;
   setCurrentFile: (src: string) => void;
   edgeClientRunResultsUrl: string;
-  accessToken: string | null;
   depth?: number;
 }
 
@@ -146,7 +145,6 @@ function RenderTree({
   setFrameSrc,
   setCurrentFile,
   edgeClientRunResultsUrl,
-  accessToken,
   depth = 0,
 }: RenderTreeProps) {
   const entries = Object.entries(tree)
@@ -187,13 +185,7 @@ function RenderTree({
                     textAlign: 'left',
                   }}
                   onClick={() => {
-                    if (!accessToken) {
-                      console.error('Missing access token')
-                      return
-                    }
-
-                    const fullUrl = `${edgeClientRunResultsUrl}/${file.url}?x-access-token=${accessToken}`
-                    setFrameSrc(fullUrl)
+                    setFrameSrc(`${edgeClientRunResultsUrl}/${file.url}`)
                     setCurrentFile(file.name)
                   }}
                 >
@@ -221,7 +213,6 @@ function RenderTree({
                 setFrameSrc={setFrameSrc}
                 setCurrentFile={setCurrentFile}
                 edgeClientRunResultsUrl={edgeClientRunResultsUrl}
-                accessToken={accessToken}
                 depth={depth + 1}
               />
             </Folder>
@@ -238,7 +229,6 @@ export default function FileTree({
   setCurrentFile,
   edgeClientRunResultsUrl,
 }: FileTreeProps) {
-  const accessToken = localStorage.getItem('accessToken')
   const tree = buildFileTree(fileList)
 
   return (
@@ -247,7 +237,6 @@ export default function FileTree({
       setFrameSrc={setFrameSrc}
       setCurrentFile={setCurrentFile}
       edgeClientRunResultsUrl={edgeClientRunResultsUrl}
-      accessToken={accessToken}
       depth={0}
     />
   )

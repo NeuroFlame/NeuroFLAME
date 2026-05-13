@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>NIfTI Viewer</title>
+  <script src="/static/niivue.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111; color: #eee; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+    #toolbar { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem; background: #1e1e1e; flex-shrink: 0; flex-wrap: wrap; }
+    #toolbar label { font-size: 0.8rem; color: #aaa; }
+    #toolbar input[type=range] { width: 100px; }
+    #filename { font-size: 0.85rem; color: #ccc; margin-right: auto; }
+    #threshold-row { display: none; align-items: center; gap: 1rem; padding: 0.4rem 1rem; background: #1a1a1a; flex-shrink: 0; flex-wrap: wrap; font-size: 0.8rem; color: #aaa; }
+    #threshold-row input[type=range] { width: 120px; }
+    #canvas-wrap { flex: 1; min-height: 0; }
+    canvas { width: 100%; height: 100%; display: block; }
+    #error { padding: 2rem; color: #f88; font-size: 0.9rem; display: none; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <span id="filename">Loading…</span>
+    <label>Colormap
+      <select id="colormap">
+        <option value="gray">Gray</option>
+        <option value="jet" selected>Jet</option>
+        <option value="hot">Hot</option>
+        <option value="plasma">Plasma</option>
+      </select>
+    </label>
+    <label>Contrast <input type="range" id="gamma" min="0" max="2" step="0.01" value="1"/></label>
+    <label>Opacity  <input type="range" id="opacity" min="0" max="1" step="0.01" value="1"/></label>
+    <label style="display:flex;align-items:center;gap:0.4rem;">
+      <input type="checkbox" id="threshold-enable"/> Threshold
+    </label>
+  </div>
+  <div id="threshold-row">
+    <span>Min <span id="thresh-min-val">0</span></span>
+    <input type="range" id="thresh-min" step="any"/>
+    <span>Max <span id="thresh-max-val">1</span></span>
+    <input type="range" id="thresh-max" step="any"/>
+    <label>Alpha mode
+      <select id="alpha-mode">
+        <option value="0">Restrict to range</option>
+        <option value="1">Transparent sub-threshold</option>
+        <option value="2">Translucent sub-threshold</option>
+      </select>
+    </label>
+  </div>
+  <div id="canvas-wrap"><canvas id="canvas"></canvas></div>
+  <div id="error"></div>
+
+  <script>
+    const { Niivue } = niivue;
+    const params = new URLSearchParams(location.search);
+    const fileUrl = params.get('url');
+    if (!fileUrl) {
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error').textContent = 'No ?url= parameter provided.';
+    } else {
+      const filename = fileUrl.split('/').pop().split('?')[0];
+      document.getElementById('filename').textContent = filename;
+      document.title = filename;
+
+      const nv = new Niivue({ show3Dcrosshair: true });
+      nv.attachToCanvas(document.getElementById('canvas'));
+      nv.setRadiologicalConvention(false);
+
+      let dataMin = 0, dataMax = 1;
+
+      function applyThreshold() {
+        if (!nv.volumes.length) return;
+        const vol = nv.volumes[0];
+        const enabled = document.getElementById('threshold-enable').checked;
+        if (enabled) {
+          vol.cal_min = +document.getElementById('thresh-min').value;
+          vol.cal_max = +document.getElementById('thresh-max').value;
+          vol.colormapType = +document.getElementById('alpha-mode').value;
+        } else {
+          vol.cal_min = dataMin;
+          vol.cal_max = dataMax;
+          vol.colormapType = 0;
+        }
+        nv.updateGLVolume();
+      }
+
+      fetch(fileUrl)
+        .then(r => { if (!r.ok) throw new Error('Fetch failed: ' + r.status); return r.blob(); })
+        .then(async blob => {
+          const file = new File([blob], filename);
+          await nv.loadFromFile(file);
+          const vol = nv.volumes[0];
+          vol.colormap = document.getElementById('colormap').value;
+          nv.updateGLVolume();
+
+          dataMin = vol.cal_min ?? 0;
+          dataMax = vol.cal_max ?? 1;
+          const step = (dataMax - dataMin) / 1000 || 0.001;
+
+          ['thresh-min', 'thresh-max'].forEach(id => {
+            const el = document.getElementById(id);
+            el.min = dataMin; el.max = dataMax; el.step = step;
+          });
+          document.getElementById('thresh-min').value = dataMin;
+          document.getElementById('thresh-max').value = dataMax;
+          document.getElementById('thresh-min-val').textContent = dataMin.toFixed(3);
+          document.getElementById('thresh-max-val').textContent = dataMax.toFixed(3);
+        })
+        .catch(err => {
+          document.getElementById('error').style.display = 'block';
+          document.getElementById('error').textContent = 'Failed to load: ' + err.message;
+        });
+
+      document.getElementById('colormap').addEventListener('change', e => {
+        if (nv.volumes.length) { nv.volumes[0].colormap = e.target.value; nv.updateGLVolume(); }
+      });
+      document.getElementById('gamma').addEventListener('input', e => {
+        if (nv.volumes.length) { nv.setGamma(+e.target.value); nv.updateGLVolume(); }
+      });
+      document.getElementById('opacity').addEventListener('input', e => {
+        if (nv.volumes.length) { nv.volumes[0].opacity = +e.target.value; nv.updateGLVolume(); }
+      });
+      document.getElementById('threshold-enable').addEventListener('change', e => {
+        document.getElementById('threshold-row').style.display = e.target.checked ? 'flex' : 'none';
+        applyThreshold();
+      });
+      document.getElementById('thresh-min').addEventListener('input', e => {
+        document.getElementById('thresh-min-val').textContent = (+e.target.value).toFixed(3);
+        applyThreshold();
+      });
+      document.getElementById('thresh-max').addEventListener('input', e => {
+        document.getElementById('thresh-max-val').textContent = (+e.target.value).toFixed(3);
+        applyThreshold();
+      });
+      document.getElementById('alpha-mode').addEventListener('change', applyThreshold);
+    }
+  </script>
+</body>
+</html>

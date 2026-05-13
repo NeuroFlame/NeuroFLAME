@@ -739,14 +739,17 @@ export default {
     },
     getRunList: async (
       _: unknown,
-      args: { consortiumId?: string }, // Accept consortiumId as an optional argument
+      args: { consortiumId?: string },
       context: Context,
     ): Promise<RunListItem[]> => {
       const { userId } = context
-      const { consortiumId } = args // Extract consortiumId from args
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      const { consortiumId } = args
 
       try {
-        // Build the query filter
         const query: any = {
           $or: [
             { members: userId },
@@ -767,33 +770,27 @@ export default {
           }
         }
 
-        // Add consortiumId to the query if it's specified
         if (consortiumId) {
           query.consortium = consortiumId
         }
 
-        // Perform the query with the filter
         const runs = await Run.find(query)
           .populate('consortium', 'title')
           .populate('members', 'id username')
           .sort({ createdAt: -1 })
           .lean()
-          .exec()
+          .exec() as any[]
 
-        return runs.map((run) => {
-          if (!('title' in run.consortium)) {
-            throw new Error('Consortium data is missing or incomplete')
-          }
-
-          return {
+        return runs
+          .filter((run) => run.consortium && 'title' in run.consortium)
+          .map((run) => ({
             consortiumId: run.consortium._id.toString(),
             consortiumTitle: run.consortium.title as string,
             runId: run._id.toString(),
             status: run.status,
             createdAt: run.createdAt,
             lastUpdated: run.lastUpdated,
-          }
-        })
+          }))
       } catch (error) {
         logger.error('Error fetching run list:', error)
         throw new Error('Failed to fetch run list')

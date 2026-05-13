@@ -347,6 +347,10 @@ textarea {
   100% { opacity: 1; }
 }
 
+.window-height {
+  height: calc(100vh - 155px);
+}
+
 .consortium-list-link {
   display: block;
   margin: 0 0 0.5rem;
@@ -396,7 +400,6 @@ textarea {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    height: 32rem;
     overflow-y: auto;
   }
 }
@@ -405,9 +408,8 @@ textarea {
   .MuiStepLabel-label {
     display: none !important;
   }
-
-  .consortium-actions {
-    justify-content: flex-start;
+  .window-height {
+    height: auto;
   }
 }
 
@@ -420,6 +422,12 @@ textarea {
 @media only screen and (min-width: 815px) {
   .home-content-header {
     padding: 0 1rem;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .consortium-actions {
+    justify-content: left;
   }
 }
 

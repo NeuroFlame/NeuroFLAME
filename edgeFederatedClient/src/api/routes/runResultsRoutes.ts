@@ -1,6 +1,5 @@
 // src/routes/runFilesRoutes.ts
 import { Router } from 'express'
-import { authenticate } from '../middlewares/authMiddleware.js' // Ensure this middleware is implemented
 import {
   listRunFiles,
   serveRunFile,
@@ -9,10 +8,10 @@ import {
 
 const router = Router()
 
-// Apply authentication middleware to all routes under /run-files
-router.use(authenticate)
-
 // Define the routes
+router.get('/zip/:consortiumId/:runId/:participantId', serveRunFolder)
+router.get('/:consortiumId/:runId/:participantId/*', serveRunFile)
+router.get('/:consortiumId/:runId/:participantId', listRunFiles)
 router.get('/zip/:consortiumId/:runId', serveRunFolder)
 router.get('/:consortiumId/:runId/*', serveRunFile)
 router.get('/:consortiumId/:runId', listRunFiles)

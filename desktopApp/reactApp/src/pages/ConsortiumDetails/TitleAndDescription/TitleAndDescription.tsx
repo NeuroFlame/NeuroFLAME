@@ -5,9 +5,9 @@ export function TitleAndDescription({
   description,
 }: { title: string, description: string }) {
   return (
-    <Box marginBottom={2}>
-      <Typography fontSize='11px'>Consortium:</Typography>
-      <Typography variant='h4' gutterBottom>
+    <Box>
+      <Typography fontSize='11px' margin={0}>Consortium:</Typography>
+      <Typography variant='h4'>
         {title}
       </Typography>
       <Typography variant='body1' color='textSecondary'>

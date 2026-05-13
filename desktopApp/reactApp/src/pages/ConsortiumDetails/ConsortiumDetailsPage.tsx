@@ -142,21 +142,32 @@ export function ConsortiumDetailsPage() {
   return (
     <>
       <Grid container spacing={2} padding={2}>
-        <Grid size={12}>
-          <ConsortiumActions
-            consortiumId={consortiumId}
-            isLeader={isLeader}
-            isPrivate={isPrivate}
-            isLoading={status.loading}
-            onPrivacyChange={handlePrivacyChange}
-            onInvite={() => setIsInviteModalOpen(true)}
-            onDelete={() => setIsDeleteModalOpen(true)}
-            onNavigate={navigate}
-          />
+          <Grid 
+            container
+            size={12} 
+            spacing={0} 
+            padding={0} 
+          >
+          <Grid size={{ xs: 12, sm: 6 }} justifyContent='flex-start' alignItems='bottom'>
+            <TitleAndDescription title={title} description={description} />
+          </Grid>
+          <Grid 
+            size={{ xs: 12, sm: 6 }}  
+            alignItems='bottom'>
+            <ConsortiumActions
+              consortiumId={consortiumId}
+              isLeader={isLeader}
+              isPrivate={isPrivate}
+              isLoading={status.loading}
+              onPrivacyChange={handlePrivacyChange}
+              onInvite={() => setIsInviteModalOpen(true)}
+              onDelete={() => setIsDeleteModalOpen(true)}
+              onNavigate={navigate}
+            />
+          </Grid>
         </Grid>
 
-        <Grid size={{ sm: 6, md: 4 }}>
-          <TitleAndDescription title={title} description={description} />
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
 
           {isLeader && hasComputation && <StartRunButton />}
           {isActive && <DirectorySelect />}
@@ -176,7 +187,7 @@ export function ConsortiumDetailsPage() {
           )}
         </Grid>
 
-        <Grid size={{ sm: 6, md: 4 }} className='consortium-details-grid-2'>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} className='consortium-details-grid-2'>
           <LatestRun />
           <Computation computation={studyConfiguration?.computation} />
 

@@ -196,6 +196,22 @@ async function appOnReady(): Promise<void> {
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     const parsedUrl = new URL(url)
+
+    if (parsedUrl.pathname === '/nii-viewer') {
+      const niiUrl = parsedUrl.searchParams.get('url')
+      if (niiUrl && mainWindow) {
+        mainWindow.webContents.executeJavaScript(
+          `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niiUrl)} } }))`
+        ).catch(() => {})
+      }
+      return { action: 'deny' }
+    }
+
+    if (parsedUrl.pathname.includes('/zip/')) {
+      mainWindow?.webContents.downloadURL(url)
+      return { action: 'deny' }
+    }
+
     const openInSelf = parsedUrl.searchParams.get('window') === 'self'
     if (openInSelf) {
       mainWindow?.loadURL(url)
