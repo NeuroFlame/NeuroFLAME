@@ -8,9 +8,11 @@ import CSVViewer from './CSVViewer'
 import MatViewer from './MatViewer'
 import NiiVueViewer from './NiiVueViewer'
 import TextViewer from './TextViewer'
+import { useUserState } from '../../contexts/UserStateContext'
 
 export default function RunResults() {
   const navigate = useNavigate()
+  const { userId } = useUserState()
 
   const {
     consortiumId,
@@ -126,7 +128,7 @@ export default function RunResults() {
               variant='outlined'
               color='primary'
               style={{ margin: '0 0 1rem 1rem' }}
-              href={`${edgeClientRunResultsUrl}/zip/${consortiumId}/${runId}/`}
+              href={`${edgeClientRunResultsUrl}/zip/${consortiumId}/${runId}/${userId}/`}
             >
               Download Results
             </Button>

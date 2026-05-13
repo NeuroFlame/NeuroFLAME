@@ -73,8 +73,9 @@ const walkDirectory = (
 export const listRunFiles = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
-    const { consortiumId, runId } = req.params
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
     const participantId = (
+      routeParticipantId ??
       (req as any).user?.participantId ??
       (req as any).user?.userId
     ) as string | undefined
@@ -90,7 +91,9 @@ export const listRunFiles = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Run directory not found' })
     }
 
-    const baseUrl = `${consortiumId}/${runId}`
+    const baseUrl = participantId
+      ? `${consortiumId}/${runId}/${participantId}`
+      : `${consortiumId}/${runId}`
     const rootPath = directoryPath
     const fileList = walkDirectory(directoryPath, baseUrl, rootPath)
 
@@ -104,8 +107,9 @@ export const listRunFiles = async (req: Request, res: Response) => {
 export const serveRunFile = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
-    const { consortiumId, runId } = req.params
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
     const participantId = (
+      routeParticipantId ??
       (req as any).user?.participantId ??
       (req as any).user?.userId
     ) as string | undefined
@@ -152,7 +156,7 @@ export const serveRunFile = async (req: Request, res: Response) => {
           size: entryStat.size,
           isDirectory: entry.isDirectory(),
           lastModified: entryStat.mtime,
-          url: `${consortiumId}/${runId}/${relativeUrl}`.replace(/\\/g, '/'),
+          url: `${participantId ? `${consortiumId}/${runId}/${participantId}` : `${consortiumId}/${runId}`}/${relativeUrl}`.replace(/\\/g, '/'),
         }
       })
 
@@ -187,8 +191,9 @@ export const serveRunFile = async (req: Request, res: Response) => {
 export const serveRunFolder = async (req: Request, res: Response) => {
   try {
     const { pathBaseDirectory: filesDirectory } = await getConfig()
-    const { consortiumId, runId } = req.params
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
     const participantId = (
+      routeParticipantId ??
       (req as any).user?.participantId ??
       (req as any).user?.userId
     ) as string | undefined

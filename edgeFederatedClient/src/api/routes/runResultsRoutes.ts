@@ -9,6 +9,9 @@ import {
 const router = Router()
 
 // Define the routes
+router.get('/zip/:consortiumId/:runId/:participantId', serveRunFolder)
+router.get('/:consortiumId/:runId/:participantId/*', serveRunFile)
+router.get('/:consortiumId/:runId/:participantId', listRunFiles)
 router.get('/zip/:consortiumId/:runId', serveRunFolder)
 router.get('/:consortiumId/:runId/*', serveRunFile)
 router.get('/:consortiumId/:runId', listRunFiles)
