@@ -16,7 +16,9 @@ export function useCreateUser() {
       await userCreate({ username, password })
       setSuccess(true)
     } catch (err) {
-      setError('Create user failed, please try again.')
+      const errorMessage =
+        err instanceof Error ? err.message : 'Create user failed, please try again.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
