@@ -11,7 +11,7 @@ const NEW_USER = {
   password: 'password',
 }
 
-test.describe.only('User Registration', () => {
+test.describe('User Registration', () => {
   let page: Page
 
   test.beforeAll(async () => {
