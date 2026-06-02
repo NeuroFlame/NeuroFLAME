@@ -41,17 +41,6 @@ const VaultListPage: React.FC = () => {
           >
             Reload
           </Button>
-
-          {isAdmin && (
-            <Button
-              variant='outlined'
-              color='primary'
-              onClick={() => navigate('/computation/create/')}
-              sx={{ marginBottom: 2, marginRight: 1 }}
-            >
-              Add Vault
-            </Button>
-          )}
         </Box>
       </Box>
       <Box sx={{ backgroundColor: 'white', borderRadius: '8px', p: 2 }}>

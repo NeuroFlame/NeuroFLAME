@@ -1,78 +1,89 @@
 // AdminPage.tsx
-import { Box, Typography, Divider } from '@mui/material'
+import { useState, SyntheticEvent } from 'react'
+import {
+  Box,
+  Typography,
+  Tabs,
+  Tab,
+  Paper,
+  Container,
+} from '@mui/material'
+import StorageIcon from '@mui/icons-material/Storage'
+import LockResetIcon from '@mui/icons-material/LockReset'
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 import ChangeUserPassword from './ChangeUserPassword'
 import ChangeUserRoles from './ChangeUserRoles'
 import VaultStatus from './VaultStatus'
 
-export default function AdminPage() {
+interface TabPanelProps {
+  children: React.ReactNode
+  value: number
+  index: number
+}
+
+function TabPanel({ children, value, index }: TabPanelProps) {
   return (
     <Box
-      sx={{
-        width: '100vw',
-        minHeight: '100vh',
-        backgroundColor: '#f4f6f8',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: 4,
-      }}
+      role="tabpanel"
+      hidden={value !== index}
+      id={`admin-tabpanel-${index}`}
+      aria-labelledby={`admin-tab-${index}`}
     >
-      <Typography variant='h4' sx={{ mb: 4, fontWeight: 'bold' }}>
-        Admin Panel
-      </Typography>
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </Box>
+  )
+}
 
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '900px',
-          backgroundColor: 'white',
-          borderRadius: 2,
-          boxShadow: 1,
-          padding: 4,
-          mb: 4,
-        }}
-      >
-        <Typography variant='h5' sx={{ mb: 2, fontWeight: 'bold' }}>
-          Vault Status
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        <VaultStatus />
-      </Box>
+function a11yProps(index: number) {
+  return {
+    id: `admin-tab-${index}`,
+    'aria-controls': `admin-tabpanel-${index}`,
+  }
+}
 
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '600px',
-          backgroundColor: 'white',
-          borderRadius: 2,
-          boxShadow: 1,
-          padding: 4,
-          mb: 4,
-        }}
-      >
-        <Typography variant='h5' sx={{ mb: 2, fontWeight: 'bold' }}>
-          Change User Password
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        <ChangeUserPassword />
-      </Box>
+export default function AdminPage() {
+  const [tab, setTab] = useState(0)
 
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '600px',
-          backgroundColor: 'white',
-          borderRadius: 2,
-          boxShadow: 1,
-          padding: 4,
-        }}
-      >
-        <Typography variant='h5' sx={{ mb: 2, fontWeight: 'bold' }}>
-          Change User Roles
+  const handleChange = (_: SyntheticEvent, newValue: number) => {
+    setTab(newValue)
+  }
+
+  return (
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', py: 4 }}>
+      <Container maxWidth="lg">
+        <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold' }}>
+          Admin Panel
         </Typography>
-        <Divider sx={{ mb: 2 }} />
-        <ChangeUserRoles />
-      </Box>
+
+        <Paper elevation={1} sx={{ borderRadius: 2 }}>
+          <Tabs
+            value={tab}
+            onChange={handleChange}
+            aria-label="Admin sections"
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              px: 2,
+            }}
+          >
+            <Tab icon={<StorageIcon />} iconPosition="start" label="Vault Status" {...a11yProps(0)} />
+            <Tab icon={<LockResetIcon />} iconPosition="start" label="User Password" {...a11yProps(1)} />
+            <Tab icon={<ManageAccountsIcon />} iconPosition="start" label="User Roles" {...a11yProps(2)} />
+          </Tabs>
+
+          <Box sx={{ px: 4, pb: 4 }}>
+            <TabPanel value={tab} index={0}>
+              <VaultStatus />
+            </TabPanel>
+            <TabPanel value={tab} index={1}>
+              <ChangeUserPassword />
+            </TabPanel>
+            <TabPanel value={tab} index={2}>
+              <ChangeUserRoles />
+            </TabPanel>
+          </Box>
+        </Paper>
+      </Container>
     </Box>
   )
 }
