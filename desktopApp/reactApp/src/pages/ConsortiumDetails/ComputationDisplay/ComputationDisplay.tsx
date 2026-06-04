@@ -16,18 +16,6 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({
   const computation =
     consortiumDetails?.studyConfiguration?.computation as Maybe<Computation>
 
-  if (!computation) {
-    return (
-      <Card>
-        <CardContent>
-          <Typography fontSize='11px'>Computation Notes:</Typography>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const { title, notes, imageName } = computation
-
   const rootRef = useRef<HTMLDivElement | null>(null)
 
   // React-Markdown custom renderers
@@ -81,7 +69,19 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({
         })
       })
     })
-  }, [notes]) // re-run when markdown changes
+  }, [computation?.notes]) // re-run when markdown changes
+
+  if (!computation) {
+    return (
+      <Card>
+        <CardContent>
+          <Typography fontSize='11px'>Computation Notes:</Typography>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const { title, notes, imageName } = computation
 
   return (
     <Box

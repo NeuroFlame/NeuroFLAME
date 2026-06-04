@@ -13,13 +13,17 @@ export function useLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleLogin = async (username: string, password: string) => {
+  const handleLogin = async (
+    username: string,
+    password: string,
+    keepLoggedIn: boolean,
+  ) => {
     try {
       setLoading(true)
       setError(null)
       // request to the central api
       const userData = await login({ username, password })
-      await setUserData(userData)
+      await setUserData(userData, { keepLoggedIn })
       await connectAsUser()
       navigate('/home')
     } catch (err) {

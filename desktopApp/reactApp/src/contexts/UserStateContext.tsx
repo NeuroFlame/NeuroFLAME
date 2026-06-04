@@ -15,7 +15,7 @@ interface UserStateContextType {
     userId: string,
     username: string,
     roles: string[],
-  }) => void;
+  }, options?: { keepLoggedIn?: boolean }) => void;
   clearUserData: () => void;
 }
 
@@ -35,6 +35,13 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const loadUserFromLocalStorage = async () => {
+    const keepLoggedIn = localStorage.getItem('keepLoggedIn') === 'true'
+
+    if (!keepLoggedIn) {
+      clearLocalStorageForUser()
+      return
+    }
+
     const localAccessToken = localStorage.getItem('accessToken')
     const localUserId = localStorage.getItem('userId')
     const localUsername = localStorage.getItem('username')
@@ -48,8 +55,7 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
         username: localUsername,
         roles: JSON.parse(localRoles),
       })
-      // TODO investigate ways that don't rely on local storage
-      localStorage.setItem('accessToken', localAccessToken)
+      sessionStorage.setItem('accessToken', localAccessToken)
     }
   }
 
@@ -64,10 +70,21 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     username: string,
     roles: string[],
   }) => {
+    sessionStorage.setItem('accessToken', accessToken)
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('userId', userId)
     localStorage.setItem('username', username)
     localStorage.setItem('roles', JSON.stringify(roles))
+    localStorage.setItem('keepLoggedIn', 'true')
+  }
+
+  const setSessionStorageForUser = async ({
+    accessToken,
+  }: {
+    accessToken: string,
+  }) => {
+    clearLocalStorageForUser()
+    sessionStorage.setItem('accessToken', accessToken)
   }
 
   const clearUserData = async () => {
@@ -85,6 +102,8 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('userId')
     localStorage.removeItem('username')
     localStorage.removeItem('roles')
+    localStorage.removeItem('keepLoggedIn')
+    sessionStorage.removeItem('accessToken')
   }
 
   const setUserData = async (data: {
@@ -92,7 +111,7 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     userId: string,
     username: string,
     roles: string[],
-  }) => {
+  }, options?: { keepLoggedIn?: boolean }) => {
     _setUserData({
       accessToken: data.accessToken,
       userId: data.userId,
@@ -100,7 +119,12 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
       roles: data.roles,
     })
 
-    setLocalStorageForUser(data)
+    if (options?.keepLoggedIn) {
+      setLocalStorageForUser(data)
+      return
+    }
+
+    setSessionStorageForUser(data)
   }
 
   return (
