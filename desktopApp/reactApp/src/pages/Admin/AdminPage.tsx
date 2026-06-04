@@ -24,7 +24,7 @@ interface TabPanelProps {
 function TabPanel({ children, value, index }: TabPanelProps) {
   return (
     <Box
-      role="tabpanel"
+      role='tabpanel'
       hidden={value !== index}
       id={`admin-tabpanel-${index}`}
       aria-labelledby={`admin-tab-${index}`}
@@ -50,8 +50,8 @@ export default function AdminPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', py: 4 }}>
-      <Container maxWidth="lg">
-        <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold' }}>
+      <Container maxWidth='lg'>
+        <Typography variant='h4' sx={{ mb: 4, fontWeight: 'bold' }}>
           Admin Panel
         </Typography>
 
@@ -59,16 +59,16 @@ export default function AdminPage() {
           <Tabs
             value={tab}
             onChange={handleChange}
-            aria-label="Admin sections"
+            aria-label='Admin sections'
             sx={{
               borderBottom: 1,
               borderColor: 'divider',
               px: 2,
             }}
           >
-            <Tab icon={<StorageIcon />} iconPosition="start" label="Vault Status" {...a11yProps(0)} />
-            <Tab icon={<LockResetIcon />} iconPosition="start" label="User Password" {...a11yProps(1)} />
-            <Tab icon={<ManageAccountsIcon />} iconPosition="start" label="User Roles" {...a11yProps(2)} />
+            <Tab icon={<StorageIcon />} iconPosition='start' label='Vault Status' {...a11yProps(0)} />
+            <Tab icon={<LockResetIcon />} iconPosition='start' label='User Password' {...a11yProps(1)} />
+            <Tab icon={<ManageAccountsIcon />} iconPosition='start' label='User Roles' {...a11yProps(2)} />
           </Tabs>
 
           <Box sx={{ px: 4, pb: 4 }}>
