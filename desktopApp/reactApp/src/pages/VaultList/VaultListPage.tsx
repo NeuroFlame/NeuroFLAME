@@ -8,15 +8,9 @@ import {
   Container,
 } from '@mui/material'
 import ReplayIcon from '@mui/icons-material/Replay'
-import { useNavigate } from 'react-router-dom'
-import { useUserState } from '../../contexts/UserStateContext'
 import VaultUserList from './VaultUserList'
 
 const VaultListPage: React.FC = () => {
-  const navigate = useNavigate()
-  const { roles } = useUserState()
-  const isAdmin = roles.includes('admin')
-
   const [refreshSignal, setRefreshSignal] = useState(0)
 
   const handleRefresh = () => {
@@ -41,17 +35,6 @@ const VaultListPage: React.FC = () => {
           >
             Reload
           </Button>
-
-          {isAdmin && (
-            <Button
-              variant='outlined'
-              color='primary'
-              onClick={() => navigate('/computation/create/')}
-              sx={{ marginBottom: 2, marginRight: 1 }}
-            >
-              Add Vault
-            </Button>
-          )}
         </Box>
       </Box>
       <Box sx={{ backgroundColor: 'white', borderRadius: '8px', p: 2 }}>
