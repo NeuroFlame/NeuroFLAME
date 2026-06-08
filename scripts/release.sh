@@ -9,6 +9,14 @@ SKIP_VERSION=false
 PUBLISH_NPM=true
 DEPLOY_GH=false
 ALLOW_DIRTY=false
+NPM_AUTH_CONFIG=""
+
+cleanup() {
+  if [ -n "${NPM_AUTH_CONFIG:-}" ] && [ -f "$NPM_AUTH_CONFIG" ]; then
+    rm -f "$NPM_AUTH_CONFIG"
+  fi
+}
+trap cleanup EXIT
 
 usage() {
   cat <<'EOF'
@@ -48,6 +56,30 @@ check_cmd() {
     echo "Missing required command: $cmd"
     exit 1
   fi
+}
+
+configure_npm_publish_auth() {
+  local token="${NPM_TOKEN:-}"
+  if [ -z "$token" ]; then
+    echo "No npm token found in NPM_TOKEN."
+    echo "If npm prompts for 2FA, export a granular npm token with bypass 2FA enabled."
+    return 0
+  fi
+
+  local registry="${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}"
+  local registry_key="${registry#http://}"
+  registry_key="${registry_key#https://}"
+  registry_key="${registry_key%/}"
+
+  NPM_AUTH_CONFIG="$(mktemp "${TMPDIR:-/tmp}/neuroflame-npmrc.XXXXXX")"
+  chmod 0600 "$NPM_AUTH_CONFIG"
+  {
+    printf 'registry=%s\n' "$registry"
+    printf '//%s/:_authToken=%s\n' "$registry_key" "$token"
+  } >"$NPM_AUTH_CONFIG"
+  export NPM_CONFIG_USERCONFIG="$NPM_AUTH_CONFIG"
+
+  echo "Using npm auth token from environment for publish."
 }
 
 has_unreleased_changesets() {
@@ -134,6 +166,7 @@ fi
 
 if [ "$PUBLISH_NPM" = true ]; then
   if confirm "Publish npm packages via changesets?"; then
+    configure_npm_publish_auth
     npx changeset publish
   else
     echo "Skipped npm publish."
