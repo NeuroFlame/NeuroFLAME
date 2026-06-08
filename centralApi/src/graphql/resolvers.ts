@@ -1171,10 +1171,13 @@ export default {
       }
 
       // create a token
-      const tokens = generateTokens({
-        userId: user._id,
-        roles: user.roles,
-      })
+      const tokens = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+        },
+        { shouldExpire: false },
+      )
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -2280,6 +2283,49 @@ export default {
       } catch (error) {
         logger.error('Error changing password:', error)
         throw new Error('Failed to change password')
+      }
+    },
+    adminCreateVaultUser: async (
+      _: unknown,
+      { username, password }: { username: string; password: string },
+      context: Context,
+    ): Promise<LoginOutput> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const normalizedUsername = username.trim()
+      if (!EMAIL_REGEX.test(normalizedUsername)) {
+        throw new Error('Username should be email')
+      }
+
+      const existingUser = await User.findOne({ username: normalizedUsername })
+      if (existingUser) {
+        throw new Error('User already exists')
+      }
+
+      const hashedPassword = await hashPassword(password)
+      const user = await User.create({
+        username: normalizedUsername,
+        hash: hashedPassword,
+        roles: ['vault'],
+      })
+
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+      })
+      const { accessToken } = tokens as { accessToken: string }
+
+      return {
+        accessToken,
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
       }
     },
     adminChangeUserRoles: async (

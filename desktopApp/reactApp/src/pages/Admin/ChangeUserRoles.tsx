@@ -26,7 +26,7 @@ export default function ChangeUserRoles() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const availableRoles = ['admin', 'user'] // Example roles, customize as needed
+  const availableRoles = ['admin', 'user', 'vault']
 
   const handleRolesChange = (event: SelectChangeEvent<string[]>) => {
     setRoles(event.target.value as string[])
