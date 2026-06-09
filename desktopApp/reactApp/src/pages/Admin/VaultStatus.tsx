@@ -29,10 +29,12 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
   ComputationListItem,
   HostedVault,
+  LoginOutput,
   VaultServer,
 } from '../../apis/centralApi/generated/graphql'
 
@@ -62,6 +64,108 @@ function isOnline(lastHeartbeat: string): boolean {
   const date = new Date(lastHeartbeat)
   const now = new Date()
   return now.getTime() - date.getTime() < OFFLINE_THRESHOLD_MS
+}
+
+interface VaultUserProvisionerProps {
+  createdVaultUser: LoginOutput | null
+  createError: string | null
+  creatingVaultUser: boolean
+  onCreateVaultUser: (input: { username: string; password: string }) => Promise<void>
+}
+
+function VaultUserProvisioner({
+  createdVaultUser,
+  createError,
+  creatingVaultUser,
+  onCreateVaultUser,
+}: VaultUserProvisionerProps) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  const handleCreateVaultUser = async () => {
+    await onCreateVaultUser({
+      username,
+      password,
+    })
+    setPassword('')
+    setCopySuccess(false)
+  }
+
+  const handleCopyToken = async () => {
+    if (!createdVaultUser?.accessToken) return
+
+    await navigator.clipboard.writeText(createdVaultUser.accessToken)
+    setCopySuccess(true)
+  }
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        Create Vault User
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Creates a vault service account and returns the token for VAULT_ACCESS_TOKEN.
+      </Typography>
+
+      {createError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {createError}
+        </Alert>
+      )}
+
+      <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(240px, 1fr) minmax(200px, 320px) auto' }}>
+        <TextField
+          fullWidth
+          size="small"
+          label="Vault User Email"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          disabled={creatingVaultUser}
+        />
+        <TextField
+          fullWidth
+          size="small"
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={creatingVaultUser}
+        />
+        <Button
+          variant="contained"
+          disabled={creatingVaultUser || username.trim().length === 0 || password.length === 0}
+          onClick={handleCreateVaultUser}
+        >
+          {creatingVaultUser ? 'Creating...' : 'Create User'}
+        </Button>
+      </Box>
+
+      {createdVaultUser && (
+        <Box sx={{ mt: 2 }}>
+          <Alert severity="success" sx={{ mb: 1.5 }}>
+            Vault user {createdVaultUser.username} created. Use this token as VAULT_ACCESS_TOKEN.
+          </Alert>
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            label="VAULT_ACCESS_TOKEN"
+            value={createdVaultUser.accessToken}
+            InputProps={{ readOnly: true }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopyIcon />}
+            onClick={handleCopyToken}
+            sx={{ mt: 1 }}
+          >
+            {copySuccess ? 'Copied' : 'Copy Token'}
+          </Button>
+        </Box>
+      )}
+    </Paper>
+  )
 }
 
 interface HostedVaultCardProps {
@@ -515,6 +619,7 @@ function VaultServerRow({
 
 export default function VaultStatus() {
   const {
+    adminCreateVaultUser,
     adminCreateHostedVault,
     adminSetHostedVaultAllowedComputations,
     getComputationList,
@@ -527,6 +632,9 @@ export default function VaultStatus() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [savingVaultId, setSavingVaultId] = useState<string | null>(null)
   const [creatingServerId, setCreatingServerId] = useState<string | null>(null)
+  const [creatingVaultUser, setCreatingVaultUser] = useState(false)
+  const [createdVaultUser, setCreatedVaultUser] = useState<LoginOutput | null>(null)
+  const [createVaultUserError, setCreateVaultUserError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const loadVaults = useCallback(async () => {
@@ -607,6 +715,30 @@ export default function VaultStatus() {
     [adminCreateHostedVault, loadVaults],
   )
 
+  const handleCreateVaultUser = useCallback(
+    async ({ username, password }: { username: string; password: string }) => {
+      try {
+        setCreatingVaultUser(true)
+        setCreateVaultUserError(null)
+        const vaultUser = await adminCreateVaultUser({
+          username: username.trim(),
+          password,
+        })
+        setCreatedVaultUser(vaultUser)
+        await loadVaults()
+      } catch (err) {
+        setCreateVaultUserError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to create vault user',
+        )
+      } finally {
+        setCreatingVaultUser(false)
+      }
+    },
+    [adminCreateVaultUser, loadVaults],
+  )
+
   const onlineCount = vaultServers.filter(
     (server) => server.status && isOnline(server.status.lastHeartbeat),
   ).length
@@ -635,6 +767,13 @@ export default function VaultStatus() {
 
   return (
     <Box>
+      <VaultUserProvisioner
+        createdVaultUser={createdVaultUser}
+        createError={createVaultUserError}
+        creatingVaultUser={creatingVaultUser}
+        onCreateVaultUser={handleCreateVaultUser}
+      />
+
       <Box
         sx={{
           display: 'flex',
