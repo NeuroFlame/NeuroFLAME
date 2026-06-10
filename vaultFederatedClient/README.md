@@ -29,12 +29,14 @@ The client is configured by environment variables.
 Required:
 
 ```bash
-VAULT_HTTP_URL=https://your-central-api.example.com/graphql
-VAULT_WS_URL=wss://your-central-api.example.com/graphql
+VAULT_HTTP_URL=http://your-central-api.example.com:3001/graphql
+VAULT_WS_URL=ws://your-central-api.example.com:3001/graphql
 VAULT_ACCESS_TOKEN=your-vault-token
 VAULT_BASE_DIR=/var/lib/neuroflame/vault/work
 VAULT_DATASET_DIR=/path/to/your/datasets
 ```
+
+Use `http` and `ws` when connecting directly to a raw central API port. Use `https` and `wss` only when the endpoint is behind TLS termination, such as a reverse proxy or load balancer with a certificate.
 
 Optional:
 

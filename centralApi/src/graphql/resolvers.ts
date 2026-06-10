@@ -335,7 +335,7 @@ const getOrCreateVaultServerForUser = async (
       : `${user.username} Vault Server`
   const description =
     typeof user.vault?.description === 'string'
-      ? user.vault.description
+      ? user.vault.description.trim()
       : ''
 
   return VaultServer.create({

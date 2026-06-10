@@ -11,6 +11,7 @@ const HEARTBEAT_INTERVAL_MS = 30_000 // 30 seconds
 
 // Track heartbeat state
 let heartbeatTimer: NodeJS.Timeout | null = null
+let consecutiveHeartbeatFailures = 0
 const startTime = Date.now()
 
 // Version info (could be loaded from package.json in production)
@@ -38,6 +39,10 @@ const HEARTBEAT_MUTATION = `
     vaultHeartbeat(heartbeat: $heartbeat)
   }
 `
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
 
 /**
  * Build the heartbeat payload with current status
@@ -93,6 +98,13 @@ async function sendHeartbeat(): Promise<void> {
       throw new Error(result.errors.map((e) => e.message).join(', '))
     }
 
+    if (consecutiveHeartbeatFailures > 0) {
+      logger.info('Heartbeat recovered', {
+        context: { failedAttempts: consecutiveHeartbeatFailures },
+      })
+    }
+    consecutiveHeartbeatFailures = 0
+
     logger.debug('Heartbeat sent successfully', {
       context: {
         status: payload.status,
@@ -101,8 +113,16 @@ async function sendHeartbeat(): Promise<void> {
       },
     })
   } catch (error) {
-    // Log but don't throw - heartbeat failures shouldn't crash the service
-    logger.warn('Failed to send heartbeat', { error })
+    consecutiveHeartbeatFailures++
+
+    if (consecutiveHeartbeatFailures === 1 || consecutiveHeartbeatFailures % 10 === 0) {
+      logger.warn('Failed to send heartbeat', {
+        context: {
+          failedAttempts: consecutiveHeartbeatFailures,
+          error: getErrorMessage(error),
+        },
+      })
+    }
   }
 }
 
@@ -162,6 +182,8 @@ export async function stopHeartbeat(): Promise<void> {
 
     logger.info('Final heartbeat sent')
   } catch (error) {
-    logger.warn('Failed to send final heartbeat', { error })
+    logger.warn('Failed to send final heartbeat', {
+      context: { error: getErrorMessage(error) },
+    })
   }
 }
