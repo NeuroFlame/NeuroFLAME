@@ -1,5 +1,11 @@
 # @neuroflame/vault
 
+## 1.0.2
+
+### Patch Changes
+
+- vault hotfix
+
 ## 1.0.1
 
 ### Patch Changes
