@@ -25,6 +25,8 @@ jobs:
 
       - name: Build docker
         run: ./scripts/dockerbuild-for-ci.sh
+        env:
+          NODE_ENV: 'test'
 
       - name: Run tests
         run: ./docker-compose-ci.sh

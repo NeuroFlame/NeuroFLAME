@@ -15,7 +15,55 @@ import computationNotesSingleRoundClosedformRegressionVBM from './seedContent/co
 import computationNotesSpatiallyConstrainedICA from './seedContent/computationNotesSpatiallyConstrainedICA.js'
 import vaultDescriptionCobreFreeSurfer from './seedContent/vaultDescriptionCobreFreeSurfer.js'
 
+type SeedUser = {
+  _id: mongoose.Types.ObjectId
+  username: string
+  hash: string
+  roles?: string[]
+  vault?: {
+    name: string
+    description: string
+    allowedComputations: mongoose.Types.ObjectId[]
+  }
+  resetToken?: string
+  resetTokenExpiry?: number
+}
+
+type SeedComputation = (typeof computations)[number]
+
+type SeedConsortium = {
+  _id: mongoose.Types.ObjectId
+  title: string
+  description: string
+  leader: mongoose.Types.ObjectId
+  members: mongoose.Types.ObjectId[]
+  activeMembers: mongoose.Types.ObjectId[]
+  vaultMembers: mongoose.Types.ObjectId[]
+  activeVaultMembers: mongoose.Types.ObjectId[]
+  readyVaultMembers: mongoose.Types.ObjectId[]
+  studyConfiguration: {
+    consortiumLeaderNotes: string
+    computationParameters: string
+    computation: SeedComputation
+  }
+}
+
+type SeedRun = {
+  _id: mongoose.Types.ObjectId
+  consortium: mongoose.Types.ObjectId
+  consortiumLeader: mongoose.Types.ObjectId
+  studyConfiguration: SeedConsortium['studyConfiguration']
+  members: mongoose.Types.ObjectId[]
+  vaultMembers: mongoose.Types.ObjectId[]
+  status: string
+  runErrors: { user: mongoose.Types.ObjectId; timestamp: string; message: string }[]
+  createdAt: number
+  lastUpdated: number
+}
+
 const saltRounds = 10
+
+const isTest = process.env.NODE_ENV === 'test'
 
 // Predefined ObjectIds for relationships and consistency
 const predefinedIds = {
@@ -28,15 +76,21 @@ const predefinedIds = {
   vaultServer1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20073'),
   hostedVault1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20074'),
   hostedVault2Id: new mongoose.Types.ObjectId('66289c79aebab67040a20075'),
+  testUser1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20076'),
+  testUser2Id: new mongoose.Types.ObjectId('66289c79aebab67040a20077'),
   computation1Id: new mongoose.Types.ObjectId('66289c79aebab67040a21000'),
   computation2Id: new mongoose.Types.ObjectId('66289c79aebab67040a21001'),
   computation3Id: new mongoose.Types.ObjectId('66289c79aebab67040a21002'),
   consortium1Id: new mongoose.Types.ObjectId('66289c79aecab67040a22001'),
+  consortium2Id: new mongoose.Types.ObjectId('66289c79aecab67040a22002'),
   run1Id: new mongoose.Types.ObjectId('66289c79aecab67040a23000'),
+  run2Id: new mongoose.Types.ObjectId('66289c79aecab67040a23001'),
+  run3Id: new mongoose.Types.ObjectId('66289c79aecab67040a23002'),
+  run4Id: new mongoose.Types.ObjectId('66289c79aecab67040a23003'),
 }
 
 // Define data
-const users = [
+const users: SeedUser[] = [
   {
     _id: predefinedIds.user1Id,
     username: 'user1@email.com',
@@ -110,7 +164,7 @@ const computations = [
   },
 ]
 
-const consortia = [
+const consortia: SeedConsortium[] = [
   {
     _id: predefinedIds.consortium1Id,
     title: 'Single Round Ridge Regression Consortium',
@@ -176,8 +230,7 @@ const hostedVaults = [
   },
 ]
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const runs = [
+const runs: SeedRun[] = [
   {
     _id: predefinedIds.run1Id,
     consortium: predefinedIds.consortium1Id,
@@ -187,10 +240,93 @@ const runs = [
     vaultMembers: consortia[0].vaultMembers,
     status: 'Pending',
     runErrors: [],
-    createdAt: new Date(),
-    lastUpdated: new Date(),
+    createdAt: new Date().setUTCFullYear(2023),
+    lastUpdated: new Date().setUTCFullYear(2023),
   },
 ]
+
+if (isTest) {
+  users.push({
+    _id: predefinedIds.testUser1Id,
+    username: 'e2e-test-user-1@email.com',
+    hash: await bcrypt.hash('password', saltRounds),
+    resetToken: 'reset-token',
+    resetTokenExpiry: Date.now() + 1000 * 60 * 60 * 24,
+  })
+
+  users.push({
+    _id: predefinedIds.testUser2Id,
+    username: 'e2e-test-user-2@email.com',
+    hash: await bcrypt.hash('password', saltRounds),
+  })
+
+  consortia.push({
+    _id: predefinedIds.consortium2Id,
+    title: 'Single Round Closedform Regression VBM',
+    description: 'Test consortium for single round closedform regression VBM',
+    leader: predefinedIds.user1Id,
+    members: [predefinedIds.user1Id, predefinedIds.user2Id],
+    activeMembers: [predefinedIds.user1Id, predefinedIds.user2Id],
+    vaultMembers: [],
+    activeVaultMembers: [],
+    readyVaultMembers: [],
+    studyConfiguration: {
+      consortiumLeaderNotes: 'Leader notes for single round closedform regression VBM',
+      computationParameters: JSON.stringify({
+        Covariates: {
+          sex: 'str',
+          isControl: 'bool',
+          age: 'float',
+        },
+        Lambda: 1,
+        Threshold: 0.2,
+        VoxelSize: 4,
+        ReferenceColumns: { site: 'IA' },
+        IgnoreSubjectsWithMissingData: false,
+      }),
+      computation: computations[1],
+    },
+  })
+
+  runs.push(...[
+    {
+      _id: predefinedIds.run2Id,
+      consortium: predefinedIds.consortium1Id,
+      consortiumLeader: predefinedIds.user1Id,
+      studyConfiguration: consortia[0].studyConfiguration,
+      members: consortia[0].members,
+      vaultMembers: consortia[0].vaultMembers,
+      status: 'Complete',
+      runErrors: [],
+      createdAt: new Date().setUTCFullYear(2024),
+      lastUpdated: new Date().setUTCFullYear(2024),
+    },
+    {
+      _id: predefinedIds.run3Id,
+      consortium: predefinedIds.consortium2Id,
+      consortiumLeader: predefinedIds.user1Id,
+      studyConfiguration: consortia[1].studyConfiguration,
+      members: consortia[1].members,
+      vaultMembers: [],
+      status: 'Running',
+      runErrors: [],
+      createdAt: new Date().setUTCFullYear(2025),
+      lastUpdated: new Date().setUTCFullYear(2025),
+    },
+    {
+      _id: predefinedIds.run4Id,
+      consortium: predefinedIds.consortium2Id,
+      consortiumLeader: predefinedIds.user1Id,
+      studyConfiguration: consortia[1].studyConfiguration,
+      members: consortia[1].members,
+      vaultMembers: [],
+      status: 'Failed',
+      runErrors: [],
+      createdAt: new Date().setUTCFullYear(2026),
+      lastUpdated: new Date().setUTCFullYear(2026),
+    },
+  ])
+}
 
 // Seeding Function
 const seedDatabase = async () => {
@@ -224,8 +360,10 @@ const seedDatabase = async () => {
     await Consortium.insertMany(consortia)
     logger.info('Consortia seeded successfully!')
 
-    // await Run.insertMany(runs);
-    // logger.info('Runs seeded successfully!');
+    if (isTest) {
+      await Run.insertMany(runs)
+      logger.info('Runs seeded successfully!')
+    }
   } catch (error) {
     logger.error('Failed to seed database:', error)
   } finally {

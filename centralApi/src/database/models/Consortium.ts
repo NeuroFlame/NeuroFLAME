@@ -5,7 +5,7 @@ import {
 } from './StudyConfiguration.js'
 
 // Define an interface for the Consortium document
-interface IConsortium extends Document {
+export interface IConsortium extends Document {
   title: string
   description: string
   leader: mongoose.Types.ObjectId // Reference to a User
