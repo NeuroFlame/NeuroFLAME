@@ -25,13 +25,14 @@ jobs:
 
       - name: Build docker
         run: ./scripts/dockerbuild-for-ci.sh
+        env:
+          NODE_ENV: 'test'
 
       - name: Run tests
         run: ./docker-compose-ci.sh
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET || 'access-token-secret-example' }}
-          NODE_ENV: test
 
       - name: Dump Docker logs & inspect for debugging
         if: failure() # Remove if you want it to always run
