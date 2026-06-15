@@ -89,6 +89,7 @@ export type Mutation = {
   adminSetHostedVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultDatasetMappings: Scalars['Boolean']['output'];
+  adminUpdateHostedVault: Scalars['Boolean']['output'];
   computationCreate: Scalars['Boolean']['output'];
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
@@ -149,6 +150,12 @@ export type MutationAdminSetVaultAllowedComputationsArgs = {
 export type MutationAdminSetVaultDatasetMappingsArgs = {
   mappings: Array<VaultDatasetMappingInput>;
   userId: Scalars['String']['input'];
+}
+
+export type MutationAdminUpdateHostedVaultArgs = {
+  description: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  vaultId: Scalars['String']['input'];
 }
 
 export type MutationAdminSetHostedVaultAllowedComputationsArgs = {

@@ -2579,6 +2579,45 @@ export default {
 
       return hostedVault._id.toString()
     },
+    adminUpdateHostedVault: async (
+      _: unknown,
+      {
+        vaultId,
+        name,
+        description,
+      }: {
+        vaultId: string
+        name: string
+        description: string
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const normalizedName = name.trim()
+      const normalizedDescription = description.trim()
+
+      if (normalizedName.length === 0) {
+        throw new Error('Vault name is required')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId).exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      hostedVault.name = normalizedName
+      hostedVault.description = normalizedDescription
+      await hostedVault.save()
+
+      return true
+    },
     adminSetHostedVaultAllowedComputations: async (
       _: unknown,
       {

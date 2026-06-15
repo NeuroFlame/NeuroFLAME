@@ -134,10 +134,10 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
       >
         <Box
           sx={{
-            width: '50%',
+            flex: '0 0 48%',
             borderRight: '1px solid grey',
             padding: '0 1rem 1rem 0',
-            overflow: 'scroll',
+            overflow: 'auto',
             height: 'calc(380px - 4rem)',
           }}
         >
@@ -166,48 +166,70 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
                         sx={{
                           padding: '1rem 0',
                           display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 2,
                         }}
-                        secondaryAction={
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '0.5rem',
-                              marginRight: '-1rem',
-                              flex: '0.25',
-                            }}
-                          >
-                            <Button
-                              variant='outlined'
-                              color='primary'
-                              size='small'
-                              onClick={() => setSelectedVaultInfo(index)}
-                            >
-                              Info
-                            </Button>
-                            <Button
-                              variant='contained'
-                              color='primary'
-                              size='small'
-                              disabled={addDisabled}
-                              onClick={() => handleAdd(id)}
-                            >
-                              {alreadyMember ? 'Added' : 'Add'}
-                            </Button>
-                            {!allowsSelectedComputation && (
-                              <Typography variant='caption' color='error'>
-                                Not allowed for current computation
-                              </Typography>
-                            )}
-                          </Box>
-                        }
                       >
                         <ListItemText
                           primary={vaultUser.name}
                           secondary={vaultUser.datasetKey}
-                          primaryTypographyProps={{ fontWeight: 'bold' }}
-                          sx={{ flex: '0.75' }}
+                          primaryTypographyProps={{
+                            fontWeight: 'bold',
+                            sx: {
+                              overflowWrap: 'anywhere',
+                              pr: 1,
+                            },
+                          }}
+                          secondaryTypographyProps={{
+                            sx: {
+                              overflowWrap: 'anywhere',
+                              pr: 1,
+                            },
+                          }}
+                          sx={{ flex: '1 1 auto', minWidth: 0, my: 0 }}
                         />
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem',
+                            flex: '0 0 128px',
+                            alignItems: 'stretch',
+                          }}
+                        >
+                          <Button
+                            variant='outlined'
+                            color='primary'
+                            size='small'
+                            onClick={() => setSelectedVaultInfo(index)}
+                            sx={{ minWidth: 0 }}
+                          >
+                            Info
+                          </Button>
+                          <Button
+                            variant='contained'
+                            color='primary'
+                            size='small'
+                            disabled={addDisabled}
+                            onClick={() => handleAdd(id)}
+                            sx={{ minWidth: 0 }}
+                          >
+                            {alreadyMember ? 'Added' : 'Add'}
+                          </Button>
+                          {!allowsSelectedComputation && (
+                            <Typography
+                              variant='caption'
+                              color='error'
+                              sx={{
+                                lineHeight: 1.2,
+                                overflowWrap: 'anywhere',
+                                textAlign: 'center',
+                              }}
+                            >
+                              Not allowed for current computation
+                            </Typography>
+                          )}
+                        </Box>
                       </ListItem>
                       <Divider component='li' />
                     </React.Fragment>
@@ -219,16 +241,29 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
         </Box>
         <Box
           sx={{
-            width: '50%',
+            flex: '1 1 52%',
             padding: '0 1rem 1rem 1rem',
             height: 'calc(380px - 4rem)',
-            overflow: 'scroll',
+            overflow: 'auto',
           }}
         >
-          <h4 style={{ color: 'black' }}>
+          <Typography
+            variant='subtitle2'
+            sx={{ color: 'text.primary', overflowWrap: 'anywhere' }}
+          >
             {vaultUserList[selectedVaultInfo]?.datasetKey}
-          </h4>
-          <h2 style={{ lineHeight: 1.2 }}>{vaultUserList[selectedVaultInfo]?.name}</h2>
+          </Typography>
+          <Typography
+            variant='h4'
+            sx={{
+              color: 'primary.main',
+              lineHeight: 1.15,
+              mb: 2,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {vaultUserList[selectedVaultInfo]?.name}
+          </Typography>
           <Box
             sx={{
               display: 'flex',
@@ -261,13 +296,44 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
               </Typography>
             )}
           </Box>
-          <ReactMarkdown
+          <Box
             className='markdown-wrapper'
-            components={markdownComponents}
-            remarkPlugins={[remarkGfm]}
+            sx={{
+              color: 'text.primary',
+              fontSize: '0.95rem',
+              lineHeight: 1.6,
+              overflowWrap: 'anywhere',
+              '& h1, & h2, & h3, & h4, & h5, & h6': {
+                color: 'text.primary',
+                fontWeight: 600,
+                lineHeight: 1.25,
+                mt: 2,
+                mb: 1,
+              },
+              '& h1': { fontSize: '1.5rem' },
+              '& h2': { fontSize: '1.3rem' },
+              '& h3': { fontSize: '1.1rem' },
+              '& p': {
+                color: 'text.primary',
+                fontSize: '0.95rem',
+                mb: 1,
+              },
+              '& a': {
+                color: 'primary.main',
+              },
+              '& ul, & ol': {
+                pl: 2,
+                ml: 0,
+              },
+            }}
           >
-            {vaultUserList[selectedVaultInfo]?.description ?? ''}
-          </ReactMarkdown>
+            <ReactMarkdown
+              components={markdownComponents}
+              remarkPlugins={[remarkGfm]}
+            >
+              {vaultUserList[selectedVaultInfo]?.description ?? ''}
+            </ReactMarkdown>
+          </Box>
         </Box>
       </Box>
     </>
