@@ -289,6 +289,11 @@ type Mutation {
     description: String!
     datasetKey: String!
   ): String!
+  adminUpdateHostedVault(
+    vaultId: String!
+    name: String!
+    description: String!
+  ): Boolean!
   adminSetHostedVaultAllowedComputations(
     vaultId: String!
     computationIds: [String!]!
