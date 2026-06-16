@@ -19,7 +19,7 @@ import { destroyAllInstances, setup } from '../../libs/setup'
 import user from '../../libs/user'
 
 // Exercises each Run List filter control against the seeded run data (4 runs, mixed statuses/consortia).
-test.describe.only('Run list filters', () => {
+test.describe('Run list filters', () => {
   let page: Page
 
   test.beforeAll(async () => {
@@ -70,7 +70,7 @@ test.describe.only('Run list filters', () => {
     await expect(page.getByText('Status: Complete')).toBeVisible()
   })
 
-  test('filters to starred runs only', async () => {
+  test('filters to starred runs', async () => {
     // Star one run, enable Starred Only, then unstar to avoid leaving starred state for other tests.
     const completeRidgeRun = getRunCard(page, SEEDED_CONSORTIUM_TITLES.ridge, 'Complete')
     await completeRidgeRun.getByRole('button', { name: 'Star run' }).click()
@@ -99,7 +99,7 @@ test.describe.only('Run list filters', () => {
 })
 
 // Filters are stored in localStorage keyed by userId; each user keeps their own preferences.
-test.describe.only('Run list filter persistence', () => {
+test.describe('Run list filter persistence', () => {
   let page: Page
 
   test.beforeAll(async () => {
