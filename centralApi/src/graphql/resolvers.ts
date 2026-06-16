@@ -39,6 +39,26 @@ interface Context {
   error: string
 }
 
+const toObjectIdString = (value: unknown): string | null => {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'object' && '_id' in value && (value as { _id?: unknown })._id) {
+    return (value as { _id: { toString: () => string } })._id.toString()
+  }
+
+  if (typeof (value as { toString?: unknown }).toString === 'function') {
+    return (value as { toString: () => string }).toString()
+  }
+
+  return null
+}
+
 const resend = new Resend(RESEND_API_KEY)
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -2710,7 +2730,9 @@ export default {
         throw new Error('Hosted vault is inactive')
       }
 
-      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      const selectedComputationId = toObjectIdString(
+        consortium.studyConfiguration?.computation,
+      )
       if (
         selectedComputationId &&
         !hostedVaultAllowsComputation(hostedVault as any, selectedComputationId)
@@ -2922,7 +2944,9 @@ export default {
         throw new Error('User is not a vault user')
       }
 
-      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      const selectedComputationId = toObjectIdString(
+        consortium.studyConfiguration?.computation,
+      )
       if (
         selectedComputationId &&
         !allowsComputation(user as any, selectedComputationId)

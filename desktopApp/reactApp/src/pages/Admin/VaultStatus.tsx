@@ -331,74 +331,91 @@ function HostedVaultCard({
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', gap: 2, mb: 1 }}>
-        <Box>
-          {editingDetails ? (
-            <Box sx={{ display: 'grid', gap: 1, mb: 1 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Vault Name"
-                value={editName}
-                onChange={(event) => setEditName(event.target.value)}
-                disabled={isSaving}
-              />
-              <TextField
-                fullWidth
-                multiline
-                minRows={8}
-                label="Description Markdown"
-                value={editDescription}
-                onChange={(event) => setEditDescription(event.target.value)}
-                disabled={isSaving}
-                helperText="Stored as markdown exactly as entered."
-              />
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="contained"
-                  size="small"
-                  disabled={isSaving || editName.trim().length === 0 || !hasUnsavedDetails}
-                  onClick={handleSaveDetails}
-                >
-                  {isSaving ? 'Saving...' : 'Save Details'}
-                </Button>
-                <Button
-                  variant="text"
-                  size="small"
-                  disabled={isSaving}
-                  onClick={handleCancelDetailsEdit}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            </Box>
-          ) : (
-            <>
-              <Typography variant="subtitle2">{hostedVault.name}</Typography>
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => setEditingDetails(true)}
-                sx={{ mt: 0.5, px: 0 }}
-              >
-                Edit Details
-              </Button>
-            </>
-          )}
+      <Box
+        sx={{
+          alignItems: 'flex-start',
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1.5,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
+            {hostedVault.name}
+          </Typography>
           <Typography variant="caption" color="text.secondary">
             Dataset: {hostedVault.datasetKey}
           </Typography>
-          {!editingDetails && hostedVault.description && (
-            <MarkdownDescription value={hostedVault.description} />
+        </Box>
+        <Box
+          sx={{
+            alignItems: 'center',
+            display: 'flex',
+            flexShrink: 0,
+            gap: 1,
+          }}
+        >
+          <Chip
+            label={hostedVault.active ? 'Active' : 'Inactive'}
+            size="small"
+            color={hostedVault.active ? 'success' : 'default'}
+            variant="outlined"
+          />
+          {!editingDetails && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setEditingDetails(true)}
+            >
+              Edit Details
+            </Button>
           )}
         </Box>
-        <Chip
-          label={hostedVault.active ? 'Active' : 'Inactive'}
-          size="small"
-          color={hostedVault.active ? 'success' : 'default'}
-          variant="outlined"
-        />
       </Box>
+
+      {editingDetails ? (
+        <Box sx={{ display: 'grid', gap: 1.25, mb: 2 }}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Vault Name"
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+            disabled={isSaving}
+          />
+          <TextField
+            fullWidth
+            multiline
+            minRows={8}
+            label="Description Markdown"
+            value={editDescription}
+            onChange={(event) => setEditDescription(event.target.value)}
+            disabled={isSaving}
+            helperText="Stored as markdown exactly as entered."
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={isSaving || editName.trim().length === 0 || !hasUnsavedDetails}
+              onClick={handleSaveDetails}
+            >
+              {isSaving ? 'Saving...' : 'Save Details'}
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              disabled={isSaving}
+              onClick={handleCancelDetailsEdit}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+        hostedVault.description && <MarkdownDescription value={hostedVault.description} />
+      )}
 
       <Box
         sx={{
