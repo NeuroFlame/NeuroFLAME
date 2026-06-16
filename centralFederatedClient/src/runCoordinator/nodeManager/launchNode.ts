@@ -76,7 +76,7 @@ const launchDockerNode = async ({
 
   try {
     await isDockerRunning()
-    await doesImageExist(imageName)
+    await ensureDockerImageReady(imageName)
 
     // Create the container
     const container = await docker.createContainer({
@@ -173,4 +173,54 @@ const doesImageExist = async (imageName: string) => {
       }`,
     )
   }
+}
+
+const shouldPullBeforeRun = (imageName: string): boolean => {
+  if (imageName.includes('@sha256:')) {
+    return false
+  }
+
+  const imageWithoutRegistryPort = imageName.includes('/')
+    ? imageName.substring(imageName.lastIndexOf('/') + 1)
+    : imageName
+
+  return !imageWithoutRegistryPort.includes(':') || imageName.endsWith(':latest')
+}
+
+const pullDockerImage = async (imageName: string): Promise<void> => {
+  logger.info(`Pulling Docker image before run: ${imageName}`)
+
+  await new Promise<void>((resolve, reject) => {
+    docker.pull(imageName, (error: Error | null, stream: NodeJS.ReadableStream | undefined) => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      if (!stream) {
+        reject(new Error(`Docker did not return a pull stream for ${imageName}`))
+        return
+      }
+
+      docker.modem.followProgress(stream, (progressError) => {
+        if (progressError) {
+          reject(progressError)
+          return
+        }
+
+        resolve()
+      })
+    })
+  })
+
+  logger.info(`Docker image pull completed: ${imageName}`)
+}
+
+const ensureDockerImageReady = async (imageName: string): Promise<void> => {
+  if (shouldPullBeforeRun(imageName)) {
+    await pullDockerImage(imageName)
+    return
+  }
+
+  await doesImageExist(imageName)
 }
