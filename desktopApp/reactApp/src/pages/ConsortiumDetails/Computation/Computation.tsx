@@ -13,9 +13,11 @@ import { electronApi } from '../../../apis/electronApi/electronApi'
 
 interface ComputationDisplayProps {
   computation: Maybe<ComputationType> | undefined;
+  showDownloadInstructions?: boolean;
+  onImageDownloaded?: () => void;
 }
 
-export default function Computation({ computation }: ComputationDisplayProps) {
+export default function Computation({ computation, showDownloadInstructions, onImageDownloaded }: ComputationDisplayProps) {
   const { isLeader, refetch } = useConsortiumDetailsContext()
   const [copied, setCopied] = useState(false)
   const [isSingularity, setIsSingularity] = useState(false)
@@ -136,7 +138,7 @@ export default function Computation({ computation }: ComputationDisplayProps) {
             marginBottom: 1,
           }}
         >
-          <TerminalWindow command={imageDownloadUrl} />
+          <TerminalWindow command={imageDownloadUrl} showInstructions={showDownloadInstructions} onImageExists={onImageDownloaded} />
         </Box>
         <HashLink
           id='compnotes-anchor'

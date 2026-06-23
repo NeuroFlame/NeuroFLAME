@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useDirectorySelect } from './useDirectorySelect'
 import { DirectorySelectDisplay } from './DirectorySelectDisplay'
 import { useUserState } from '../../../contexts/UserStateContext'
@@ -5,9 +6,10 @@ import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { useParams } from 'react-router-dom'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 
-export default function DirectorySelect() {
+export default function DirectorySelect({ showReadyToggle = true, onDirectorySet }: { showReadyToggle?: boolean; onDirectorySet?: (isSet: boolean) => void }) {
   const {
     editableValue,
+    originalValue,
     changeValue,
     saveEditedValue,
     startEdit,
@@ -23,6 +25,10 @@ export default function DirectorySelect() {
   const { data: { readyMembers, activeMembers }, refetch } = useConsortiumDetailsContext()
 
   const isActive = activeMembers.some((m) => m.id === userId)
+
+  useEffect(() => {
+    onDirectorySet?.(!!originalValue)
+  }, [originalValue])
   const isReady = readyMembers.some((m) => m.id === userId)
 
   const handleSetReady = async (ready: boolean) => {
@@ -46,6 +52,7 @@ export default function DirectorySelect() {
       onStartEdit={startEdit}
       isActive={isActive}
       isReady={isReady}
+      showReadyToggle={showReadyToggle}
       onSetReady={handleSetReady}
     />
   )

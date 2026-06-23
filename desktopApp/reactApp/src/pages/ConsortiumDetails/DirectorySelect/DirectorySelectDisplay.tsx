@@ -18,6 +18,7 @@ interface DirectorySelectDisplayProps {
   isDifferent: boolean; // Positive flag for save
   isActive: boolean;
   isReady: boolean;
+  showReadyToggle?: boolean;
   onDirectoryChange: (newDirectory: string) => void;
   onSaveDirectory: () => void;
   onCancelEdit: () => void;
@@ -32,6 +33,7 @@ export function DirectorySelectDisplay({
   isDifferent,
   isActive,
   isReady,
+  showReadyToggle = true,
   onDirectoryChange,
   onOpenDirectoryDialog,
   onSaveDirectory,
@@ -155,7 +157,7 @@ export function DirectorySelectDisplay({
             </Button>
           )}
           {/* Ready toggle — right-justified, only when directory is set */}
-          {!!directory && (
+          {showReadyToggle && !!directory && (
             <FormControlLabel
               label='Ready'
               labelPlacement='start'
