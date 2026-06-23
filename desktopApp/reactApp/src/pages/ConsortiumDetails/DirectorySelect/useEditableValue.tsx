@@ -62,6 +62,7 @@ export function useEditableValue({
 
   return {
     editableValue, // The current editable value
+    originalValue, // The last persisted value (from API or after save)
     changeValue, // Method to change the value
     saveEditedValue, // Method to save the changed value
     startEdit, // Method to start editing

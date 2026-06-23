@@ -19,6 +19,8 @@ export default function ConsortiumLeaderNotes({
     isLeader,
   } = useConsortiumLeaderNotes(consortiumLeaderNotes)
 
+  if (!isLeader && !consortiumLeaderNotes?.trim()) return null
+
   return (
     <Box
       p={2}
