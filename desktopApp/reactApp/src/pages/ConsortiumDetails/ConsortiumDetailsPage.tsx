@@ -134,6 +134,7 @@ export function ConsortiumDetailsPage() {
   // Delete dialog state
   const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false)
+  const [notesExpanded, setNotesExpanded] = useState<boolean>(false)
 
   const handlePrivacyChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
     updateConsortiumPrivacy(checked).catch(() => {})
@@ -167,74 +168,139 @@ export function ConsortiumDetailsPage() {
           </Grid>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-
-          {isLeader && hasComputation && <StartRunButton />}
-          {isActive && <DirectorySelect />}
-
-          <Members
-            members={members}
-            activeMembers={activeMembers}
-            readyMembers={readyMembers}
-            leader={leader}
-          />
-
-          {(isLeader || hasLeaderNotesContent) && (
-            <ConsortiumLeaderNotes
-              consortiumLeaderNotes={leaderNotes || ''}
-              showAccordion
-            />
-          )}
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 4 }} className='consortium-details-grid-2'>
-          <LatestRun />
-          <Computation computation={studyConfiguration?.computation} />
-
-          {/* Parameters area: two simple cases */}
-          {hasComputation && (
-            <Box borderRadius={2} marginBottom={0} bgcolor='white'>
-              {supportsLocal ? (
-                <>
-                  <Tabs
-                    value={tab}
-                    onChange={(_e, v) => setTab(v)}
-                    variant='fullWidth'
-                    textColor='inherit'
-                    TabIndicatorProps={{ sx: { backgroundColor: '#0066ff' } }}
-                    sx={{
-                      '& .MuiTab-root.Mui-selected': { color: '#0066ff' },
-                      '& .MuiTab-root': {
-                        color: 'inherit',
-                        '&:hover': { color: '#0066ff' },
-                        '&:focus': { color: '#0066ff' },
-                      },
-                    }}
-                  >
-                    <Tab label='Global Settings' value='global' />
-                    <Tab label='Local Settings' value='local' />
-                  </Tabs>
-
-                  <Box role='tabpanel' hidden={tab !== 'global'} id='tabpanel-global' aria-labelledby='tab-global'>
-                    {tab === 'global' && <ComputationParameters />}
+        {notesExpanded ? (
+          <>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Box display='flex' flexDirection='column'>
+                {isLeader && hasComputation && <StartRunButton />}
+                {isActive && <DirectorySelect />}
+                <Members
+                  members={members}
+                  activeMembers={activeMembers}
+                  readyMembers={readyMembers}
+                  leader={leader}
+                />
+                {(isLeader || hasLeaderNotesContent) && (
+                  <ConsortiumLeaderNotes
+                    consortiumLeaderNotes={leaderNotes || ''}
+                    showAccordion
+                  />
+                )}
+                <LatestRun />
+                <Computation computation={studyConfiguration?.computation} />
+                {hasComputation && (
+                  <Box borderRadius={2} marginBottom={0} bgcolor='white'>
+                    {supportsLocal ? (
+                      <>
+                        <Tabs
+                          value={tab}
+                          onChange={(_e, v) => setTab(v)}
+                          variant='fullWidth'
+                          textColor='inherit'
+                          TabIndicatorProps={{ sx: { backgroundColor: '#0066ff' } }}
+                          sx={{
+                            '& .MuiTab-root.Mui-selected': { color: '#0066ff' },
+                            '& .MuiTab-root': {
+                              color: 'inherit',
+                              '&:hover': { color: '#0066ff' },
+                              '&:focus': { color: '#0066ff' },
+                            },
+                          }}
+                        >
+                          <Tab label='Global Settings' value='global' />
+                          <Tab label='Local Settings' value='local' />
+                        </Tabs>
+                        <Box role='tabpanel' hidden={tab !== 'global'} id='tabpanel-global' aria-labelledby='tab-global'>
+                          {tab === 'global' && <ComputationParameters />}
+                        </Box>
+                        <Box role='tabpanel' hidden={tab !== 'local'} id='tabpanel-local' aria-labelledby='tab-local'>
+                          {tab === 'local' && <ComputationLocalParameters />}
+                        </Box>
+                      </>
+                    ) : (
+                      <Box>
+                        <ComputationParameters />
+                      </Box>
+                    )}
                   </Box>
-                  <Box role='tabpanel' hidden={tab !== 'local'} id='tabpanel-local' aria-labelledby='tab-local'>
-                    {tab === 'local' && <ComputationLocalParameters />}
-                  </Box>
-                </>
-              ) : (
-                // Only Global, no tabs
-                <Box>
-                  <ComputationParameters />
+                )}
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 8 }} className='consortium-details-grid-3'>
+              <ComputationDisplay
+                notesHeading
+                expanded={notesExpanded}
+                onToggleExpand={() => setNotesExpanded((v) => !v)}
+              />
+            </Grid>
+          </>
+        ) : (
+          <>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              {isLeader && hasComputation && <StartRunButton />}
+              {isActive && <DirectorySelect />}
+              <Members
+                members={members}
+                activeMembers={activeMembers}
+                readyMembers={readyMembers}
+                leader={leader}
+              />
+              {(isLeader || hasLeaderNotesContent) && (
+                <ConsortiumLeaderNotes
+                  consortiumLeaderNotes={leaderNotes || ''}
+                  showAccordion
+                />
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} className='consortium-details-grid-2'>
+              <LatestRun />
+              <Computation computation={studyConfiguration?.computation} />
+              {hasComputation && (
+                <Box borderRadius={2} marginBottom={0} bgcolor='white'>
+                  {supportsLocal ? (
+                    <>
+                      <Tabs
+                        value={tab}
+                        onChange={(_e, v) => setTab(v)}
+                        variant='fullWidth'
+                        textColor='inherit'
+                        TabIndicatorProps={{ sx: { backgroundColor: '#0066ff' } }}
+                        sx={{
+                          '& .MuiTab-root.Mui-selected': { color: '#0066ff' },
+                          '& .MuiTab-root': {
+                            color: 'inherit',
+                            '&:hover': { color: '#0066ff' },
+                            '&:focus': { color: '#0066ff' },
+                          },
+                        }}
+                      >
+                        <Tab label='Global Settings' value='global' />
+                        <Tab label='Local Settings' value='local' />
+                      </Tabs>
+                      <Box role='tabpanel' hidden={tab !== 'global'} id='tabpanel-global' aria-labelledby='tab-global'>
+                        {tab === 'global' && <ComputationParameters />}
+                      </Box>
+                      <Box role='tabpanel' hidden={tab !== 'local'} id='tabpanel-local' aria-labelledby='tab-local'>
+                        {tab === 'local' && <ComputationLocalParameters />}
+                      </Box>
+                    </>
+                  ) : (
+                    <Box>
+                      <ComputationParameters />
+                    </Box>
+                  )}
                 </Box>
               )}
-            </Box>
-          )}
-        </Grid>
-
-        <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
-          <ComputationDisplay notesHeading />
-        </Grid>
+            </Grid>
+            <Grid size={{ sm: 12, md: 4 }} className='consortium-details-grid-3'>
+              <ComputationDisplay
+                notesHeading
+                expanded={notesExpanded}
+                onToggleExpand={() => setNotesExpanded((v) => !v)}
+              />
+            </Grid>
+          </>
+        )}
       </Grid>
 
       {/* Invite Modal */}

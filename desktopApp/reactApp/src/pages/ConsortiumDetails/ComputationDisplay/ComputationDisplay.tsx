@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useMemo } from 'react'
 import { Computation } from '../../../apis/centralApi/generated/graphql'
-import { Box, Typography, Card, CardContent } from '@mui/material'
+import { Box, Typography, Card, CardContent, IconButton, Tooltip } from '@mui/material'
+import OpenInFullIcon from '@mui/icons-material/OpenInFull'
+import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import ReactMarkdown, { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -9,9 +11,11 @@ import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '')
 
-const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({
-  notesHeading,
-}) => {
+const ComputationDisplay: React.FC<{
+  notesHeading: boolean;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+}> = ({ notesHeading, expanded, onToggleExpand }) => {
   const { data: consortiumDetails } = useConsortiumDetailsContext()
   const computation =
     consortiumDetails?.studyConfiguration?.computation as Maybe<Computation>
@@ -92,12 +96,23 @@ const ComputationDisplay: React.FC<{ notesHeading: boolean }> = ({
     >
       <div id='compnotes' />{/* For Notes anchor placement at 800px wide */}
       <CardContent>
-        {notesHeading && (
-          <Typography fontSize='11px'>Computation Notes:</Typography>
-        )}
-        <Typography variant='h5' fontWeight='600' color='black'>
-          {title}
-        </Typography>
+        <Box display='flex' justifyContent='space-between' alignItems='flex-start'>
+          <Box flex={1}>
+            {notesHeading && (
+              <Typography fontSize='11px'>Computation Notes:</Typography>
+            )}
+            <Typography variant='h5' fontWeight='600' color='black'>
+              {title}
+            </Typography>
+          </Box>
+          {onToggleExpand && (
+            <Tooltip title={expanded ? 'Collapse' : 'Expand'}>
+              <IconButton size='small' onClick={onToggleExpand} sx={{ mt: '-4px', mr: '-8px', display: { xs: 'none', md: 'flex' } }}>
+                {expanded ? <CloseFullscreenIcon fontSize='small' /> : <OpenInFullIcon fontSize='small' />}
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
         <Typography variant='body2' color='textSecondary'>
           {imageName}
         </Typography>
