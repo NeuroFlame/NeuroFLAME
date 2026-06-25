@@ -1,5 +1,5 @@
 // LoginPage.tsx
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Box, Button, Typography, Alert } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { CreateUser } from './CreateUser/CreateUser'
@@ -18,6 +18,12 @@ const LoginPage: React.FC = () => {
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [userCreated, setUserCreated] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate('/home', { replace: true })
+    }
+  }, [isLoggedIn, navigate])
 
   const handleUserCreated = () => {
     setUserCreated(true)

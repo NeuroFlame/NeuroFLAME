@@ -62,7 +62,7 @@ const vaultServerSchema: Schema = new Schema({
     index: true,
   },
   name: { type: String, required: true, trim: true },
-  description: { type: String, required: true, default: '' },
+  description: { type: String, required: false, default: '' },
   status: { type: vaultServerStatusSchema, required: false },
 }, { timestamps: true })
 

@@ -1,10 +1,19 @@
 import { type FormEvent, useState } from 'react'
-import { Box, Button, TextField, CircularProgress, Alert } from '@mui/material'
+import {
+  Box,
+  Button,
+  TextField,
+  CircularProgress,
+  Alert,
+  Checkbox,
+  FormControlLabel,
+} from '@mui/material'
 import { useLogin } from './useLogin'
 
 export function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const { handleLogin, loading, error } = useLogin()
 
@@ -18,7 +27,7 @@ export function Login() {
     }
 
     setFormError(null)
-    await handleLogin(normalizedUsername, password)
+    await handleLogin(normalizedUsername, password, keepLoggedIn)
   }
 
   return (
@@ -67,6 +76,21 @@ export function Login() {
           '& .MuiInputBase-root input': {
             margin: '0',
           },
+          marginBottom: '1rem',
+        }}
+      />
+      <FormControlLabel
+        control={(
+          <Checkbox
+            checked={keepLoggedIn}
+            onChange={(e) => setKeepLoggedIn(e.target.checked)}
+            disabled={loading}
+            size='small'
+          />
+        )}
+        label='Keep me logged in'
+        sx={{
+          color: 'white',
           marginBottom: '1rem',
         }}
       />

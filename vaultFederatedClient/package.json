@@ -1,13 +1,26 @@
 {
-  "name": "vaultfederatedclient",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@neuroflame/vault",
+  "version": "1.0.2",
+  "description": "NeuroFLAME vault federated client",
+  "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "neuroflame-vault": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "systemd",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "clean": "rm -rf dist",
     "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js --",
-    "start-configured": "npm run compile && node ./dist/index.js"
+    "start": "npm run compile && node ./dist/cli.js start",
+    "start-configured": "npm run compile && node ./dist/cli.js start",
+    "prepack": "npm run clean && npm run compile"
   },
   "author": "",
   "license": "ISC",

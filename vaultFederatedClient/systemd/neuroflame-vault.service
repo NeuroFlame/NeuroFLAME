@@ -1,0 +1,55 @@
+# systemd service file for NeuroFLAME Vault Federated Client
+#
+# Usage:
+#   neuroflame-vault systemd-template
+#   Edit ./neuroflame-vault.service
+#   sudo cp ./neuroflame-vault.service /etc/systemd/system/neuroflame-vault.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable neuroflame-vault
+#   sudo systemctl start neuroflame-vault
+
+[Unit]
+Description=NeuroFLAME Vault Federated Client
+Documentation=https://github.com/NeuroFlame/NeuroFLAME
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+
+# Run as a user with Docker access.
+User=ubuntu
+Group=docker
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+# Required NeuroFLAME vault configuration.
+# Use http/ws for a raw central API port. Use https/wss only behind TLS.
+Environment=VAULT_HTTP_URL=http://your-central-api.example.com:3001/graphql
+Environment=VAULT_WS_URL=ws://your-central-api.example.com:3001/graphql
+Environment=VAULT_ACCESS_TOKEN=your-vault-token
+Environment=VAULT_BASE_DIR=/var/lib/neuroflame/vault/work
+Environment=VAULT_DATASET_DIR=/path/to/your/datasets
+
+# Optional NeuroFLAME vault configuration.
+Environment=VAULT_LOG_PATH=/var/log/neuroflame/vault
+Environment=VAULT_CONTAINER_SERVICE=docker
+
+ExecStart=/usr/bin/env neuroflame-vault start
+
+Restart=always
+RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=90
+KillSignal=SIGTERM
+KillMode=mixed
+
+MemoryMax=2G
+TasksMax=100
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neuroflame-vault
+
+[Install]
+WantedBy=multi-user.target

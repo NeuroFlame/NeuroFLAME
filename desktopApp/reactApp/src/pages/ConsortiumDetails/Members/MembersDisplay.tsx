@@ -151,9 +151,10 @@ export function MembersDisplay({
         </Box>
         <Box
           sx={{
-            display: 'inline-flex',
+            display: 'grid',
             flexDirection: 'row',
-            justifyContent: 'flex-start',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            justifyContent: 'stretch',
             alignItems: 'center',
             gap: '1rem',
             width: '100%',

@@ -9,6 +9,15 @@ SKIP_VERSION=false
 PUBLISH_NPM=true
 DEPLOY_GH=false
 ALLOW_DIRTY=false
+BUILD_DESKTOP=false
+NPM_AUTH_CONFIG=""
+
+cleanup() {
+  if [ -n "${NPM_AUTH_CONFIG:-}" ] && [ -f "$NPM_AUTH_CONFIG" ]; then
+    rm -f "$NPM_AUTH_CONFIG"
+  fi
+}
+trap cleanup EXIT
 
 usage() {
   cat <<'EOF'
@@ -19,14 +28,17 @@ Options:
   --skip-version   Skip `changeset version`.
   --publish-npm    Publish npm packages (default behavior).
   --skip-publish   Skip `changeset publish`.
+  --build-desktop  Build React, edge client, and Electron dist artifacts.
   --deploy-gh      Publish Electron artifacts to GitHub release.
+  --npm-only       Only run changesets version/publish steps.
   --allow-dirty    Skip tracked-file clean check.
   --help           Show this help message.
 
 Examples:
   npm run release
+  npm run release -- --npm-only
   npm run release -- --skip-publish
-  npm run release -- --publish-npm --deploy-gh --yes
+  npm run release -- --build-desktop --deploy-gh --yes
 EOF
 }
 
@@ -50,6 +62,30 @@ check_cmd() {
   fi
 }
 
+configure_npm_publish_auth() {
+  local token="${NPM_TOKEN:-}"
+  if [ -z "$token" ]; then
+    echo "No npm token found in NPM_TOKEN."
+    echo "If npm prompts for 2FA, export a granular npm token with bypass 2FA enabled."
+    return 0
+  fi
+
+  local registry="${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}"
+  local registry_key="${registry#http://}"
+  registry_key="${registry_key#https://}"
+  registry_key="${registry_key%/}"
+
+  NPM_AUTH_CONFIG="$(mktemp "${TMPDIR:-/tmp}/neuroflame-npmrc.XXXXXX")"
+  chmod 0600 "$NPM_AUTH_CONFIG"
+  {
+    printf 'registry=%s\n' "$registry"
+    printf '//%s/:_authToken=%s\n' "$registry_key" "$token"
+  } >"$NPM_AUTH_CONFIG"
+  export NPM_CONFIG_USERCONFIG="$NPM_AUTH_CONFIG"
+
+  echo "Using npm auth token from environment for publish."
+}
+
 has_unreleased_changesets() {
   local file
   shopt -s nullglob
@@ -67,7 +103,9 @@ while [ "$#" -gt 0 ]; do
     --skip-version) SKIP_VERSION=true ;;
     --publish-npm) PUBLISH_NPM=true ;;
     --skip-publish) PUBLISH_NPM=false ;;
-    --deploy-gh) DEPLOY_GH=true ;;
+    --build-desktop) BUILD_DESKTOP=true ;;
+    --deploy-gh) DEPLOY_GH=true; BUILD_DESKTOP=true ;;
+    --npm-only) BUILD_DESKTOP=false ;;
     --allow-dirty) ALLOW_DIRTY=true ;;
     --help)
       usage
@@ -98,8 +136,12 @@ echo "Planned steps:"
 echo "1) create changeset if needed, then changeset version (unless skipped)"
 echo "2) commit + push version changes"
 echo "3) changeset publish (default; skip with --skip-publish)"
-echo "4) build React app + edge client + electron app"
-echo "5) electron dist (and optional GitHub release publish)"
+if [ "$BUILD_DESKTOP" = true ]; then
+  echo "4) build React app + edge client + electron app"
+  echo "5) electron dist (and optional GitHub release publish)"
+else
+  echo "4) skip desktop artifact build (use --build-desktop or --deploy-gh to include it)"
+fi
 echo
 
 if [ "$SKIP_VERSION" != true ]; then
@@ -134,6 +176,7 @@ fi
 
 if [ "$PUBLISH_NPM" = true ]; then
   if confirm "Publish npm packages via changesets?"; then
+    configure_npm_publish_auth
     npx changeset publish
   else
     echo "Skipped npm publish."
@@ -142,21 +185,28 @@ else
   echo "Skipping npm publish (--skip-publish)."
 fi
 
-echo
-echo "Building desktop release prerequisites..."
-(cd desktopApp/reactApp && npm install && npm run build)
-(cd edgeFederatedClient && npm install && npm run build)
-(cd desktopApp/electronApp && npm install && npm run build)
+if [ "$BUILD_DESKTOP" = true ]; then
+  echo
+  echo "Building desktop release prerequisites..."
+  (cd desktopApp/reactApp && npm install && npm run build)
+  (cd edgeFederatedClient && npm install && npm run build)
+  (cd desktopApp/electronApp && npm install && npm run build)
 
-echo
-if [ "$DEPLOY_GH" = true ]; then
-  echo "Creating Electron dist and publishing GitHub release artifacts..."
-  (cd desktopApp/electronApp && NODE_ENV=production DEPLOY=true npm run dist)
+  echo
+  if [ "$DEPLOY_GH" = true ]; then
+    echo "Creating Electron dist and publishing GitHub release artifacts..."
+    (cd desktopApp/electronApp && NODE_ENV=production DEPLOY=true npm run dist)
+  else
+    echo "Creating Electron dist without GitHub publish..."
+    (cd desktopApp/electronApp && npm run dist)
+  fi
+
+  echo
+  echo "Desktop artifacts: desktopApp/electronApp/dist"
 else
-  echo "Creating Electron dist without GitHub publish..."
-  (cd desktopApp/electronApp && npm run dist)
+  echo
+  echo "Skipped desktop artifact build."
 fi
 
 echo
 echo "Release flow complete."
-echo "Desktop artifacts: desktopApp/electronApp/dist"

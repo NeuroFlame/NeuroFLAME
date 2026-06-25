@@ -1,5 +1,17 @@
 # edge-federated-client
 
+## 1.7.0
+
+### Minor Changes
+
+- vault access
+
+## 1.6.0
+
+### Minor Changes
+
+- vault update
+
 ## 1.5.0
 
 ### Minor Changes
