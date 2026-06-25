@@ -140,10 +140,10 @@ const mapDatasetMappings = (
 const mapAvailableDatasets = (
   datasets:
     | Array<{
-        key?: string | null
-        path?: string | null
-        label?: string | null
-      }>
+      key?: string | null
+      path?: string | null
+      label?: string | null
+    }>
     | undefined,
 ): Array<{
   key: string
@@ -175,11 +175,11 @@ const mapAvailableDatasets = (
 const mapVault = (
   vault:
     | {
-        name?: string | null
-        description?: string | null
-        allowedComputations?: any[]
-        datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
-      }
+      name?: string | null
+      description?: string | null
+      allowedComputations?: any[]
+      datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
+    }
     | null
     | undefined,
 ) => (
@@ -198,22 +198,22 @@ const mapVault = (
 const mapVaultStatus = (
   vaultStatus:
     | {
-        status: string
-        version: string
-        uptime: number
-        websocketConnected: boolean
-        lastHeartbeat: Date
-        runningComputations: Array<{
-          runId: string
-          consortiumId: string
-          startedAt: Date
-        }>
-        availableDatasets?: Array<{
-          key?: string | null
-          path?: string | null
-          label?: string | null
-        }>
-      }
+      status: string
+      version: string
+      uptime: number
+      websocketConnected: boolean
+      lastHeartbeat: Date
+      runningComputations: Array<{
+        runId: string
+        consortiumId: string
+        startedAt: Date
+      }>
+      availableDatasets?: Array<{
+        key?: string | null
+        path?: string | null
+        label?: string | null
+      }>
+    }
     | null
     | undefined,
   consortiumMap?: Map<string, string>,
@@ -242,14 +242,14 @@ const mapVaultStatus = (
 const mapHostedVault = (
   vault:
     | {
-        _id?: unknown
-        server?: unknown
-        name?: string | null
-        description?: string | null
-        datasetKey?: string | null
-        allowedComputations?: any[]
-        active?: boolean | null
-      }
+      _id?: unknown
+      server?: unknown
+      name?: string | null
+      description?: string | null
+      datasetKey?: string | null
+      allowedComputations?: any[]
+      active?: boolean | null
+    }
     | null
     | undefined,
 ) => (
@@ -281,11 +281,11 @@ const mapVaultServerRecord = ({
   hostedVaults: any[]
   server:
     | {
-        _id?: unknown
-        user?: unknown
-        name?: string | null
-        description?: string | null
-      }
+      _id?: unknown
+      user?: unknown
+      name?: string | null
+      description?: string | null
+    }
     | null
     | undefined
   status?: {
@@ -307,9 +307,9 @@ const mapVaultServerRecord = ({
   } | null
   user:
     | {
-        _id?: unknown
-        username?: string | null
-      }
+      _id?: unknown
+      username?: string | null
+    }
     | null
     | undefined
   consortiumMap?: Map<string, string>
@@ -920,8 +920,10 @@ export default {
             leader: consortium.leader ? transformUser(consortium.leader) : null,
             activeMembers: (consortium.activeMembers || []).map(transformUser),
             readyMembers: (consortium.readyMembers || []).map(transformUser),
-            activeVaultMembers: (consortium.activeVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
-            readyVaultMembers: (consortium.readyVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            activeVaultMembers: (consortium.activeVaultMembers || [])
+              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            readyVaultMembers: (consortium.readyVaultMembers || [])
+              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
           },
           status: run.status,
           lastUpdated: run.lastUpdated,
@@ -1181,6 +1183,7 @@ export default {
       context,
     ): Promise<LoginOutput> => {
       // get the user from the database
+      console.log({ username, password })
       const user = await User.findOne({ username })
       if (!user) {
         throw new Error('User not found')

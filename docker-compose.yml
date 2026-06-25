@@ -32,6 +32,7 @@ services:
     networks:
       - ci_network
     environment:
+      - NODE_ENV=${NODE_ENV:-test}
       - CLIENT_FILE_SERVER_URL=http://fileServer:3002
       - APOLLO_PORT=3001
       - DATABASE_URI=mongodb://admin:secret@mongo:27017/centralDatabase
@@ -108,7 +109,7 @@ services:
       - CI=true
       - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/srr-freesurfer/site1
       - DOCKER_HOST=tcp://docker-proxy:2375
-      - NODE_ENV=test
+      - NODE_ENV=${NODE_ENV:-test}
       - DISPLAY=:99
 
 

@@ -56,6 +56,7 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
             edge='end'
             color='inherit'
             aria-label='menu'
+            data-testid='menu-icon'
             onClick={() => toggleDrawer(true)}
           >
             <MenuIcon />
