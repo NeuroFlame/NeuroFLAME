@@ -21,9 +21,11 @@ import { consortiumSetMemberReady } from './consortiumSetMemberReady'
 import { adminChangeUserPassword } from './adminChangeUserPassword'
 import { adminChangeUserRoles } from './adminChangeUserRoles'
 import { adminCreateHostedVault } from './adminCreateHostedVault'
+import { adminCreateVaultUser } from './adminCreateVaultUser'
 import { adminSetHostedVaultAllowedComputations } from './adminSetHostedVaultAllowedComputations'
 import { adminSetVaultAllowedComputations } from './adminSetVaultAllowedComputations'
 import { adminSetVaultDatasetMappings } from './adminSetVaultDatasetMappings'
+import { adminUpdateHostedVault } from './adminUpdateHostedVault'
 import { computationCreate } from './computationCreate'
 import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
@@ -48,6 +50,7 @@ import {
   MutationAdminSetHostedVaultAllowedComputationsArgs,
   MutationAdminSetVaultAllowedComputationsArgs,
   MutationAdminSetVaultDatasetMappingsArgs,
+  MutationAdminUpdateHostedVaultArgs,
   MutationComputationCreateArgs,
   MutationComputationEditArgs,
   MutationConsortiumCreateArgs,
@@ -128,8 +131,12 @@ export const useCentralApi = () => {
       adminChangeUserPassword(centralApiApolloClient, input),
     adminChangeUserRoles: (input: MutationAdminChangeUserRolesArgs) =>
       adminChangeUserRoles(centralApiApolloClient, input),
+    adminCreateVaultUser: (input: { username: string; password: string }) =>
+      adminCreateVaultUser(centralApiApolloClient, input),
     adminCreateHostedVault: (input: MutationAdminCreateHostedVaultArgs) =>
       adminCreateHostedVault(centralApiApolloClient, input),
+    adminUpdateHostedVault: (input: MutationAdminUpdateHostedVaultArgs) =>
+      adminUpdateHostedVault(centralApiApolloClient, input),
     adminSetHostedVaultAllowedComputations: (
       input: MutationAdminSetHostedVaultAllowedComputationsArgs,
     ) => adminSetHostedVaultAllowedComputations(centralApiApolloClient, input),

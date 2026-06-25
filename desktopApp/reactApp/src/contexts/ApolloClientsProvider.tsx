@@ -40,14 +40,20 @@ const ApolloClientsProvider: React.FC<Props> = ({ children, config }) => {
     const central = createApolloClient({
       httpUrl: config.centralServerQueryUrl,
       wsUrl: config.centralServerSubscriptionUrl,
-      getAccessToken: () => localStorage.getItem('accessToken') || '',
+      getAccessToken: () =>
+        sessionStorage.getItem('accessToken') ||
+        localStorage.getItem('accessToken') ||
+        '',
     })
     setCentralApiApolloClient(central)
 
     const edge = createApolloClient({
       httpUrl: config.edgeClientQueryUrl,
       wsUrl: config.edgeClientSubscriptionUrl,
-      getAccessToken: () => localStorage.getItem('accessToken') || '',
+      getAccessToken: () =>
+        sessionStorage.getItem('accessToken') ||
+        localStorage.getItem('accessToken') ||
+        '',
     })
 
     setEdgeClientApolloClient(edge)

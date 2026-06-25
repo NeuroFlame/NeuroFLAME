@@ -39,6 +39,26 @@ interface Context {
   error: string
 }
 
+const toObjectIdString = (value: unknown): string | null => {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'object' && '_id' in value && (value as { _id?: unknown })._id) {
+    return (value as { _id: { toString: () => string } })._id.toString()
+  }
+
+  if (typeof (value as { toString?: unknown }).toString === 'function') {
+    return (value as { toString: () => string }).toString()
+  }
+
+  return null
+}
+
 const resend = new Resend(RESEND_API_KEY)
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -335,7 +355,7 @@ const getOrCreateVaultServerForUser = async (
       : `${user.username} Vault Server`
   const description =
     typeof user.vault?.description === 'string'
-      ? user.vault.description
+      ? user.vault.description.trim()
       : ''
 
   return VaultServer.create({
@@ -1173,10 +1193,13 @@ export default {
       }
 
       // create a token
-      const tokens = generateTokens({
-        userId: user._id,
-        roles: user.roles,
-      })
+      const tokens = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+        },
+        { shouldExpire: false },
+      )
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -2284,6 +2307,49 @@ export default {
         throw new Error('Failed to change password')
       }
     },
+    adminCreateVaultUser: async (
+      _: unknown,
+      { username, password }: { username: string; password: string },
+      context: Context,
+    ): Promise<LoginOutput> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const normalizedUsername = username.trim()
+      if (!EMAIL_REGEX.test(normalizedUsername)) {
+        throw new Error('Username should be email')
+      }
+
+      const existingUser = await User.findOne({ username: normalizedUsername })
+      if (existingUser) {
+        throw new Error('User already exists')
+      }
+
+      const hashedPassword = await hashPassword(password)
+      const user = await User.create({
+        username: normalizedUsername,
+        hash: hashedPassword,
+        roles: ['vault'],
+      })
+
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+      })
+      const { accessToken } = tokens as { accessToken: string }
+
+      return {
+        accessToken,
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
+      }
+    },
     adminChangeUserRoles: async (
       _: unknown,
       { username, roles }: { username: string; roles: string[] },
@@ -2535,6 +2601,45 @@ export default {
 
       return hostedVault._id.toString()
     },
+    adminUpdateHostedVault: async (
+      _: unknown,
+      {
+        vaultId,
+        name,
+        description,
+      }: {
+        vaultId: string
+        name: string
+        description: string
+      },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      const normalizedName = name.trim()
+      const normalizedDescription = description.trim()
+
+      if (normalizedName.length === 0) {
+        throw new Error('Vault name is required')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId).exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      hostedVault.name = normalizedName
+      hostedVault.description = normalizedDescription
+      await hostedVault.save()
+
+      return true
+    },
     adminSetHostedVaultAllowedComputations: async (
       _: unknown,
       {
@@ -2627,7 +2732,9 @@ export default {
         throw new Error('Hosted vault is inactive')
       }
 
-      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      const selectedComputationId = toObjectIdString(
+        consortium.studyConfiguration?.computation,
+      )
       if (
         selectedComputationId &&
         !hostedVaultAllowsComputation(hostedVault as any, selectedComputationId)
@@ -2839,7 +2946,9 @@ export default {
         throw new Error('User is not a vault user')
       }
 
-      const selectedComputationId = consortium.studyConfiguration?.computation?.toString()
+      const selectedComputationId = toObjectIdString(
+        consortium.studyConfiguration?.computation,
+      )
       if (
         selectedComputationId &&
         !allowsComputation(user as any, selectedComputationId)

@@ -3,7 +3,8 @@
     "private": true,
     "workspaces": [
         "desktopApp/electronApp",
-        "edgeFederatedClient"
+        "edgeFederatedClient",
+        "vaultFederatedClient"
     ],
     "devDependencies": {
         "@changesets/cli": "^2.29.2",

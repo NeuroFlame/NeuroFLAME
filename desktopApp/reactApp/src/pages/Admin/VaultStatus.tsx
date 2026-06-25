@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
   Alert,
   Box,
@@ -29,14 +31,18 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
   ComputationListItem,
   HostedVault,
+  LoginOutput,
   VaultServer,
 } from '../../apis/centralApi/generated/graphql'
+import { createMarkdownComponents } from '../../utils/markdownComponents'
 
 const OFFLINE_THRESHOLD_MS = 90_000
+const DESCRIPTION_PREVIEW_HEIGHT = 160
 
 function formatUptime(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
@@ -64,11 +70,194 @@ function isOnline(lastHeartbeat: string): boolean {
   return now.getTime() - date.getTime() < OFFLINE_THRESHOLD_MS
 }
 
+function MarkdownDescription({ value }: { value: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const markdownComponents = useMemo(() => createMarkdownComponents(), [])
+  const markdown = value.trim()
+  const shouldCollapse = markdown.length > 700 || markdown.split('\n').length > 8
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      <Box
+        className="markdown-wrapper"
+        sx={{
+          color: 'text.secondary',
+          fontSize: '0.9rem',
+          lineHeight: 1.5,
+          maxHeight: expanded || !shouldCollapse ? 'none' : DESCRIPTION_PREVIEW_HEIGHT,
+          overflow: 'hidden',
+          position: 'relative',
+          '& h1, & h2, & h3, & h4, & h5, & h6': {
+            color: 'text.primary',
+            fontWeight: 600,
+            lineHeight: 1.25,
+            mt: 1.5,
+            mb: 0.75,
+          },
+          '& h1': { fontSize: '1.25rem' },
+          '& h2': { fontSize: '1.1rem' },
+          '& h3': { fontSize: '1rem' },
+          '& h4, & h5, & h6': { fontSize: '0.95rem' },
+          '& p': {
+            color: 'text.secondary',
+            fontSize: '0.9rem',
+            fontWeight: 400,
+            mb: 0.75,
+          },
+          '& strong, & b': {
+            color: 'text.primary',
+            fontWeight: 600,
+          },
+          '& code': {
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            whiteSpace: 'normal',
+          },
+          '& ul, & ol': {
+            pl: 2,
+            ml: 0,
+          },
+          '& .table-wrapper': {
+            maxWidth: '100%',
+            overflowX: 'auto',
+          },
+          '& table': {
+            fontSize: '0.85rem',
+          },
+        }}
+      >
+        <ReactMarkdown
+          components={markdownComponents}
+          remarkPlugins={[remarkGfm]}
+        >
+          {markdown}
+        </ReactMarkdown>
+      </Box>
+      {shouldCollapse && (
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => setExpanded((current) => !current)}
+          sx={{ mt: 0.5, px: 0 }}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </Button>
+      )}
+    </Box>
+  )
+}
+
+interface VaultUserProvisionerProps {
+  createdVaultUser: LoginOutput | null
+  createError: string | null
+  creatingVaultUser: boolean
+  onCreateVaultUser: (input: { username: string; password: string }) => Promise<void>
+}
+
+function VaultUserProvisioner({
+  createdVaultUser,
+  createError,
+  creatingVaultUser,
+  onCreateVaultUser,
+}: VaultUserProvisionerProps) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  const handleCreateVaultUser = async () => {
+    await onCreateVaultUser({
+      username,
+      password,
+    })
+    setPassword('')
+    setCopySuccess(false)
+  }
+
+  const handleCopyToken = async () => {
+    if (!createdVaultUser?.accessToken) return
+
+    await navigator.clipboard.writeText(createdVaultUser.accessToken)
+    setCopySuccess(true)
+  }
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        Create Vault User
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Creates a vault service account and returns the token for VAULT_ACCESS_TOKEN.
+      </Typography>
+
+      {createError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {createError}
+        </Alert>
+      )}
+
+      <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(240px, 1fr) minmax(200px, 320px) auto' }}>
+        <TextField
+          fullWidth
+          size="small"
+          label="Vault User Email"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          disabled={creatingVaultUser}
+        />
+        <TextField
+          fullWidth
+          size="small"
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={creatingVaultUser}
+        />
+        <Button
+          variant="contained"
+          disabled={creatingVaultUser || username.trim().length === 0 || password.length === 0}
+          onClick={handleCreateVaultUser}
+        >
+          {creatingVaultUser ? 'Creating...' : 'Create User'}
+        </Button>
+      </Box>
+
+      {createdVaultUser && (
+        <Box sx={{ mt: 2 }}>
+          <Alert severity="success" sx={{ mb: 1.5 }}>
+            Vault user {createdVaultUser.username} created. Use this token as VAULT_ACCESS_TOKEN.
+          </Alert>
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            label="VAULT_ACCESS_TOKEN"
+            value={createdVaultUser.accessToken}
+            InputProps={{ readOnly: true }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopyIcon />}
+            onClick={handleCopyToken}
+            sx={{ mt: 1 }}
+          >
+            {copySuccess ? 'Copied' : 'Copy Token'}
+          </Button>
+        </Box>
+      )}
+    </Paper>
+  )
+}
+
 interface HostedVaultCardProps {
   allComputations: ComputationListItem[]
   hostedVault: HostedVault
   saveError: string | null
   savingVaultId: string | null
+  onUpdateHostedVault: (
+    vaultId: string,
+    input: { name: string; description: string },
+  ) => Promise<void>
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
@@ -80,17 +269,26 @@ function HostedVaultCard({
   hostedVault,
   saveError,
   savingVaultId,
+  onUpdateHostedVault,
   onSaveAllowedComputations,
 }: HostedVaultCardProps) {
   const [selectedComputationIds, setSelectedComputationIds] = useState<string[]>(
     hostedVault.allowedComputations.map((computation) => computation.id),
   )
+  const [editingDetails, setEditingDetails] = useState(false)
+  const [editName, setEditName] = useState(hostedVault.name)
+  const [editDescription, setEditDescription] = useState(hostedVault.description)
 
   useEffect(() => {
     setSelectedComputationIds(
       hostedVault.allowedComputations.map((computation) => computation.id),
     )
   }, [hostedVault.allowedComputations])
+
+  useEffect(() => {
+    setEditName(hostedVault.name)
+    setEditDescription(hostedVault.description)
+  }, [hostedVault.description, hostedVault.name])
 
   const isSaving = savingVaultId === hostedVault.id
   const hasUnsavedChanges =
@@ -109,27 +307,115 @@ function HostedVaultCard({
     })
   }
 
+  const hasUnsavedDetails =
+    editName !== hostedVault.name ||
+    editDescription !== hostedVault.description
+
+  const handleCancelDetailsEdit = () => {
+    setEditName(hostedVault.name)
+    setEditDescription(hostedVault.description)
+    setEditingDetails(false)
+  }
+
+  const handleSaveDetails = async () => {
+    try {
+      await onUpdateHostedVault(hostedVault.id, {
+        name: editName,
+        description: editDescription,
+      })
+      setEditingDetails(false)
+    } catch {
+      // Keep edit mode open so the admin can fix the input and retry.
+    }
+  }
+
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', gap: 2, mb: 1 }}>
-        <Box>
-          <Typography variant="subtitle2">{hostedVault.name}</Typography>
+      <Box
+        sx={{
+          alignItems: 'flex-start',
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1.5,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
+            {hostedVault.name}
+          </Typography>
           <Typography variant="caption" color="text.secondary">
             Dataset: {hostedVault.datasetKey}
           </Typography>
-          {hostedVault.description && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {hostedVault.description}
-            </Typography>
+        </Box>
+        <Box
+          sx={{
+            alignItems: 'center',
+            display: 'flex',
+            flexShrink: 0,
+            gap: 1,
+          }}
+        >
+          <Chip
+            label={hostedVault.active ? 'Active' : 'Inactive'}
+            size="small"
+            color={hostedVault.active ? 'success' : 'default'}
+            variant="outlined"
+          />
+          {!editingDetails && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setEditingDetails(true)}
+            >
+              Edit Details
+            </Button>
           )}
         </Box>
-        <Chip
-          label={hostedVault.active ? 'Active' : 'Inactive'}
-          size="small"
-          color={hostedVault.active ? 'success' : 'default'}
-          variant="outlined"
-        />
       </Box>
+
+      {editingDetails ? (
+        <Box sx={{ display: 'grid', gap: 1.25, mb: 2 }}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Vault Name"
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+            disabled={isSaving}
+          />
+          <TextField
+            fullWidth
+            multiline
+            minRows={8}
+            label="Description Markdown"
+            value={editDescription}
+            onChange={(event) => setEditDescription(event.target.value)}
+            disabled={isSaving}
+            helperText="Stored as markdown exactly as entered."
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={isSaving || editName.trim().length === 0 || !hasUnsavedDetails}
+              onClick={handleSaveDetails}
+            >
+              {isSaving ? 'Saving...' : 'Save Details'}
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              disabled={isSaving}
+              onClick={handleCancelDetailsEdit}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+        hostedVault.description && <MarkdownDescription value={hostedVault.description} />
+      )}
 
       <Box
         sx={{
@@ -200,6 +486,10 @@ interface VaultServerRowProps {
     serverId: string,
     input: { datasetKey: string; name: string; description: string },
   ) => Promise<void>
+  onUpdateHostedVault: (
+    vaultId: string,
+    input: { name: string; description: string },
+  ) => Promise<void>
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
@@ -213,6 +503,7 @@ function VaultServerRow({
   savingVaultId,
   server,
   onCreateHostedVault,
+  onUpdateHostedVault,
   onSaveAllowedComputations,
 }: VaultServerRowProps) {
   const [expanded, setExpanded] = useState(false)
@@ -401,6 +692,7 @@ function VaultServerRow({
                         key={hostedVault.id}
                         allComputations={allComputations}
                         hostedVault={hostedVault}
+                        onUpdateHostedVault={onUpdateHostedVault}
                         onSaveAllowedComputations={onSaveAllowedComputations}
                         saveError={savingVaultId === hostedVault.id ? saveError : null}
                         savingVaultId={savingVaultId}
@@ -424,7 +716,7 @@ function VaultServerRow({
                   </Alert>
                 )}
                 {unassignedDatasets.length > 0 ? (
-                  <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(220px, 280px) minmax(220px, 1fr) minmax(220px, 1fr) auto' }}>
+                  <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(220px, 280px) minmax(220px, 1fr) auto' }}>
                     <FormControl fullWidth size="small">
                       <InputLabel id={`dataset-select-${server.id}`}>Dataset</InputLabel>
                       <Select
@@ -447,20 +739,25 @@ function VaultServerRow({
                       value={newVaultName}
                       onChange={(event) => setNewVaultName(event.target.value)}
                     />
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Description"
-                      value={newVaultDescription}
-                      onChange={(event) => setNewVaultDescription(event.target.value)}
-                    />
                     <Button
                       variant="contained"
                       disabled={isCreating || newVaultDatasetKey.length === 0}
                       onClick={handleCreateVault}
+                      sx={{ alignSelf: 'start' }}
                     >
                       {isCreating ? 'Creating...' : 'Create Vault'}
                     </Button>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={8}
+                      label="Description Markdown"
+                      placeholder="Paste markdown here. Tables need real line breaks."
+                      value={newVaultDescription}
+                      onChange={(event) => setNewVaultDescription(event.target.value)}
+                      sx={{ gridColumn: '1 / -1' }}
+                      helperText="Stored as markdown exactly as entered."
+                    />
                   </Box>
                 ) : (
                   <Typography color="text.secondary">
@@ -515,8 +812,10 @@ function VaultServerRow({
 
 export default function VaultStatus() {
   const {
+    adminCreateVaultUser,
     adminCreateHostedVault,
     adminSetHostedVaultAllowedComputations,
+    adminUpdateHostedVault,
     getComputationList,
     getVaultServerList,
   } = useCentralApi()
@@ -527,6 +826,9 @@ export default function VaultStatus() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [savingVaultId, setSavingVaultId] = useState<string | null>(null)
   const [creatingServerId, setCreatingServerId] = useState<string | null>(null)
+  const [creatingVaultUser, setCreatingVaultUser] = useState(false)
+  const [createdVaultUser, setCreatedVaultUser] = useState<LoginOutput | null>(null)
+  const [createVaultUserError, setCreateVaultUserError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const loadVaults = useCallback(async () => {
@@ -607,6 +909,61 @@ export default function VaultStatus() {
     [adminCreateHostedVault, loadVaults],
   )
 
+  const handleUpdateHostedVault = useCallback(
+    async (
+      vaultId: string,
+      {
+        description,
+        name,
+      }: { name: string; description: string },
+    ) => {
+      try {
+        setSavingVaultId(vaultId)
+        setSaveError(null)
+        await adminUpdateHostedVault({
+          vaultId,
+          name: name.trim(),
+          description: description.trim(),
+        })
+        await loadVaults()
+      } catch (err) {
+        setSaveError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to update hosted vault',
+        )
+        throw err
+      } finally {
+        setSavingVaultId(null)
+      }
+    },
+    [adminUpdateHostedVault, loadVaults],
+  )
+
+  const handleCreateVaultUser = useCallback(
+    async ({ username, password }: { username: string; password: string }) => {
+      try {
+        setCreatingVaultUser(true)
+        setCreateVaultUserError(null)
+        const vaultUser = await adminCreateVaultUser({
+          username: username.trim(),
+          password,
+        })
+        setCreatedVaultUser(vaultUser)
+        await loadVaults()
+      } catch (err) {
+        setCreateVaultUserError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to create vault user',
+        )
+      } finally {
+        setCreatingVaultUser(false)
+      }
+    },
+    [adminCreateVaultUser, loadVaults],
+  )
+
   const onlineCount = vaultServers.filter(
     (server) => server.status && isOnline(server.status.lastHeartbeat),
   ).length
@@ -635,6 +992,13 @@ export default function VaultStatus() {
 
   return (
     <Box>
+      <VaultUserProvisioner
+        createdVaultUser={createdVaultUser}
+        createError={createVaultUserError}
+        creatingVaultUser={creatingVaultUser}
+        onCreateVaultUser={handleCreateVaultUser}
+      />
+
       <Box
         sx={{
           display: 'flex',
@@ -695,6 +1059,7 @@ export default function VaultStatus() {
                   allComputations={computations}
                   creatingServerId={creatingServerId}
                   onCreateHostedVault={handleCreateHostedVault}
+                  onUpdateHostedVault={handleUpdateHostedVault}
                   onSaveAllowedComputations={handleSaveAllowedComputations}
                   saveError={saveError}
                   savingVaultId={savingVaultId}

@@ -79,6 +79,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
         flexDirection: (direction as React.CSSProperties['flexDirection']) || 'column',
         justifyContent: 'space-evenly',
         alignItems: 'center',
+        maxWidth: '100%',
         animation: 'fadeIn 2s',
       }}
     >
@@ -160,6 +161,8 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
           color: isActive ? '#000' : '#aaa',
           marginLeft: direction === 'row' ? '0.5rem' : '0',
           fontSize: nameSize,
+          maxWidth: direction === 'row' ? '12rem' : '100%',
+          overflowWrap: 'anywhere',
         }}
       >
         {username}
