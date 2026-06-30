@@ -122,6 +122,8 @@ export function ConsortiumDetailsPage() {
   const navigate = useNavigate()
   const isActive = activeMembers.some((member) => member.id === userId)
 
+  const hasActiveMembers = activeMembers.length > 0
+
   const hasComputation = !!studyConfiguration?.computation
   // NOTE: using the misspelled key per your generated types
   const supportsLocal = !!studyConfiguration?.computation?.hasLocalParameters
@@ -142,18 +144,19 @@ export function ConsortiumDetailsPage() {
   return (
     <>
       <Grid container spacing={2} padding={2}>
-          <Grid 
-            container
-            size={12} 
-            spacing={0} 
-            padding={0} 
-          >
+        <Grid
+          container
+          size={12}
+          spacing={0}
+          padding={0}
+        >
           <Grid size={{ xs: 12, sm: 6 }} justifyContent='flex-start' alignItems='bottom'>
             <TitleAndDescription title={title} description={description} />
           </Grid>
-          <Grid 
-            size={{ xs: 12, sm: 6 }}  
-            alignItems='bottom'>
+          <Grid
+            size={{ xs: 12, sm: 6 }}
+            alignItems='bottom'
+          >
             <ConsortiumActions
               consortiumId={consortiumId}
               isLeader={isLeader}
@@ -169,7 +172,7 @@ export function ConsortiumDetailsPage() {
 
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
 
-          {isLeader && hasComputation && <StartRunButton />}
+          {isLeader && hasComputation && <StartRunButton hasActiveMembers={hasActiveMembers} />}
           {isActive && <DirectorySelect />}
 
           <Members
