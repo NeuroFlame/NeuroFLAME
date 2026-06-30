@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { Button, Typography, CircularProgress } from '@mui/material'
 
-export default function StartRunButton() {
+export default function StartRunButton({ hasActiveMembers }: { hasActiveMembers?: boolean | undefined }) {
   const { startRun } = useCentralApi()
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
   const [loading, setLoading] = useState(false)
@@ -42,7 +42,7 @@ export default function StartRunButton() {
         <Button
           variant='contained'
           onClick={handleStartRun}
-          disabled={runStarted} // Disable after a run is started
+          disabled={!hasActiveMembers || runStarted} // Disable after a run is started
           sx={{
             marginBottom: '1rem',
             backgroundColor: '#2FB600',
