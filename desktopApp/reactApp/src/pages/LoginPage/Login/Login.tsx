@@ -86,6 +86,10 @@ export function Login() {
             onChange={(e) => setKeepLoggedIn(e.target.checked)}
             disabled={loading}
             size='small'
+            sx={{
+              color: 'white',
+              '&.Mui-checked': { color: 'white' },
+            }}
           />
         )}
         label='Keep me logged in'

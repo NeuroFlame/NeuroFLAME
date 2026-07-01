@@ -28,7 +28,7 @@ interface VaultUserListProps {
 const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
   const { getHostedVaultList, leaderAddHostedVault } = useCentralApi()
   const [vaultUserList, setVaultUserList] = useState<HostedVault[]>([])
-  const [selectedVaultInfo, setSelectedVaultInfo] = useState<number>(0)
+  const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
@@ -46,9 +46,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
       setError(null)
       const res = await getHostedVaultList({})
       setVaultUserList(res)
-      setSelectedVaultInfo((prev) =>
-        res.length === 0 ? 0 : Math.min(prev, res.length - 1),
-      )
+      setSelectedVaultId((prev) => prev ?? (res.length > 0 ? res[0].id : null))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch vault users'
       setError(errorMessage)
@@ -76,22 +74,26 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
     [members],
   )
 
-  const vaultCompatibility = useMemo(
+  const compatibleVaults = useMemo(
     () =>
-      vaultUserList.map((vaultUser) => {
-        const allowsSelectedComputation =
-          !selectedComputation ||
-          (vaultUser.allowedComputations ?? []).some(
-            (computation) => computation.imageName === selectedComputation.imageName,
-          )
-
-        return {
+      vaultUserList
+        .filter(
+          (vaultUser) =>
+            !selectedComputation ||
+            (vaultUser.allowedComputations ?? []).some(
+              (computation) => computation.imageName === selectedComputation.imageName,
+            ),
+        )
+        .map((vaultUser) => ({
           vaultUser,
           alreadyMember: existingMemberIds.has(vaultUser.id),
-          allowsSelectedComputation,
-        }
-      }),
+        })),
     [existingMemberIds, selectedComputation, vaultUserList],
+  )
+
+  const selectedVault = useMemo(
+    () => vaultUserList.find((v) => v.id === selectedVaultId) ?? compatibleVaults[0]?.vaultUser ?? null,
+    [selectedVaultId, vaultUserList, compatibleVaults],
   )
 
   if (loading) {
@@ -143,99 +145,82 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
         >
           {selectedComputation && (
             <Alert severity='info' sx={{ mb: 2 }}>
-              Current computation: {selectedComputation.title}. Only vaults that
-              allow it can be added.
+              Showing vaults compatible with: {selectedComputation.title}
             </Alert>
           )}
-          {vaultUserList.length === 0 ? (
+          {compatibleVaults.length === 0 ? (
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant='body1' color='text.secondary'>
-                No vault users found
+                No compatible vault users found
               </Typography>
             </Box>
           ) : (
             <List>
-              {vaultCompatibility.map(
-                ({ vaultUser, alreadyMember, allowsSelectedComputation }, index) => {
-                  const { id } = vaultUser
-                  const addDisabled = alreadyMember || !allowsSelectedComputation
+              {compatibleVaults.map(({ vaultUser, alreadyMember }) => {
+                const { id } = vaultUser
 
-                  return (
-                    <React.Fragment key={id}>
-                      <ListItem
+                return (
+                  <React.Fragment key={id}>
+                    <ListItem
+                      sx={{
+                        padding: '1rem 0',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 2,
+                      }}
+                    >
+                      <ListItemText
+                        primary={vaultUser.name}
+                        secondary={vaultUser.datasetKey}
+                        primaryTypographyProps={{
+                          fontWeight: 'bold',
+                          sx: {
+                            overflowWrap: 'anywhere',
+                            pr: 1,
+                          },
+                        }}
+                        secondaryTypographyProps={{
+                          sx: {
+                            overflowWrap: 'anywhere',
+                            pr: 1,
+                          },
+                        }}
+                        sx={{ flex: '1 1 auto', minWidth: 0, my: 0 }}
+                      />
+                      <Box
                         sx={{
-                          padding: '1rem 0',
                           display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: 2,
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                          flex: '0 0 128px',
+                          alignItems: 'stretch',
                         }}
                       >
-                        <ListItemText
-                          primary={vaultUser.name}
-                          secondary={vaultUser.datasetKey}
-                          primaryTypographyProps={{
-                            fontWeight: 'bold',
-                            sx: {
-                              overflowWrap: 'anywhere',
-                              pr: 1,
-                            },
-                          }}
-                          secondaryTypographyProps={{
-                            sx: {
-                              overflowWrap: 'anywhere',
-                              pr: 1,
-                            },
-                          }}
-                          sx={{ flex: '1 1 auto', minWidth: 0, my: 0 }}
-                        />
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.5rem',
-                            flex: '0 0 128px',
-                            alignItems: 'stretch',
-                          }}
+                        <Button
+                          variant='outlined'
+                          color='primary'
+                          size='small'
+                          onClick={() => setSelectedVaultId(id)}
+                          sx={{ minWidth: 0 }}
                         >
-                          <Button
-                            variant='outlined'
-                            color='primary'
-                            size='small'
-                            onClick={() => setSelectedVaultInfo(index)}
-                            sx={{ minWidth: 0 }}
-                          >
-                            Info
-                          </Button>
-                          <Button
-                            variant='contained'
-                            color='primary'
-                            size='small'
-                            disabled={addDisabled}
-                            onClick={() => handleAdd(id)}
-                            sx={{ minWidth: 0 }}
-                          >
-                            {alreadyMember ? 'Added' : 'Add'}
-                          </Button>
-                          {!allowsSelectedComputation && (
-                            <Typography
-                              variant='caption'
-                              color='error'
-                              sx={{
-                                lineHeight: 1.2,
-                                overflowWrap: 'anywhere',
-                                textAlign: 'center',
-                              }}
-                            >
-                              Not allowed for current computation
-                            </Typography>
-                          )}
-                        </Box>
-                      </ListItem>
-                      <Divider component='li' />
-                    </React.Fragment>
-                  )
-                },
-              )}
+                          Info
+                        </Button>
+                        <Button
+                          variant='contained'
+                          color='primary'
+                          size='small'
+                          disabled={alreadyMember}
+                          onClick={() => handleAdd(id)}
+                          sx={{ minWidth: 0 }}
+                        >
+                          {alreadyMember ? 'Added' : 'Add'}
+                        </Button>
+                      </Box>
+                    </ListItem>
+                    <Divider component='li' />
+                  </React.Fragment>
+                )
+              })}
             </List>
           )}
         </Box>
@@ -251,7 +236,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
             variant='subtitle2'
             sx={{ color: 'text.primary', overflowWrap: 'anywhere' }}
           >
-            {vaultUserList[selectedVaultInfo]?.datasetKey}
+            {selectedVault?.datasetKey}
           </Typography>
           <Typography
             variant='h4'
@@ -262,7 +247,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
               overflowWrap: 'anywhere',
             }}
           >
-            {vaultUserList[selectedVaultInfo]?.name}
+            {selectedVault?.name}
           </Typography>
           <Box
             sx={{
@@ -272,8 +257,8 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
               marginBottom: '1rem',
             }}
           >
-            {(vaultUserList[selectedVaultInfo]?.allowedComputations ?? []).length ? (
-              (vaultUserList[selectedVaultInfo]?.allowedComputations ?? []).map((computation) => (
+            {(selectedVault?.allowedComputations ?? []).length ? (
+              (selectedVault?.allowedComputations ?? []).map((computation) => (
                 <Chip
                   key={computation.id}
                   label={computation.title}
@@ -331,7 +316,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
               components={markdownComponents}
               remarkPlugins={[remarkGfm]}
             >
-              {vaultUserList[selectedVaultInfo]?.description ?? ''}
+              {selectedVault?.description ?? ''}
             </ReactMarkdown>
           </Box>
         </Box>

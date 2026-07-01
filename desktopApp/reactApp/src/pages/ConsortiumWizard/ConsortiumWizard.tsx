@@ -6,6 +6,7 @@ import StepSetParameters from './steps/StepSetParameters'
 import StepSetLocalParameters from './steps/StepSetLocalParameters'
 import StepSelectData from './steps/StepSelectData'
 import StepAddNotes from './steps/StepAddNotes'
+import StepAddVaultUser from './steps/StepAddVaultUser'
 import StepDownloadImage from './steps/StepDownloadImage'
 import StepSetReady from './steps/StepSetReady'
 import StepViewRequirements from './steps/StepViewRequirements'
@@ -25,10 +26,17 @@ const ConsortiumWizard = () => {
   const [step, setStep] = useState<number>(0)
   const [steps, setSteps] = useState<StepsType[]>([])
   const [isReady, setIsReady] = useState<boolean>(false)
+  const [imageDownloaded, setImageDownloaded] = useState<boolean>(false)
+  const [requirementsAcknowledged, setRequirementsAcknowledged] = useState<boolean>(false)
+  const [directorySet, setDirectorySet] = useState<boolean>(false)
   const navigate = useNavigate()
 
   const { consortiumId } = useParams<{ consortiumId: string }>()
   const { data, isLeader } = useConsortiumDetailsContext()
+  const parametersSet = (() => {
+    const p = data?.studyConfiguration?.computationParameters?.trim()
+    return !!p && p !== '{}'
+  })()
   const { userId } = useUserState()
   const { readyMembers } = data
 
@@ -48,14 +56,14 @@ const ConsortiumWizard = () => {
   ]
 
   const leaderSteps: StepsType[] = [
-    { label: 'Select Computation', path: 'step-select-computation' },
-    { label: 'Download Computation Image', path: 'step-download-image' },
+    { label: 'Select Computation & Download Image', path: 'step-select-computation' },
+    { label: 'Add Vault User (Optional)', path: 'step-add-vault-user' },
     { label: 'Set Parameters', path: 'step-set-parameters' },
     { label: 'Select Data Directory', path: 'step-select-data' },
     ...(supportsLocal
       ? [{ label: 'Set Local Parameters', path: 'step-set-local-parameters' } as StepsType]
       : []),
-    { label: 'Add Leader Notes', path: 'step-add-notes' },
+    { label: 'Add Leader Notes (Optional)', path: 'step-add-notes' },
     { label: 'Set Ready Status', path: 'step-set-ready' },
   ]
 
@@ -137,17 +145,18 @@ const ConsortiumWizard = () => {
           {/* Step Routes */}
           <Box style={{ margin: '0 1rem 2rem' }}>
             <Routes>
-              <Route path='step-select-computation' element={<StepSelectComputation />} />
+              <Route path='step-select-computation' element={<StepSelectComputation onImageDownloaded={() => setImageDownloaded(true)} />} />
+              <Route path='step-add-vault-user' element={<StepAddVaultUser />} />
               <Route path='step-set-parameters' element={<StepSetParameters />} />
-              <Route path='step-select-data' element={<StepSelectData />} />
+              <Route path='step-select-data' element={<StepSelectData onDirectorySet={setDirectorySet} />} />
               {/* Only mount the Local Parameters route if supported */}
               {supportsLocal && (
                 <Route path='step-set-local-parameters' element={<StepSetLocalParameters />} />
               )}
-              <Route path='step-download-image' element={<StepDownloadImage />} />
+              <Route path='step-download-image' element={<StepDownloadImage onImageDownloaded={() => setImageDownloaded(true)} />} />
               <Route path='step-add-notes' element={<StepAddNotes />} />
               <Route path='step-set-ready' element={<StepSetReady />} />
-              <Route path='step-view-requirements' element={<StepViewRequirements />} />
+              <Route path='step-view-requirements' element={<StepViewRequirements onAcknowledged={setRequirementsAcknowledged} />} />
             </Routes>
           </Box>
 
@@ -173,12 +182,20 @@ const ConsortiumWizard = () => {
                 Go Back A Step
               </Button>
             )}
-            {(isReady || step === steps.length - 1) && (
+            {isReady && (
               <Button variant='outlined' color='primary' onClick={handleNavigateToConsortiumDetails}>
                 View Consortium Details
               </Button>
             )}
-            {step !== steps.length - 1 && (
+            {step !== steps.length - 1 && (() => {
+              const path = steps[step]?.path
+              if (path === 'step-view-requirements') return requirementsAcknowledged
+              if (path === 'step-select-computation') return imageDownloaded
+              if (path === 'step-download-image') return imageDownloaded
+              if (path === 'step-set-parameters') return parametersSet
+              if (path === 'step-select-data') return directorySet
+              return true
+            })() && (
               <Button
                 variant='contained'
                 color='primary'

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { useUserState } from '../../contexts/UserStateContext'
 
 export interface FileInfo {
   name: string;
@@ -9,11 +8,10 @@ export interface FileInfo {
   size: number;
   isDirectory: boolean;
   lastModified: string;
-  url: string; // This is relative: consortiumId/runId/participantId/...
+  url: string; // This is relative: consortiumId/runId/...
 }
 
 export function useRunResults() {
-  const { userId } = useUserState()
   const {
     consortiumId,
     runId,
@@ -79,11 +77,11 @@ export function useRunResults() {
   }, [])
 
   useEffect(() => {
-    if (!edgeClientRunResultsUrl || !consortiumId || !runId || !userId) return
+    if (!edgeClientRunResultsUrl || !consortiumId || !runId) return
 
     const fetchResultsFilesList = async () => {
       try {
-        const basePath = `${consortiumId}/${runId}/${userId}`
+        const basePath = `${consortiumId}/${runId}`
         const files = await fetchRecursive(basePath)
 
         const indexFile = files.find((file) =>
@@ -106,7 +104,7 @@ export function useRunResults() {
     }
 
     fetchResultsFilesList()
-  }, [edgeClientRunResultsUrl, consortiumId, runId, userId, frameSrc])
+  }, [edgeClientRunResultsUrl, consortiumId, runId, frameSrc])
 
   const handleHideFiles = () => {
     setFilesPanelWidth({ sm: 0, md: 0 })
