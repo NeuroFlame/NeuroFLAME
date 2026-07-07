@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Box, Typography } from '@mui/material'
+import { Button, Box, Typography, Chip } from '@mui/material'
 import {
   ConsortiumListItem as ConsortiumListItemType,
 } from '../../apis/centralApi/generated/graphql' // Import the type
@@ -61,10 +61,15 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
       style={{ background: 'white', padding: '1rem', marginBottom: '1rem' }}
     >
       <Box flex={1}>
-        <a onClick={() => navigate(`/consortium/details/${consortium.id}`)}>
-          <Typography variant='h6'>{consortium.title || 'No Title'}</Typography>
-        </a>
-        <Typography>{consortium.description || 'No Description'}</Typography>
+        <Box flex={1} gap={1} display='flex' alignItems='center'>
+          <a onClick={() => navigate(`/consortium/details/${consortium.id}`)}>
+            <Typography variant='h6'>{consortium.title || 'No Title'}</Typography>
+          </a>
+          <Chip label={consortium.leader.username} color='primary' size='small' variant='outlined' />
+        </Box>
+        {consortium.description && (
+          <Typography>{consortium.description}</Typography>
+        )}
       </Box>
       <Box>
         {isMember && (
