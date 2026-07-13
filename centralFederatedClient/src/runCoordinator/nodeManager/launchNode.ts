@@ -75,12 +75,11 @@ const launchDockerNode = async ({
   })
 
   try {
-    await isDockerRunning()
-    await doesImageExist(imageName)
+    const resolvedImageName = await ensureDockerImageReady(imageName)
 
     // Create the container
     const container = await docker.createContainer({
-      Image: imageName,
+      Image: resolvedImageName,
       Cmd: commandsToRun,
       ExposedPorts: exposedPorts,
       HostConfig: {
@@ -156,21 +155,90 @@ const isDockerRunning = async () => {
   }
 }
 
-const doesImageExist = async (imageName: string) => {
+const getLocalDockerImageId = async (
+  imageName: string,
+): Promise<string | undefined> => {
   try {
-    const images = await docker.listImages({
-      filters: { reference: [imageName] },
-    })
-    if (images.length === 0) {
-      throw new Error(
-        `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
-      )
-    }
+    const image = await docker.getImage(imageName).inspect()
+    return image.Id
   } catch (error) {
+    if ((error as { statusCode?: number }).statusCode === 404) {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
+const shouldPullBeforeRun = (imageName: string): boolean => {
+  if (imageName.includes('@sha256:')) {
+    return false
+  }
+
+  const imageWithoutRegistryPort = imageName.includes('/')
+    ? imageName.substring(imageName.lastIndexOf('/') + 1)
+    : imageName
+
+  return !imageWithoutRegistryPort.includes(':') || imageName.endsWith(':latest')
+}
+
+const pullDockerImage = async (imageName: string): Promise<void> => {
+  logger.info(`Pulling Docker image before run: ${imageName}`)
+
+  await new Promise<void>((resolve, reject) => {
+    docker.pull(imageName, (error: Error | null, stream: NodeJS.ReadableStream | undefined) => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      if (!stream) {
+        reject(new Error(`Docker did not return a pull stream for ${imageName}`))
+        return
+      }
+
+      docker.modem.followProgress(stream, (progressError) => {
+        if (progressError) {
+          reject(progressError)
+          return
+        }
+
+        resolve()
+      })
+    })
+  })
+
+  logger.info(`Docker image pull completed: ${imageName}`)
+}
+
+export const ensureDockerImageReady = async (
+  imageName: string,
+): Promise<string> => {
+  await isDockerRunning()
+
+  if (shouldPullBeforeRun(imageName)) {
+    try {
+      await pullDockerImage(imageName)
+    } catch (error) {
+      const localImageId = await getLocalDockerImageId(imageName)
+      if (!localImageId) {
+        throw error
+      }
+
+      logger.warn(
+        `Failed to refresh Docker image ${imageName}; using cached image ${localImageId}`,
+        { error },
+      )
+      return localImageId
+    }
+  }
+
+  const localImageId = await getLocalDockerImageId(imageName)
+  if (!localImageId) {
     throw new Error(
-      `Failed to check existence of image "${imageName}": ${
-        (error as Error).message
-      }`,
+      `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
     )
   }
+
+  return localImageId
 }
