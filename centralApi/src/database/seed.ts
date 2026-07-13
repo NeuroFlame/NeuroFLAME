@@ -77,7 +77,6 @@ const predefinedIds = {
   hostedVault1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20074'),
   hostedVault2Id: new mongoose.Types.ObjectId('66289c79aebab67040a20075'),
   testUser1Id: new mongoose.Types.ObjectId('66289c79aebab67040a20076'),
-  testUser2Id: new mongoose.Types.ObjectId('66289c79aebab67040a20077'),
   computation1Id: new mongoose.Types.ObjectId('66289c79aebab67040a21000'),
   computation2Id: new mongoose.Types.ObjectId('66289c79aebab67040a21001'),
   computation3Id: new mongoose.Types.ObjectId('66289c79aebab67040a21002'),
@@ -131,6 +130,11 @@ const users: SeedUser[] = [
         predefinedIds.computation2Id,
       ],
     },
+  },
+  {
+    _id: predefinedIds.testUser1Id,
+    username: 'e2e-test-user-1@email.com',
+    hash: await bcrypt.hash('password', saltRounds),
   },
 ]
 

@@ -16,6 +16,7 @@ services:
   api:
     depends_on:
       - 'mongo'
+      - 'resend-mock'
     image: neuroflame/api
     healthcheck:
       test: [ "CMD-SHELL", "curl -s -X POST http://localhost:3001/graphql -H 'Content-Type: application/json' --data '{\"query\":\"{ __typename }\"}' > /dev/null" ]
@@ -36,7 +37,8 @@ services:
       - CLIENT_FILE_SERVER_URL=http://fileServer:3002
       - APOLLO_PORT=3001
       - DATABASE_URI=mongodb://admin:secret@mongo:27017/centralDatabase
-      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_API_KEY=test-resend-api-key
+      - RESEND_BASE_URL=http://resend-mock:3005
       - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:-access-token-secret-example}
       - ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION:-24h}
       - CONSORTIUM_INVITE_URL=${CONSORTIUM_INVITE_URL:-http://localhost:3001}
@@ -107,9 +109,10 @@ services:
       - seccomp:unconfined
     environment:
       - CI=true
-      - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/srr-freesurfer/site1
+      - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/freesurfer-site1
       - DOCKER_HOST=tcp://docker-proxy:2375
       - NODE_ENV=${NODE_ENV:-test}
+      - RESEND_MOCK_URL=http://resend-mock:3005
       - DISPLAY=:99
 
 
@@ -120,6 +123,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - ci_network
+
+  resend-mock:
+    image: neuroflame/ci
+    command: node /nf/desktopApp/electronApp/tests/support/resendMock.mjs
+    networks:
+      - ci_network
+    environment:
+      - PORT=3005
 networks:
   ci_network:
     name: ci-network
