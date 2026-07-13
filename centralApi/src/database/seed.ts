@@ -129,11 +129,6 @@ const users: SeedUser[] = [
       ],
     },
   },
-  {
-    _id: predefinedIds.testUser1Id,
-    username: 'e2e-test-user-1@email.com',
-    hash: await bcrypt.hash('password', saltRounds),
-  },
 ]
 
 const computations = [
