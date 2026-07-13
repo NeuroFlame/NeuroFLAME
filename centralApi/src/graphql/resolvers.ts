@@ -1183,7 +1183,6 @@ export default {
       context,
     ): Promise<LoginOutput> => {
       // get the user from the database
-      console.log({ username, password })
       const user = await User.findOne({ username })
       if (!user) {
         throw new Error('User not found')

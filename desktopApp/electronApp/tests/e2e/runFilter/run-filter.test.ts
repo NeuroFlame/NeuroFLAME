@@ -30,8 +30,14 @@ test.describe('Run list filters', () => {
   })
 
   test.afterAll(async () => {
-    await user.logOut(page)
-    await destroyAllInstances()
+    try {
+      if (page && !page.isClosed()) {
+        await page.evaluate(() => localStorage.removeItem('runFilter'))
+        await user.logOut(page)
+      }
+    } finally {
+      await destroyAllInstances()
+    }
   })
 
   // Reset filters between tests so each case starts independently.
@@ -108,8 +114,14 @@ test.describe('Run list filter persistence', () => {
   })
 
   test.afterAll(async () => {
-    await user.logOut(page)
-    await destroyAllInstances()
+    try {
+      if (page && !page.isClosed()) {
+        await page.evaluate(() => localStorage.removeItem('runFilter'))
+        await user.logOut(page)
+      }
+    } finally {
+      await destroyAllInstances()
+    }
   })
 
   test('persists filters per user across login sessions', async () => {

@@ -25,8 +25,6 @@ type SeedUser = {
     description: string
     allowedComputations: mongoose.Types.ObjectId[]
   }
-  resetToken?: string
-  resetTokenExpiry?: number
 }
 
 type SeedComputation = (typeof computations)[number]
@@ -253,14 +251,6 @@ if (isTest) {
   users.push({
     _id: predefinedIds.testUser1Id,
     username: 'e2e-test-user-1@email.com',
-    hash: await bcrypt.hash('password', saltRounds),
-    resetToken: 'reset-token',
-    resetTokenExpiry: Date.now() + 1000 * 60 * 60 * 24,
-  })
-
-  users.push({
-    _id: predefinedIds.testUser2Id,
-    username: 'e2e-test-user-2@email.com',
     hash: await bcrypt.hash('password', saltRounds),
   })
 
