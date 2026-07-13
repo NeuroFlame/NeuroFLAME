@@ -1215,7 +1215,7 @@ export default {
     ): Promise<boolean> => {
       const user = await User.findOne({ username })
       if (!user) {
-        throw new Error('User not found')
+        return true
       }
 
       const resetToken = randomBytes(32).toString('hex')

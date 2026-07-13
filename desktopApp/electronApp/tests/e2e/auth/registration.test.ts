@@ -23,20 +23,20 @@ test.describe('User Registration', () => {
     await destroyAllInstances()
   })
 
-  test('create a new user', async () => {
+  test('registers, authenticates, and rejects a duplicate user', async () => {
     await expect(page).toHaveTitle('NeuroFLAME')
+
+    // Register a new user.
     await page.getByRole('button', { name: 'Create User' }).click()
     await user.register(NEW_USER, page)
     await expect(page.getByRole('alert')).toContainText('New user successfully created. Log In below.')
-  })
 
-  test('login with the new user', async () => {
+    // Authenticate as the newly registered user.
     await user.logIn(NEW_USER, page)
     await expect(page.locator('h2')).toContainText('Welcome to NeuroFLAME')
     await user.logOut(page)
-  })
 
-  test('get error when creata a new user with existing email', async () => {
+    // Reject a second registration for the same email.
     await page.getByRole('button', { name: 'Create User' }).click()
     await user.register(NEW_USER, page)
     await expect(page.getByRole('alert')).toContainText('User already exists')
