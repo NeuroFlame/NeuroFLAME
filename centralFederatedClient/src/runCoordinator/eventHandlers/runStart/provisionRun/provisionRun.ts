@@ -71,9 +71,9 @@ export async function provisionRun({
       ],
       portBindings: [],
       commandsToRun: ['python', '/workspace/system/entry_provision.py'],
-      onContainerExitSuccess: async (containerId) => resolve(undefined),
-      onContainerExitError: async (_, error) => reject(new Error(error)),
-    })
+      onContainerExitSuccess: () => resolve(undefined),
+      onContainerExitError: (_, error) => reject(new Error(error)),
+    }).catch(reject)
   })
 
   const pathRunKits = path.join(pathRun, 'runKits')
