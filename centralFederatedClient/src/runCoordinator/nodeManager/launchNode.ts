@@ -75,12 +75,11 @@ const launchDockerNode = async ({
   })
 
   try {
-    await isDockerRunning()
-    await ensureDockerImageReady(imageName)
+    const resolvedImageName = await ensureDockerImageReady(imageName)
 
     // Create the container
     const container = await docker.createContainer({
-      Image: imageName,
+      Image: resolvedImageName,
       Cmd: commandsToRun,
       ExposedPorts: exposedPorts,
       HostConfig: {
@@ -156,22 +155,18 @@ const isDockerRunning = async () => {
   }
 }
 
-const doesImageExist = async (imageName: string) => {
+const getLocalDockerImageId = async (
+  imageName: string,
+): Promise<string | undefined> => {
   try {
-    const images = await docker.listImages({
-      filters: { reference: [imageName] },
-    })
-    if (images.length === 0) {
-      throw new Error(
-        `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
-      )
-    }
+    const image = await docker.getImage(imageName).inspect()
+    return image.Id
   } catch (error) {
-    throw new Error(
-      `Failed to check existence of image "${imageName}": ${
-        (error as Error).message
-      }`,
-    )
+    if ((error as { statusCode?: number }).statusCode === 404) {
+      return undefined
+    }
+
+    throw error
   }
 }
 
@@ -216,11 +211,34 @@ const pullDockerImage = async (imageName: string): Promise<void> => {
   logger.info(`Docker image pull completed: ${imageName}`)
 }
 
-const ensureDockerImageReady = async (imageName: string): Promise<void> => {
+export const ensureDockerImageReady = async (
+  imageName: string,
+): Promise<string> => {
+  await isDockerRunning()
+
   if (shouldPullBeforeRun(imageName)) {
-    await pullDockerImage(imageName)
-    return
+    try {
+      await pullDockerImage(imageName)
+    } catch (error) {
+      const localImageId = await getLocalDockerImageId(imageName)
+      if (!localImageId) {
+        throw error
+      }
+
+      logger.warn(
+        `Failed to refresh Docker image ${imageName}; using cached image ${localImageId}`,
+        { error },
+      )
+      return localImageId
+    }
   }
 
-  await doesImageExist(imageName)
+  const localImageId = await getLocalDockerImageId(imageName)
+  if (!localImageId) {
+    throw new Error(
+      `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
+    )
+  }
+
+  return localImageId
 }
