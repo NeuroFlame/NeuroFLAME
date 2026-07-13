@@ -9,6 +9,8 @@ import computation from '../../libs/computation'
 import consortia from '../../libs/consortia'
 
 const CONSORTIUM_ID = uuidv4()
+const COMPUTATION_IMAGE_DIGEST =
+  'sha256:0a2d369946138b3a7ff13cbc92f473e3f97e17db0c9a51d8c6a025392d32a0f4'
 
 const execPromise = promisify(exec)
 
@@ -28,7 +30,9 @@ test.describe('Single-round Ridge Regression for Freesurfer computation', () => 
   test.beforeAll(async () => {
     test.setTimeout(COMPUTATION_TIMEOUT)
     page = (await setup(1)) as Page
-    await execPromise(`docker pull ${DATA.computation.name}`)
+    const pinnedImage = `${DATA.computation.name}@${COMPUTATION_IMAGE_DIGEST}`
+    await execPromise(`docker pull ${pinnedImage}`)
+    await execPromise(`docker tag ${pinnedImage} ${DATA.computation.name}:latest`)
   })
 
   test.afterAll(async () => {

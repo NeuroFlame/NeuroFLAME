@@ -108,7 +108,7 @@ services:
       - seccomp:unconfined
     environment:
       - CI=true
-      - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/srr-freesurfer/site1
+      - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/freesurfer-site1
       - DOCKER_HOST=tcp://docker-proxy:2375
       - NODE_ENV=test
       - RESEND_MOCK_URL=http://resend-mock:3005
