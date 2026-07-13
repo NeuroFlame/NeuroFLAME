@@ -107,8 +107,14 @@ const ComputationDisplay: React.FC<{
           </Box>
           {onToggleExpand && (
             <Tooltip title={expanded ? 'Collapse' : 'Expand'}>
-              <IconButton size='small' onClick={onToggleExpand} sx={{ mt: '-4px', mr: '-8px', display: { xs: 'none', md: 'flex' } }}>
-                {expanded ? <CloseFullscreenIcon fontSize='small' /> : <OpenInFullIcon fontSize='small' />}
+              <IconButton
+                size='small'
+                onClick={onToggleExpand}
+                sx={{ mt: '-4px', mr: '-8px', display: { xs: 'none', md: 'flex' } }}
+              >
+                {expanded
+                  ? <CloseFullscreenIcon fontSize='small' />
+                  : <OpenInFullIcon fontSize='small' />}
               </IconButton>
             </Tooltip>
           )}

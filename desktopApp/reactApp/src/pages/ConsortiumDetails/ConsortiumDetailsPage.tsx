@@ -143,18 +143,19 @@ export function ConsortiumDetailsPage() {
   return (
     <>
       <Grid container spacing={2} padding={2}>
-          <Grid 
-            container
-            size={12} 
-            spacing={0} 
-            padding={0} 
-          >
+        <Grid
+          container
+          size={12}
+          spacing={0}
+          padding={0}
+        >
           <Grid size={{ xs: 12, sm: 6 }} justifyContent='flex-start' alignItems='bottom'>
             <TitleAndDescription title={title} description={description} />
           </Grid>
-          <Grid 
-            size={{ xs: 12, sm: 6 }}  
-            alignItems='bottom'>
+          <Grid
+            size={{ xs: 12, sm: 6 }}
+            alignItems='bottom'
+          >
             <ConsortiumActions
               consortiumId={consortiumId}
               isLeader={isLeader}
@@ -210,7 +211,12 @@ export function ConsortiumDetailsPage() {
                           <Tab label='Global Settings' value='global' />
                           <Tab label='Local Settings' value='local' />
                         </Tabs>
-                        <Box role='tabpanel' hidden={tab !== 'global'} id='tabpanel-global' aria-labelledby='tab-global'>
+                        <Box
+                          role='tabpanel'
+                          hidden={tab !== 'global'}
+                          id='tabpanel-global'
+                          aria-labelledby='tab-global'
+                        >
                           {tab === 'global' && <ComputationParameters />}
                         </Box>
                         <Box role='tabpanel' hidden={tab !== 'local'} id='tabpanel-local' aria-labelledby='tab-local'>
