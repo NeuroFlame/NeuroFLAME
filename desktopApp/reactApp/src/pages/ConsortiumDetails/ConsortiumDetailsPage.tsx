@@ -122,8 +122,6 @@ export function ConsortiumDetailsPage() {
   const navigate = useNavigate()
   const isActive = activeMembers.some((member) => member.id === userId)
 
-  const hasActiveMembers = activeMembers.length > 0
-
   const hasComputation = !!studyConfiguration?.computation
   // NOTE: using the misspelled key per your generated types
   const supportsLocal = !!studyConfiguration?.computation?.hasLocalParameters
@@ -172,7 +170,7 @@ export function ConsortiumDetailsPage() {
 
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
 
-          {isLeader && hasComputation && <StartRunButton hasActiveMembers={hasActiveMembers} />}
+          {isLeader && hasComputation && <StartRunButton />}
           {isActive && <DirectorySelect />}
 
           <Members
