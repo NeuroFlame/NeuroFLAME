@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import {
   generateTokens,
   compare,
@@ -485,6 +486,7 @@ export default {
           vault: mapVault(member.vault),
         })),
         isPrivate: consortium.isPrivate ?? false,
+        createdAt: new mongoose.Types.ObjectId(consortium._id.toString()).getTimestamp().getTime().toString(),
       }))
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {

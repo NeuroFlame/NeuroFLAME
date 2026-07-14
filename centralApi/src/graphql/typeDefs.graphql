@@ -103,6 +103,7 @@ type ConsortiumListItem {
   leader: PublicUser!
   members: [PublicUser!]!
   isPrivate: Boolean!
+  createdAt: String!
 }
 
 type ComputationListItem {

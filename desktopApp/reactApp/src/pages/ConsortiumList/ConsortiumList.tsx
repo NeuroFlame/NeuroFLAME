@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Typography,
   Button,
@@ -9,8 +9,12 @@ import {
 import ReplayIcon from '@mui/icons-material/Replay'
 import {
   ConsortiumListItem as ConsortiumListItemType,
-} from '../../apis/centralApi/generated/graphql' // Import the type
-import ConsortiumListItem from './ConsortiumListItem' // Import the new presentation component
+} from '../../apis/centralApi/generated/graphql'
+import ConsortiumListItem from './ConsortiumListItem'
+import ConsortiumFilter, {
+  ConsortiumFilterType,
+  DEFAULT_CONSORTIUM_FILTER,
+} from './ConsortiumFilter'
 import { useNavigate } from 'react-router-dom'
 
 interface ConsortiumListProps {
@@ -27,6 +31,31 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({
   onReload,
 }) => {
   const navigate = useNavigate()
+  const [filter, setFilter] = useState<ConsortiumFilterType>(DEFAULT_CONSORTIUM_FILTER)
+
+  const filteredConsortiumList = useMemo(() => {
+    if (consortiumList.length === 0) {
+      return consortiumList
+    }
+
+    const searchTerm = filter.name.trim().toLowerCase()
+    const newestFirst = filter.sortOrder === 'newest'
+
+    const list = searchTerm
+      ? consortiumList.filter(({ title }) => (title || '').toLowerCase().includes(searchTerm))
+      : consortiumList
+
+    if (list.length <= 1) {
+      return list
+    }
+
+    const sortable = searchTerm ? list : list.slice()
+    return sortable.sort((a, b) => {
+      const dateDiff = +b.createdAt - +a.createdAt
+      return newestFirst ? dateDiff : -dateDiff
+    })
+  }, [consortiumList, filter.name, filter.sortOrder])
+
   // Loading state
   if (loading) {
     return (
@@ -92,16 +121,23 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({
           </Button>
         </Box>
       </Box>
+      <ConsortiumFilter filter={filter} onFilterChange={setFilter} />
       <Box>
-        <>
-          {consortiumList.map((consortium, index) => (
+        {filteredConsortiumList.length === 0 ? (
+          <Typography color='text.secondary' align='center' sx={{ py: 4 }}>
+            {consortiumList.length === 0
+              ? 'No consortia found.'
+              : 'No consortia match your filter.'}
+          </Typography>
+        ) : (
+          filteredConsortiumList.map((consortium) => (
             <ConsortiumListItem
-              key={index}
+              key={consortium.id}
               consortium={consortium}
               onReload={onReload}
             />
-          ))}
-        </>
+          ))
+        )}
       </Box>
     </Container>
   )
