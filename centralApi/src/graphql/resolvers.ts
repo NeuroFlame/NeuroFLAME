@@ -1311,6 +1311,15 @@ export default {
         throw new Error('A computation must be selected before starting a run.')
       }
 
+      const activeParticipantCount =
+        (consortium.activeMembers?.length ?? 0) +
+        (consortium.activeVaultMembers?.length ?? 0)
+      if (activeParticipantCount === 0) {
+        throw new Error(
+          'At least one active participant is required before starting a run.',
+        )
+      }
+
       const computationParameters = ensureValidComputationParameters(
         consortium.studyConfiguration?.computationParameters,
       )
