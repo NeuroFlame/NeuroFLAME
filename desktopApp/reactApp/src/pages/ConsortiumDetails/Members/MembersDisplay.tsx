@@ -87,20 +87,6 @@ export function MembersDisplay({
                   />
                 }
               />
-              <FormControlLabel
-                label='Ready'
-                labelPlacement='start'
-                sx={{ color: '#333', margin: 0 }}
-                control={
-                  <Switch
-                    color='primary'
-                    checked={itsMe.isActive && itsMe.isReady}
-                    onChange={(_, checked) => setMemberReady(itsMe.id, checked)}
-                    size='small'
-                    disabled={!itsMe.isActive}
-                  />
-                }
-              />
             </Box>
           </Box>
         </Box>

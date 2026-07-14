@@ -21,7 +21,6 @@ const startApp = async () => {
 
   // Attempt to get the configuration
   const config = await electronApi.getConfig()
-  console.log('Config loaded:', config)
 
   // Check if the root element exists
   const rootElement = document.getElementById('root')

@@ -2,14 +2,19 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { Button, Typography, CircularProgress } from '@mui/material'
+import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 
 export default function StartRunButton() {
   const { startRun } = useCentralApi()
+  const {
+    data: { activeMembers },
+  } = useConsortiumDetailsContext()
   const consortiumId = useParams<{ consortiumId: string }>().consortiumId as string
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [runId, setRunId] = useState<string | null>(null)
   const [runStarted, setRunStarted] = useState<boolean>(false)
+  const hasActiveParticipants = activeMembers.length > 0
 
   const handleStartRun = async () => {
     setLoading(true)
@@ -42,7 +47,7 @@ export default function StartRunButton() {
         <Button
           variant='contained'
           onClick={handleStartRun}
-          disabled={runStarted} // Disable after a run is started
+          disabled={!hasActiveParticipants || runStarted}
           sx={{
             marginBottom: '1rem',
             backgroundColor: '#2FB600',

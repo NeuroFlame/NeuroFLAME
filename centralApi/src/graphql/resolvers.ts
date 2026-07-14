@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import {
   generateTokens,
   compare,
@@ -160,10 +161,10 @@ const mapDatasetMappings = (
 const mapAvailableDatasets = (
   datasets:
     | Array<{
-        key?: string | null
-        path?: string | null
-        label?: string | null
-      }>
+      key?: string | null
+      path?: string | null
+      label?: string | null
+    }>
     | undefined,
 ): Array<{
   key: string
@@ -195,11 +196,11 @@ const mapAvailableDatasets = (
 const mapVault = (
   vault:
     | {
-        name?: string | null
-        description?: string | null
-        allowedComputations?: any[]
-        datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
-      }
+      name?: string | null
+      description?: string | null
+      allowedComputations?: any[]
+      datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
+    }
     | null
     | undefined,
 ) => (
@@ -218,22 +219,22 @@ const mapVault = (
 const mapVaultStatus = (
   vaultStatus:
     | {
-        status: string
-        version: string
-        uptime: number
-        websocketConnected: boolean
-        lastHeartbeat: Date
-        runningComputations: Array<{
-          runId: string
-          consortiumId: string
-          startedAt: Date
-        }>
-        availableDatasets?: Array<{
-          key?: string | null
-          path?: string | null
-          label?: string | null
-        }>
-      }
+      status: string
+      version: string
+      uptime: number
+      websocketConnected: boolean
+      lastHeartbeat: Date
+      runningComputations: Array<{
+        runId: string
+        consortiumId: string
+        startedAt: Date
+      }>
+      availableDatasets?: Array<{
+        key?: string | null
+        path?: string | null
+        label?: string | null
+      }>
+    }
     | null
     | undefined,
   consortiumMap?: Map<string, string>,
@@ -262,14 +263,14 @@ const mapVaultStatus = (
 const mapHostedVault = (
   vault:
     | {
-        _id?: unknown
-        server?: unknown
-        name?: string | null
-        description?: string | null
-        datasetKey?: string | null
-        allowedComputations?: any[]
-        active?: boolean | null
-      }
+      _id?: unknown
+      server?: unknown
+      name?: string | null
+      description?: string | null
+      datasetKey?: string | null
+      allowedComputations?: any[]
+      active?: boolean | null
+    }
     | null
     | undefined,
 ) => (
@@ -301,11 +302,11 @@ const mapVaultServerRecord = ({
   hostedVaults: any[]
   server:
     | {
-        _id?: unknown
-        user?: unknown
-        name?: string | null
-        description?: string | null
-      }
+      _id?: unknown
+      user?: unknown
+      name?: string | null
+      description?: string | null
+    }
     | null
     | undefined
   status?: {
@@ -327,9 +328,9 @@ const mapVaultServerRecord = ({
   } | null
   user:
     | {
-        _id?: unknown
-        username?: string | null
-      }
+      _id?: unknown
+      username?: string | null
+    }
     | null
     | undefined
   consortiumMap?: Map<string, string>
@@ -509,6 +510,7 @@ export default {
           vault: mapVault(member.vault),
         })),
         isPrivate: consortium.isPrivate ?? false,
+        createdAt: new mongoose.Types.ObjectId(consortium._id.toString()).getTimestamp().getTime().toString(),
       }))
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
@@ -944,8 +946,10 @@ export default {
             leader: consortium.leader ? transformUser(consortium.leader) : null,
             activeMembers: (consortium.activeMembers || []).map(transformUser),
             readyMembers: (consortium.readyMembers || []).map(transformUser),
-            activeVaultMembers: (consortium.activeVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
-            readyVaultMembers: (consortium.readyVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            activeVaultMembers: (consortium.activeVaultMembers || [])
+              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            readyVaultMembers: (consortium.readyVaultMembers || [])
+              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
           },
           status: run.status,
           lastUpdated: run.lastUpdated,
@@ -1237,7 +1241,7 @@ export default {
     ): Promise<boolean> => {
       const user = await User.findOne({ username })
       if (!user) {
-        throw new Error('User not found')
+        return true
       }
 
       const resetToken = randomBytes(32).toString('hex')
@@ -1334,6 +1338,15 @@ export default {
 
       if (!consortium.studyConfiguration?.computation) {
         throw new Error('A computation must be selected before starting a run.')
+      }
+
+      const activeParticipantCount =
+        (consortium.activeMembers?.length ?? 0) +
+        (consortium.activeVaultMembers?.length ?? 0)
+      if (activeParticipantCount === 0) {
+        throw new Error(
+          'At least one active participant is required before starting a run.',
+        )
       }
 
       const computationParameters = ensureValidComputationParameters(

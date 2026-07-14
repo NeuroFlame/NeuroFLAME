@@ -1,11 +1,19 @@
-import { Box, Grid, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Box, Checkbox, FormControlLabel, Grid, Typography } from '@mui/material'
 import ConsortiumLeaderNotes from '../../ConsortiumDetails/ConsortiumLeaderNotes/ConsortiumLeaderNotes'
 import ComputationDisplay from '../../ConsortiumDetails/ComputationDisplay/ComputationDisplay'
 import { useConsortiumDetailsContext } from '../../ConsortiumDetails/ConsortiumDetailsContext'
 
-export default function StepViewRequirements() {
+export default function StepViewRequirements({ onAcknowledged }: { onAcknowledged?: (acknowledged: boolean) => void }) {
   const { data: consortiumDetails } = useConsortiumDetailsContext()
   const consortiumLeaderNotes = consortiumDetails?.studyConfiguration?.consortiumLeaderNotes
+  const hasLeaderNotes = !!consortiumLeaderNotes?.trim()
+  const [acknowledged, setAcknowledged] = useState(false)
+
+  const handleAcknowledge = (checked: boolean) => {
+    setAcknowledged(checked)
+    onAcknowledged?.(checked)
+  }
 
   return (
     <>
@@ -15,7 +23,7 @@ export default function StepViewRequirements() {
       </Box>
       <Box
         sx={{
-          height: 'calc(100vh - 31rem)',  // Limit height to keep within view
+          height: 'calc(100vh - 33rem)',  // Limit height to keep within view
           overflow: 'hidden',  // Allow vertical scrolling if content exceeds
           padding: 1,
           boxSizing: 'border-box',
@@ -29,7 +37,7 @@ export default function StepViewRequirements() {
               Computation Notes
             </Typography>
             <Box sx={{
-              height: 'calc(100vh - 26rem)',  // Limit height to keep within view
+              height: 'calc(100vh - 28rem)',  // Limit height to keep within view
               overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
               padding: '0 1rem 6rem',
               boxSizing: 'border-box',
@@ -41,7 +49,7 @@ export default function StepViewRequirements() {
           {consortiumLeaderNotes && (
             <Grid item xs={6}>
               <Box sx={{
-                height: 'calc(100vh - 26rem)',  // Limit height to keep within view
+                height: 'calc(100vh - 28rem)',  // Limit height to keep within view
                 overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
                 padding: '0 1rem 6rem',
                 boxSizing: 'border-box',
@@ -55,6 +63,18 @@ export default function StepViewRequirements() {
             </Grid>
           )}
         </Grid>
+      </Box>
+      <Box display='flex' justifyContent='flex-end' mt={1}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={acknowledged}
+              onChange={(_, checked) => handleAcknowledge(checked)}
+              size='small'
+            />
+          }
+          label={`I've read and understand the Computation${hasLeaderNotes ? ' and Leader' : ''} Notes`}
+        />
       </Box>
     </>
   )

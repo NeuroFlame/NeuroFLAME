@@ -58,8 +58,10 @@ export type ConsortiumDetails = {
 
 export type ConsortiumListItem = {
   __typename?: 'ConsortiumListItem';
+  createdAt: Scalars['String']['output'];
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
+  isPrivate: Scalars['Boolean']['output'];
   leader: PublicUser;
   members: Array<PublicUser>;
   title: Scalars['String']['output'];

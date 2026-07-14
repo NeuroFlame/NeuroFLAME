@@ -1,7 +1,10 @@
 import path from 'path'
 import { provisionRun } from './provisionRun/provisionRun.js'
 import { reservePort } from './portManagement.js'
-import { launchNode } from '../../nodeManager/launchNode.js'
+import {
+  ensureDockerImageReady,
+  launchNode,
+} from '../../nodeManager/launchNode.js'
 import uploadToFileServer from './uploadToFileServer.js'
 import reportRunError from '../../report/reportRunError.js'
 import reportRunComplete from '../../report/reportRunComplete.js'
@@ -41,6 +44,9 @@ export default async function startRun({
   }
 
   try {
+    // Refresh floating tags once, then pin both run phases to the same local image.
+    const resolvedImageName = await ensureDockerImageReady(imageName)
+
     // Reserve ports for federated learning and admin servers
     const {
       port: reservedFedLearnPort,
@@ -56,7 +62,7 @@ export default async function startRun({
     // Provision the run
     logger.info(`Provisioning run ${runId}`)
     await provisionRun({
-      imageName,
+      imageName: resolvedImageName,
       activeParticipants,
       pathRun,
       computationParameters,
@@ -80,7 +86,7 @@ export default async function startRun({
     // Launch the Docker node
     await launchNode({
       containerService: 'docker',
-      imageName,
+      imageName: resolvedImageName,
       directoriesToMount: [
         {
           hostDirectory: pathCentralNodeRunKit,

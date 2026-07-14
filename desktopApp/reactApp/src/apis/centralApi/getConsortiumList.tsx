@@ -17,6 +17,7 @@ const GET_CONSORTIUM_LIST_QUERY = gql`
         username
       }
       isPrivate
+      createdAt
     }
   }
 `
