@@ -25,6 +25,8 @@ app.setName('NeuroFLAME')
 
 let mainWindow: BrowserWindow | null = null
 let terminalProcess: TerminalProcess | null = null
+let appInitializationPromise: Promise<void> | null = null
+let windowCreationPromise: Promise<void> | null = null
 
 // ---- Helpers: shell + env normalization ------------------------------------
 
@@ -181,94 +183,122 @@ async function getEdgeClientLogLines(options?: { maxBytes?: number; maxLines?: n
 
 // ---- App bootstrap ----------------------------------------------------------
 
-async function appOnReady(): Promise<void> {
-  try {
-    const config = await initializeConfig()
-    logToPath(config.logPath as string)
-    if (config.startEdgeClientOnLaunch) {
-      startEdgeFederatedClient(config.edgeClientConfig)
-    }
-  } catch (error) {
-    showInitializationError(error as Error)
+function initializeApp(): Promise<void> {
+  if (!appInitializationPromise) {
+    appInitializationPromise = (async () => {
+      try {
+        const config = await initializeConfig()
+        logToPath(config.logPath as string)
+        if (config.startEdgeClientOnLaunch) {
+          startEdgeFederatedClient(config.edgeClientConfig)
+        }
+      } catch (error) {
+        showInitializationError(error as Error)
+      }
+    })()
   }
 
-  mainWindow = await createMainWindow()
-
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    const parsedUrl = new URL(url)
-
-    if (parsedUrl.pathname === '/nii-viewer') {
-      const niiUrl = parsedUrl.searchParams.get('url')
-      if (niiUrl && mainWindow) {
-        mainWindow.webContents.executeJavaScript(
-          `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niiUrl)} } }))`
-        ).catch(() => {})
-      }
-      return { action: 'deny' }
-    }
-
-    if (parsedUrl.pathname.includes('/zip/')) {
-      mainWindow?.webContents.downloadURL(url)
-      return { action: 'deny' }
-    }
-
-    const openInSelf = parsedUrl.searchParams.get('window') === 'self'
-    if (openInSelf) {
-      mainWindow?.loadURL(url)
-      return { action: 'deny' }
-    }
-    return { action: 'allow' }
-  })
-
-  // ---- Terminal IPC ----------------------------------
-
-  ipcMain.handle('spawnTerminal', () => {
-    // Clean up any previous instance
-    if (terminalProcess && terminalProcess.isRunning()) {
-      terminalProcess.kill()
-    }
-
-    const { shell, args } = resolveShellAndArgs()
-    const { env, home } = baseEnv()
-
-    terminalProcess = new TerminalProcess(shell, args, home, env)
-
-    // Wire process events once (don’t add listeners on every keystroke)
-    terminalProcess.process.stdout.on('data', (chunk: Buffer) => {
-      mainWindow?.webContents.send('terminalOutput', chunk.toString())
-    })
-
-    terminalProcess.process.stderr.on('data', (chunk: Buffer) => {
-      mainWindow?.webContents.send('terminalOutput', chunk.toString())
-    })
-
-    terminalProcess.process.on('error', (err: Error) => {
-      mainWindow?.webContents.send('terminalOutput', `Spawn error: ${err.message}`)
-    })
-
-    terminalProcess.process.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
-      mainWindow?.webContents.send(
-        'terminalOutput',
-        `\n[terminal exited: code=${code ?? 'null'} signal=${signal ?? 'null'}]`,
-      )
-    })
-
-    return { status: 'terminalStarted', pid: terminalProcess.process.pid }
-  })
-
-  ipcMain.on('terminalInput', (_event, input: string) => {
-    if (!terminalProcess || !terminalProcess.isRunning()) return
-    // Append newline unless you intend to send raw control sequences
-    terminalProcess.send(input.endsWith('\n') ? input : input + '\n')
-  })
-
-  mainWindow.on('closed', () => {
-    logger.info('Main window closed')
-    mainWindow = null
-  })
+  return appInitializationPromise
 }
 
-app.on('ready', appOnReady)
+async function openMainWindow(): Promise<void> {
+  if (mainWindow) return
+
+  if (!windowCreationPromise) {
+    windowCreationPromise = (async () => {
+      const window = await createMainWindow()
+      mainWindow = window
+
+      window.webContents.setWindowOpenHandler(({ url }) => {
+        const parsedUrl = new URL(url)
+
+        if (parsedUrl.pathname === '/nii-viewer') {
+          const niiUrl = parsedUrl.searchParams.get('url')
+          if (niiUrl) {
+            window.webContents.executeJavaScript(
+              `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niiUrl)} } }))`
+            ).catch(() => {})
+          }
+          return { action: 'deny' }
+        }
+
+        if (parsedUrl.pathname.includes('/zip/')) {
+          window.webContents.downloadURL(url)
+          return { action: 'deny' }
+        }
+
+        const openInSelf = parsedUrl.searchParams.get('window') === 'self'
+        if (openInSelf) {
+          window.loadURL(url)
+          return { action: 'deny' }
+        }
+        return { action: 'allow' }
+      })
+
+      window.on('closed', () => {
+        logger.info('Main window closed')
+        if (mainWindow === window) mainWindow = null
+      })
+    })()
+
+    windowCreationPromise.finally(() => {
+      windowCreationPromise = null
+    }).catch(() => {})
+  }
+
+  return windowCreationPromise
+}
+
+async function appOnReady(): Promise<void> {
+  await initializeApp()
+  await openMainWindow()
+}
+
+// ---- Terminal IPC -----------------------------------------------------------
+
+ipcMain.handle('spawnTerminal', () => {
+  // Clean up any previous instance
+  if (terminalProcess && terminalProcess.isRunning()) {
+    terminalProcess.kill()
+  }
+
+  const { shell, args } = resolveShellAndArgs()
+  const { env, home } = baseEnv()
+
+  terminalProcess = new TerminalProcess(shell, args, home, env)
+
+  // Wire process events once (don’t add listeners on every keystroke)
+  terminalProcess.process.stdout.on('data', (chunk: Buffer) => {
+    mainWindow?.webContents.send('terminalOutput', chunk.toString())
+  })
+
+  terminalProcess.process.stderr.on('data', (chunk: Buffer) => {
+    mainWindow?.webContents.send('terminalOutput', chunk.toString())
+  })
+
+  terminalProcess.process.on('error', (err: Error) => {
+    mainWindow?.webContents.send('terminalOutput', `Spawn error: ${err.message}`)
+  })
+
+  terminalProcess.process.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
+    mainWindow?.webContents.send(
+      'terminalOutput',
+      `\n[terminal exited: code=${code ?? 'null'} signal=${signal ?? 'null'}]`,
+    )
+  })
+
+  return { status: 'terminalStarted', pid: terminalProcess.process.pid }
+})
+
+ipcMain.on('terminalInput', (_event, input: string) => {
+  if (!terminalProcess || !terminalProcess.isRunning()) return
+  // Append newline unless you intend to send raw control sequences
+  terminalProcess.send(input.endsWith('\n') ? input : input + '\n')
+})
+
+app.on('ready', () => {
+  appOnReady().catch((err) => showInitializationError(err))
+})
 app.on('before-quit', () => {
   if (terminalProcess && terminalProcess.isRunning()) terminalProcess.kill()
 })

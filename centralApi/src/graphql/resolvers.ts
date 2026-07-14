@@ -61,6 +61,7 @@ const toObjectIdString = (value: unknown): string | null => {
 }
 
 const resend = new Resend(RESEND_API_KEY)
+const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -406,12 +407,16 @@ const sendInviteEmail = async ({
   const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
       Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
 
-  await resend.emails.send({
-    to: email,
-    from: 'no-reply@coinstac.org',
+  const { error } = await resend.emails.send({
+    from: RESEND_FROM,
+    to: [email],
     subject: `Invitation to join ${consortiumTitle}`,
     html,
   })
+
+  if (error) {
+    throw new Error(`Failed to send invite email: ${error.message}`)
+  }
 }
 
 export default {
@@ -1227,8 +1232,8 @@ export default {
 
       const email = user.username
       const msg = {
-        to: email,
-        from: 'no-reply@coinstac.org',
+        from: RESEND_FROM,
+        to: [email],
         subject: 'Password Reset Request',
         html: `We received your password reset request. <br/>
             Please use this token for password reset. <br/>
@@ -1237,7 +1242,10 @@ export default {
       }
 
       try {
-        await resend.emails.send(msg)
+        const { error } = await resend.emails.send(msg)
+        if (error) {
+          throw new Error(error.message)
+        }
       } catch (error: any) {
         throw new Error(`Failed to send email: ${error.message}`)
       }
