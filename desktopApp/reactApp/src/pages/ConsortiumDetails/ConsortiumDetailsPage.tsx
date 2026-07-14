@@ -142,18 +142,19 @@ export function ConsortiumDetailsPage() {
   return (
     <>
       <Grid container spacing={2} padding={2}>
-          <Grid 
-            container
-            size={12} 
-            spacing={0} 
-            padding={0} 
-          >
+        <Grid
+          container
+          size={12}
+          spacing={0}
+          padding={0}
+        >
           <Grid size={{ xs: 12, sm: 6 }} justifyContent='flex-start' alignItems='bottom'>
             <TitleAndDescription title={title} description={description} />
           </Grid>
-          <Grid 
-            size={{ xs: 12, sm: 6 }}  
-            alignItems='bottom'>
+          <Grid
+            size={{ xs: 12, sm: 6 }}
+            alignItems='bottom'
+          >
             <ConsortiumActions
               consortiumId={consortiumId}
               isLeader={isLeader}
