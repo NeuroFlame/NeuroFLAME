@@ -1217,7 +1217,7 @@ export default {
     ): Promise<boolean> => {
       const user = await User.findOne({ username })
       if (!user) {
-        throw new Error('User not found')
+        return true
       }
 
       const resetToken = randomBytes(32).toString('hex')
@@ -1311,6 +1311,15 @@ export default {
 
       if (!consortium.studyConfiguration?.computation) {
         throw new Error('A computation must be selected before starting a run.')
+      }
+
+      const activeParticipantCount =
+        (consortium.activeMembers?.length ?? 0) +
+        (consortium.activeVaultMembers?.length ?? 0)
+      if (activeParticipantCount === 0) {
+        throw new Error(
+          'At least one active participant is required before starting a run.',
+        )
       }
 
       const computationParameters = ensureValidComputationParameters(

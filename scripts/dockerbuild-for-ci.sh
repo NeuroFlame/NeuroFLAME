@@ -1,5 +1,7 @@
 set -e
 
+export NODE_ENV="${NODE_ENV:-test}"
+echo "Using NODE_ENV: $NODE_ENV"
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

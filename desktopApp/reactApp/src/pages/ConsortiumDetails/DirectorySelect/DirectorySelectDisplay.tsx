@@ -2,7 +2,9 @@ import { useRef } from 'react'
 import {
   Box,
   Button,
+  FormControlLabel,
   InputAdornment,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -12,24 +14,34 @@ import WarningIcon from '@mui/icons-material/Warning'
 
 interface DirectorySelectDisplayProps {
   directory: string;
+  hasSavedDirectory: boolean;
   isEditing: boolean;
   isDifferent: boolean; // Positive flag for save
+  isActive: boolean;
+  isReady: boolean;
+  showReadyToggle?: boolean;
   onDirectoryChange: (newDirectory: string) => void;
   onSaveDirectory: () => void;
   onCancelEdit: () => void;
   onStartEdit: () => void; // Explicit start edit function
   onOpenDirectoryDialog: () => void;
+  onSetReady: (ready: boolean) => void;
 }
 
 export function DirectorySelectDisplay({
   directory,
+  hasSavedDirectory,
   isEditing,
   isDifferent,
+  isActive,
+  isReady,
+  showReadyToggle = true,
   onDirectoryChange,
   onOpenDirectoryDialog,
   onSaveDirectory,
   onCancelEdit,
   onStartEdit,
+  onSetReady,
 }: DirectorySelectDisplayProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -108,7 +120,7 @@ export function DirectorySelectDisplay({
             <Typography fontSize='small' align='center'>or</Typography>
           </Box>
         )}
-        <Box display='flex' gap={1}>
+        <Box display='flex' gap={1} alignItems='center'>
           {/* Button to trigger the Electron directory picker */}
           {!isEditing && (
             <Button
@@ -145,6 +157,23 @@ export function DirectorySelectDisplay({
             >
               Save
             </Button>
+          )}
+          {/* Ready toggle — right-justified, only when directory is set */}
+          {showReadyToggle && hasSavedDirectory && (
+            <FormControlLabel
+              label='Ready'
+              labelPlacement='start'
+              sx={{ color: '#333', margin: 0, marginLeft: 'auto' }}
+              control={
+                <Switch
+                  color='primary'
+                  checked={isActive && isReady}
+                  onChange={(_, checked) => onSetReady(checked)}
+                  size='small'
+                  disabled={!isActive}
+                />
+              }
+            />
           )}
         </Box>
       </Box>

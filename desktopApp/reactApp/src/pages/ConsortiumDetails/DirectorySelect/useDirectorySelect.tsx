@@ -11,6 +11,7 @@ export function useDirectorySelect() {
   // Use the generic useEditableValue hook for managing value state
   const {
     editableValue,
+    originalValue,
     changeValue,
     saveEditedValue,
     startEdit,
@@ -47,6 +48,7 @@ export function useDirectorySelect() {
 
   return {
     editableValue,
+    originalValue,
     changeValue,
     saveEditedValue,
     startEdit,
