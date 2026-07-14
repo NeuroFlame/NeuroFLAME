@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import DirectorySelect from '../../ConsortiumDetails/DirectorySelect/DirectorySelect'
 
-export default function StepSelectData() {
+export default function StepSelectData({ onDirectorySet }: { onDirectorySet?: (isSet: boolean) => void }) {
   return (
     <Box
       style={{
@@ -9,7 +9,7 @@ export default function StepSelectData() {
         border: '1px solid #eee',
       }}
     >
-      <DirectorySelect />
+      <DirectorySelect showReadyToggle={false} onDirectorySet={onDirectorySet} />
     </Box>
   )
 }
