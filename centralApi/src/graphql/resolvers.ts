@@ -61,28 +61,9 @@ const toObjectIdString = (value: unknown): string | null => {
 }
 
 const resend = new Resend(RESEND_API_KEY)
-const RESEND_DOMAIN_ID = '8de32797-98b9-4fc9-a1fc-06b03f5248e0'
+const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-let resendFromPromise: Promise<string> | null = null
-
-const getResendFrom = (): Promise<string> => {
-  resendFromPromise ??= resend.domains
-    .get(RESEND_DOMAIN_ID)
-    .then(({ data, error }) => {
-      if (error) {
-        throw new Error(`Failed to retrieve Resend domain: ${error.message}`)
-      }
-
-      if (!data?.name) {
-        throw new Error('Failed to retrieve Resend domain: missing domain name')
-      }
-
-      return `NeuroFLAME <no-reply@${data.name}>`
-    })
-
-  return resendFromPromise
-}
 
 const mapAllowedComputations = (
   computations: any[] | undefined,
@@ -427,7 +408,7 @@ const sendInviteEmail = async ({
       Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
 
   const { error } = await resend.emails.send({
-    from: await getResendFrom(),
+    from: RESEND_FROM,
     to: [email],
     subject: `Invitation to join ${consortiumTitle}`,
     html,
@@ -1251,7 +1232,7 @@ export default {
 
       const email = user.username
       const msg = {
-        from: await getResendFrom(),
+        from: RESEND_FROM,
         to: [email],
         subject: 'Password Reset Request',
         html: `We received your password reset request. <br/>
