@@ -35,26 +35,14 @@ test.describe('Single-round Ridge Regression for Freesurfer computation', () => 
     await destroyAllInstances()
   })
 
-  test('displays the correct title', async () => {
-    expect(await page.title()).toEqual('NeuroFLAME')
-  })
-
-  test('authenticates user', async () => {
-    await user.logIn(USER_1, page)
-  })
-
-  test('create a consortium', async () => {
-    await consortia.create(DATA.consortium, page)
-  })
-
-  test('run a computation', async () => {
+  test('runs a computation', async () => {
     test.setTimeout(COMPUTATION_TIMEOUT)
+    await expect(page).toHaveTitle('NeuroFLAME')
+    await user.logIn(USER_1, page)
+    await consortia.create(DATA.consortium, page)
     await computation.select(DATA.computation, page)
     await computation.setDataForSRRFreesurfer(page)
     await computation.run(page)
-  })
-
-  test('log out user', async () => {
     await user.logOut(page)
   })
 })
