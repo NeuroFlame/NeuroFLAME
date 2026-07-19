@@ -13,7 +13,7 @@ export function useChangePassword() {
       setLoading(true)
       setError(null)
       // Request to change the password without needing a username
-      await userChangePassword({ password: newPassword })
+      await userChangePassword({ password: newPassword.trim() })
     } catch (err) {
       setError('Reset password failed, please try again.')
     } finally {

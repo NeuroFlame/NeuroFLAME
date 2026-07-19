@@ -12,7 +12,9 @@ export function useRequestPasswordReset(callback?: () => void) {
       setLoading(true)
       setError(null)
       // request to the central api
-      await requestPasswordReset({ username })
+      await requestPasswordReset({
+        username: username.trim().toLowerCase(),
+      })
       if (callback) {
         callback()
       }

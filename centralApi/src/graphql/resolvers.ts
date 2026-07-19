@@ -1187,15 +1187,16 @@ export default {
         username: string
         password: string
       },
-      context,
     ): Promise<LoginOutput> => {
       // get the user from the database
-      const user = await User.findOne({ username })
+      const user = await User
+        .findOne({ username })
+        .collation({ locale: 'en', strength: 2 })
       if (!user) {
         throw new Error('User not found')
       }
       // compare the password
-      if (!(await compare(password, user.hash))) {
+      if (!(await compare(password.trim(), user.hash))) {
         throw new Error('Invalid username or password')
       }
 
@@ -1220,7 +1221,9 @@ export default {
       _: unknown,
       { username }: { username: string },
     ): Promise<boolean> => {
-      const user = await User.findOne({ username })
+      const user = await User
+        .findOne({ username })
+        .collation({ locale: 'en', strength: 2 })
       if (!user) {
         return true
       }
@@ -1271,7 +1274,7 @@ export default {
           throw new Error('Invalid or expired token')
         }
 
-        const hashedPassword = await hashPassword(newPassword)
+        const hashedPassword = await hashPassword(newPassword.trim())
         user.hash = hashedPassword
         user.resetToken = undefined
         user.resetTokenExpiry = undefined
@@ -2255,14 +2258,16 @@ export default {
           throw new Error('Username should be email')
         }
 
-        const existingUser = await User.findOne({ username })
+        const existingUser = await User
+          .findOne({ username })
+          .collation({ locale: 'en', strength: 2 })
         if (existingUser) {
           throw new Error('User already exists')
         }
 
-        const hashedPassword = await hashPassword(password)
+        const hashedPassword = await hashPassword(password.trim())
         const user = await User.create({
-          username,
+          username: username.trim().toLowerCase(),
           hash: hashedPassword,
         })
 
@@ -2295,7 +2300,7 @@ export default {
       }
 
       try {
-        const hashedPassword = await hashPassword(password)
+        const hashedPassword = await hashPassword(password.trim())
         await User.updateOne({ _id: userId }, { hash: hashedPassword })
         return true
       } catch (error) {
@@ -2318,8 +2323,10 @@ export default {
       }
 
       try {
-        const hashedPassword = await hashPassword(password)
-        await User.updateOne({ username }, { hash: hashedPassword })
+        const hashedPassword = await hashPassword(password.trim())
+        await User
+          .updateOne({ username }, { hash: hashedPassword })
+          .collation({ locale: 'en', strength: 2 })
         return true
       } catch (error) {
         logger.error('Error changing password:', error)
@@ -2339,17 +2346,19 @@ export default {
         throw new Error('Unauthorized')
       }
 
-      const normalizedUsername = username.trim()
+      const normalizedUsername = username.trim().toLowerCase()
       if (!EMAIL_REGEX.test(normalizedUsername)) {
         throw new Error('Username should be email')
       }
 
-      const existingUser = await User.findOne({ username: normalizedUsername })
+      const existingUser = await User
+        .findOne({ username: normalizedUsername })
+        .collation({ locale: 'en', strength: 2 })
       if (existingUser) {
         throw new Error('User already exists')
       }
 
-      const hashedPassword = await hashPassword(password)
+      const hashedPassword = await hashPassword(password.trim())
       const user = await User.create({
         username: normalizedUsername,
         hash: hashedPassword,
@@ -2386,7 +2395,9 @@ export default {
       }
 
       try {
-        await User.updateOne({ username }, { roles })
+        await User
+          .updateOne({ username }, { roles })
+          .collation({ locale: 'en', strength: 2 })
         return true
       } catch (error) {
         logger.error('Error changing roles:', error)

@@ -13,7 +13,10 @@ export function useCreateUser() {
       setLoading(true)
       setError(null)
       // request to the central api
-      await userCreate({ username, password })
+      await userCreate({
+        username: username.trim().toLowerCase(),
+        password: password.trim(),
+      })
       setSuccess(true)
     } catch (err) {
       const errorMessage =
