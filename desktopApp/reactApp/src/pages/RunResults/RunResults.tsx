@@ -9,10 +9,16 @@ import MatViewer from './MatViewer'
 import NiiVueViewer from './NiiVueViewer'
 import TextViewer from './TextViewer'
 import { useUserState } from '../../contexts/UserStateContext'
+import { QueryGetRunDetailsArgs, RunDetails } from '../../apis/centralApi/generated/graphql'
+import { useCentralApi } from '../../apis/centralApi/centralApi'
 
 export default function RunResults() {
   const navigate = useNavigate()
   const { userId } = useUserState()
+
+  const {
+    getRunDetails,
+  } = useCentralApi()
 
   const {
     consortiumId,
@@ -34,6 +40,19 @@ export default function RunResults() {
   } = useRunResults()
 
   const [currentFile, setCurrentFile] = useState<string>('')
+  const [runDetails, setRunDetails] = useState<RunDetails | null>(null)
+  const [isGettingRunDetail, setIsGettingRunDetail] = useState<boolean>(true)
+
+  const fetchRunDetails = async () => {
+    try {
+      setIsGettingRunDetail(true)
+      const details = await getRunDetails({ runId } as QueryGetRunDetailsArgs)
+      setRunDetails(details)
+    } catch (err: any) {
+    } finally {
+      setIsGettingRunDetail(false)
+    }
+  }
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -46,7 +65,11 @@ export default function RunResults() {
     return () => window.removeEventListener('message', handler)
   }, [setFrameSrc])
 
-  if (loading) {
+  useEffect(() => {
+    fetchRunDetails()
+  }, [])
+
+  if (loading || isGettingRunDetail) {
     return (
       <Grid container spacing={2} padding={2}>
         <Grid size={{ sm: 12 }}>
@@ -184,6 +207,19 @@ export default function RunResults() {
           >
             ← Back to Report
           </Button>
+        )}
+        {runDetails && runDetails.runErrors.length > 0 && (
+          <Box p={2} marginBottom={2} bgcolor='white'>
+            <Typography variant='h6' gutterBottom>
+              Errors
+            </Typography>
+            {runDetails.runErrors.map((error, index) => (
+              <Typography key={index} variant='body2' color='error'>
+                {new Date(+error.timestamp).toLocaleString()}{' '}
+                {error.user.username} - {error.message}
+              </Typography>
+            ))}
+          </Box>
         )}
         <Box
           style={{
