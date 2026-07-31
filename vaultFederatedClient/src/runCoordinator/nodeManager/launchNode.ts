@@ -6,6 +6,8 @@ import { logger } from '../../logger.js'
 import { VAULT_BASE_DIR } from '../../config.js'
 const docker = new Docker()
 
+const MAX_FAILURE_LOG_BYTES = 1024 * 1024
+
 interface LaunchNodeArgs {
   containerService: string
   imageName: string
@@ -14,14 +16,16 @@ interface LaunchNodeArgs {
   directoriesToMount: Array<{
     hostDirectory: string
     containerDirectory: string
+    readOnly?: boolean
   }>
   portBindings: Array<{
     hostPort: number
     containerPort: number
   }>
   commandsToRun: string[]
-  onContainerExitSuccess?: (containerId: string) => void
-  onContainerExitError?: (containerId: string, error: string) => void
+  failureLogPath?: string
+  onContainerExitSuccess?: (containerId: string) => void | Promise<unknown>
+  onContainerExitError?: (containerId: string, error: string) => void | Promise<unknown>
 }
 
 // Track running containers for graceful shutdown and heartbeat reporting
@@ -51,6 +55,7 @@ export async function launchNode({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: LaunchNodeArgs) {
@@ -62,6 +67,7 @@ export async function launchNode({
       directoriesToMount,
       portBindings,
       commandsToRun,
+      failureLogPath,
       onContainerExitSuccess,
       onContainerExitError,
     })
@@ -73,6 +79,7 @@ export async function launchNode({
       directoriesToMount,
       portBindings,
       commandsToRun,
+      failureLogPath,
       onContainerExitSuccess,
       onContainerExitError,
     })
@@ -90,6 +97,7 @@ const launchDockerNode = async ({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: Omit<LaunchNodeArgs, 'containerService'>) => {
@@ -98,7 +106,8 @@ const launchDockerNode = async ({
   )
 
   const binds = directoriesToMount.map(
-    (mount) => `${mount.hostDirectory}:${mount.containerDirectory}`,
+    (mount) =>
+      `${mount.hostDirectory}:${mount.containerDirectory}:${mount.readOnly ? 'ro' : 'rw'}`,
   )
   const exposedPorts: ExposedPorts = {}
   const portBindingsFormatted: PortBindings = {}
@@ -112,6 +121,9 @@ const launchDockerNode = async ({
   try {
     await isDockerRunning()
     await doesImageExist(imageName)
+    if (failureLogPath) {
+      await removePreviousFailureLog(failureLogPath)
+    }
 
     // Create the container
     const container = await docker.createContainer({
@@ -120,6 +132,8 @@ const launchDockerNode = async ({
       ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: binds,
+        CapDrop: ['ALL'],
+        SecurityOpt: ['no-new-privileges:true'],
         PortBindings: portBindingsFormatted,
       },
     })
@@ -141,6 +155,7 @@ const launchDockerNode = async ({
     // Add event handlers for the container
     attachDockerEventHandlers({
       containerId: container.id,
+      failureLogPath,
       onContainerExitSuccess,
       onContainerExitError,
     })
@@ -157,39 +172,167 @@ const launchDockerNode = async ({
 
 const attachDockerEventHandlers = async ({
   containerId,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: {
   containerId: string
-  onContainerExitSuccess?: (containerId: string) => void
-  onContainerExitError?: (containerId: string, error: string) => void
+  failureLogPath?: string
+  onContainerExitSuccess?: (containerId: string) => void | Promise<unknown>
+  onContainerExitError?: (containerId: string, error: string) => void | Promise<unknown>
 }) => {
   const container = docker.getContainer(containerId)
 
   try {
-    const { StatusCode } = await container.wait()
+    let statusCode: number
+    try {
+      const waitResult = await container.wait()
+      statusCode = waitResult.StatusCode
+    } catch (waitError) {
+      runningContainers.delete(containerId)
+      logger.error(`Error waiting for container ${containerId}`, {
+        error: waitError,
+      })
+      await captureFailedContainerLogs(container, failureLogPath)
+      if (onContainerExitError) {
+        await onContainerExitError(containerId, (waitError as Error).message)
+      }
+      return
+    }
 
     // Remove from tracking
     runningContainers.delete(containerId)
     logger.info(`Container ${containerId} removed from tracking`)
 
-    if (StatusCode !== 0) {
+    if (statusCode !== 0) {
       logger.error(
-        `Container ${containerId} exited with error code ${StatusCode}`,
+        `Container ${containerId} exited with error code ${statusCode}`,
       )
-      onContainerExitError &&
-        onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
+      await captureFailedContainerLogs(container, failureLogPath)
+      if (onContainerExitError) {
+        await onContainerExitError(containerId, `Exit Code: ${statusCode}`)
+      }
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
-      onContainerExitSuccess && onContainerExitSuccess(containerId)
+      if (onContainerExitSuccess) {
+        await onContainerExitSuccess(containerId)
+      }
     }
-  } catch (error) {
+  } catch (handlerError) {
     // Remove from tracking on error too
     runningContainers.delete(containerId)
-    logger.error(`Error waiting for container ${containerId}`, { error })
-    onContainerExitError &&
-      onContainerExitError(containerId, (error as Error).message)
+    logger.error(`Failed to handle exit for container ${containerId}`, {
+      error: handlerError,
+    })
+  } finally {
+    try {
+      await container.remove()
+      logger.info(`Removed completed container ${containerId}`)
+    } catch (removeError) {
+      logger.warn(`Failed to remove completed container ${containerId}`, {
+        error: removeError,
+      })
+    }
   }
+}
+
+const captureFailedContainerLogs = async (
+  container: ReturnType<typeof docker.getContainer>,
+  failureLogPath?: string,
+): Promise<void> => {
+  if (!failureLogPath) {
+    return
+  }
+
+  try {
+    const rawLogs = await container.logs({
+      stdout: true,
+      stderr: true,
+      timestamps: true,
+      tail: 10000,
+    })
+    await writeFailureLog(failureLogPath, decodeDockerLogs(rawLogs))
+    logger.info(`Saved failed-container logs to ${failureLogPath}`)
+  } catch (logError) {
+    logger.warn(`Could not save failed-container logs for ${container.id}`, {
+      error: logError,
+    })
+  }
+}
+
+const removePreviousFailureLog = async (
+  failureLogPath: string,
+): Promise<void> => {
+  try {
+    await fs.unlink(failureLogPath)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error
+    }
+  }
+}
+
+const writeFailureLog = async (
+  failureLogPath: string,
+  logContent: string,
+): Promise<void> => {
+  const logBuffer = Buffer.from(logContent, 'utf8')
+  const wasTruncated = logBuffer.length > MAX_FAILURE_LOG_BYTES
+  const retainedLogs = wasTruncated
+    ? logBuffer.subarray(logBuffer.length - MAX_FAILURE_LOG_BYTES)
+    : logBuffer
+  const prefix = wasTruncated
+    ? `[truncated to last ${MAX_FAILURE_LOG_BYTES} bytes]\n`
+    : ''
+
+  await fs.mkdir(path.dirname(failureLogPath), {
+    recursive: true,
+    mode: 0o700,
+  })
+  await fs.writeFile(
+    failureLogPath,
+    Buffer.concat([Buffer.from(prefix, 'utf8'), retainedLogs]),
+    { mode: 0o600 },
+  )
+  await fs.chmod(failureLogPath, 0o600)
+}
+
+const captureFailedProcessLogs = async (
+  failureLogPath: string | undefined,
+  logContent: string,
+): Promise<void> => {
+  if (!failureLogPath) {
+    return
+  }
+  try {
+    await writeFailureLog(failureLogPath, logContent)
+    logger.info(`Saved failed-container logs to ${failureLogPath}`)
+  } catch (logError) {
+    logger.warn(`Could not save failed-container logs to ${failureLogPath}`, {
+      error: logError,
+    })
+  }
+}
+
+const decodeDockerLogs = (rawLogs: Buffer): string => {
+  const chunks: Buffer[] = []
+  let offset = 0
+
+  while (offset + 8 <= rawLogs.length) {
+    const streamType = rawLogs[offset]
+    const payloadLength = rawLogs.readUInt32BE(offset + 4)
+    const payloadStart = offset + 8
+    const payloadEnd = payloadStart + payloadLength
+    if (![0, 1, 2].includes(streamType) || payloadEnd > rawLogs.length) {
+      return rawLogs.toString('utf8')
+    }
+    chunks.push(rawLogs.subarray(payloadStart, payloadEnd))
+    offset = payloadEnd
+  }
+
+  return offset === rawLogs.length && chunks.length > 0
+    ? Buffer.concat(chunks).toString('utf8')
+    : rawLogs.toString('utf8')
 }
 
 const isDockerRunning = async () => {
@@ -228,6 +371,7 @@ const launchSingularityNode = async ({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: Omit<LaunchNodeArgs, 'containerService'>) => {
@@ -238,9 +382,13 @@ const launchSingularityNode = async ({
   try {
     const singularityBinary = detectSingularityOrApptainer()
     const imagePath = await findSingularityImage(imageName)
+    if (failureLogPath) {
+      await removePreviousFailureLog(failureLogPath)
+    }
 
     const bindMounts: string[] = directoriesToMount.map(
-      (mount) => `${mount.hostDirectory}:${mount.containerDirectory}:rw`,
+      (mount) =>
+        `${mount.hostDirectory}:${mount.containerDirectory}:${mount.readOnly ? 'ro' : 'rw'}`,
     )
 
     const envVars: string[] = []
@@ -300,19 +448,10 @@ const launchSingularityNode = async ({
       `Tracking singularity process ${containerId} for run ${runId} in consortium ${consortiumId}`,
     )
 
-    instanceProcess.stdout?.on('data', (data: Buffer) => {
-      const output = data.toString()
-      logger.info(`Singularity Container [${containerId}] stdout: ${output.trim()}`)
-    })
-
-    instanceProcess.stderr?.on('data', (data: Buffer) => {
-      const output = data.toString()
-      logger.info(`Singularity Container [${containerId}] stderr: ${output.trim()}`)
-    })
-
     attachSingularityEventHandlers({
       instanceProcess,
       containerId,
+      failureLogPath,
       onContainerExitSuccess,
       onContainerExitError,
     })
@@ -329,13 +468,15 @@ const launchSingularityNode = async ({
 const attachSingularityEventHandlers = ({
   instanceProcess,
   containerId,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: {
   instanceProcess: ReturnType<typeof spawn>
   containerId: string
-  onContainerExitSuccess?: (containerId: string) => void
-  onContainerExitError?: (containerId: string, error: string) => void
+  failureLogPath?: string
+  onContainerExitSuccess?: (containerId: string) => void | Promise<unknown>
+  onContainerExitError?: (containerId: string, error: string) => void | Promise<unknown>
 }) => {
   let capturedStdout = ''
   let capturedStderr = ''
@@ -348,14 +489,19 @@ const attachSingularityEventHandlers = ({
     capturedStderr += data.toString()
   })
 
-  instanceProcess.on('close', (code: number | null) => {
+  const handleClose = async (code: number | null): Promise<void> => {
     runningContainers.delete(containerId)
     logger.info(`Container ${containerId} removed from tracking`)
 
     if (code === null) {
       logger.error(`Container ${containerId} exited with null code`)
-      onContainerExitError &&
-        onContainerExitError(containerId, 'Process exited with null code')
+      await captureFailedProcessLogs(
+        failureLogPath,
+        capturedStderr || capturedStdout || 'Process exited with null code',
+      )
+      if (onContainerExitError) {
+        await onContainerExitError(containerId, 'Process exited with null code')
+      }
       return
     }
 
@@ -364,22 +510,46 @@ const attachSingularityEventHandlers = ({
       logger.error(
         `Container ${containerId} exited with error code ${code}`,
       )
-      logger.error(`Error output: ${errorMessage}`)
-      onContainerExitError &&
-        onContainerExitError(containerId, errorMessage)
+      await captureFailedProcessLogs(failureLogPath, errorMessage)
+      if (onContainerExitError) {
+        await onContainerExitError(containerId, `Exit Code: ${code}`)
+      }
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
-      onContainerExitSuccess && onContainerExitSuccess(containerId)
+      if (onContainerExitSuccess) {
+        await onContainerExitSuccess(containerId)
+      }
     }
-  })
+  }
 
-  instanceProcess.on('error', (error: Error) => {
+  const handleError = async (error: Error): Promise<void> => {
     runningContainers.delete(containerId)
     logger.error(
       `Failed to start Singularity container: ${error.message}`,
     )
-    onContainerExitError &&
-      onContainerExitError(containerId, error.message)
+    await captureFailedProcessLogs(
+      failureLogPath,
+      error.stack || error.message,
+    )
+    if (onContainerExitError) {
+      await onContainerExitError(containerId, error.message)
+    }
+  }
+
+  instanceProcess.on('close', (code: number | null) => {
+    void handleClose(code).catch((handlerError) => {
+      logger.error(`Failed to handle exit for container ${containerId}`, {
+        error: handlerError,
+      })
+    })
+  })
+
+  instanceProcess.on('error', (error: Error) => {
+    void handleError(error).catch((handlerError) => {
+      logger.error(`Failed to handle process error for container ${containerId}`, {
+        error: handlerError,
+      })
+    })
   })
 }
 

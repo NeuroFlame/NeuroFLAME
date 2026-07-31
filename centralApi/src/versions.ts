@@ -1,0 +1,2 @@
+export const APPLICATION_API_VERSION = '0.8.0'
+export const COMPUTATION_API_VERSION = '0.1.0'

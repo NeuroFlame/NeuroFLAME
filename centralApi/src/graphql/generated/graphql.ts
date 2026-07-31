@@ -33,6 +33,27 @@ export type Computation = {
   title: Scalars['String']['output'];
 };
 
+export type ComputationImageMetadata = {
+  __typename?: 'ComputationImageMetadata';
+  boilerplateVersion: Scalars['String']['output'];
+  computationApiVersion: Scalars['String']['output'];
+  computationVersion: Scalars['String']['output'];
+  nvflareVersion: Scalars['String']['output'];
+  revision: Scalars['String']['output'];
+  source: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+};
+
+export type ComputationImageMetadataInput = {
+  boilerplateVersion: Scalars['String']['input'];
+  computationApiVersion: Scalars['String']['input'];
+  computationVersion: Scalars['String']['input'];
+  nvflareVersion: Scalars['String']['input'];
+  revision: Scalars['String']['input'];
+  source: Scalars['String']['input'];
+  title: Scalars['String']['input'];
+};
+
 export type ComputationListItem = {
   __typename?: 'ComputationListItem';
   id: Scalars['String']['output'];
@@ -317,6 +338,7 @@ export type MutationReportRunErrorArgs = {
 
 
 export type MutationReportRunReadyArgs = {
+  resolvedImage: ResolvedComputationImageInput;
   runId: Scalars['String']['input'];
 };
 
@@ -436,6 +458,21 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type ResolvedComputationImage = {
+  __typename?: 'ResolvedComputationImage';
+  digest: Scalars['String']['output'];
+  metadata: ComputationImageMetadata;
+  reference: Scalars['String']['output'];
+  sourceImage: Scalars['String']['output'];
+};
+
+export type ResolvedComputationImageInput = {
+  digest: Scalars['String']['input'];
+  metadata: ComputationImageMetadataInput;
+  reference: Scalars['String']['input'];
+  sourceImage: Scalars['String']['input'];
+};
+
 export type RunDetailConsortium = {
   __typename?: 'RunDetailConsortium';
   activeMembers: Array<PublicUser>;
@@ -492,6 +529,7 @@ export type RunStartCentralPayload = {
   computationParameters: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
+  requiredComputationApiVersion: Scalars['String']['output'];
   runId: Scalars['String']['output'];
 };
 
@@ -503,6 +541,7 @@ export type RunStartEdgePayload = {
   downloadUrl: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
   participantId: Scalars['String']['output'];
+  resolvedImage: ResolvedComputationImage;
   runId: Scalars['String']['output'];
   vaultId?: Maybe<Scalars['String']['output']>;
 };

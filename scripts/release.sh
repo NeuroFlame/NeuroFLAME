@@ -123,6 +123,7 @@ done
 check_cmd npm
 check_cmd npx
 check_cmd git
+npm run check-app-api-version
 
 if [ "$ALLOW_DIRTY" != true ] && [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   echo "Tracked files are not clean. Commit/stash changes or rerun with --allow-dirty."

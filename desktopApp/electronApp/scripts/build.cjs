@@ -12,7 +12,7 @@ if (NODE_ENV === 'production' && DEPLOY) {
 } 
 
 const targets = new Map([
-  [Platform.MAC, new Map([[Arch.universal, ['dmg']]])],
+  [Platform.MAC, new Map([[Arch.universal, ['dmg', 'zip']]])],
   [Platform.WINDOWS, new Map([[Arch.x64, ['nsis']]])],
   [Platform.LINUX, new Map([[Arch.x64, ['AppImage']]])],
 ]);

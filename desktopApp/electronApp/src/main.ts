@@ -1,5 +1,5 @@
 // main.ts
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { start as startEdgeFederatedClient } from 'edge-federated-client'
 import { logger, logToPath } from './logger.js'
 import { createMainWindow } from './window.js'
@@ -20,6 +20,12 @@ import {
   pullSingularityImage,
   checkSingularityImageExists,
 } from './singularityImageManager.js'
+import {
+  compareAppAndApiVersions,
+  CompatibilityStatus,
+  versionEndpoint,
+} from './versionCompatibility.js'
+import { initializeAutoUpdates } from './autoUpdate.js'
 
 app.setName('NeuroFLAME')
 
@@ -27,6 +33,34 @@ let mainWindow: BrowserWindow | null = null
 let terminalProcess: TerminalProcess | null = null
 let appInitializationPromise: Promise<void> | null = null
 let windowCreationPromise: Promise<void> | null = null
+let compatibilityStatus: CompatibilityStatus = {
+  status: 'compatible',
+  appVersion: app.getVersion(),
+}
+
+async function checkApiCompatibility(queryUrl: string): Promise<CompatibilityStatus> {
+  const appVersion = app.getVersion()
+
+  try {
+    const response = await fetch(versionEndpoint(queryUrl), {
+      signal: AbortSignal.timeout(5000),
+      cache: 'no-store',
+    })
+    if (!response.ok) {
+      if (response.status === 404) {
+        return { status: 'serverUpdateRequired', appVersion }
+      }
+      return { status: 'compatible', appVersion }
+    }
+    const payload = await response.json() as { version?: unknown }
+    return compareAppAndApiVersions(appVersion, payload.version)
+  } catch (error) {
+    logger.warn('Unable to verify central API version; continuing normally', {
+      error,
+    })
+    return { status: 'compatible', appVersion }
+  }
+}
 
 // ---- Helpers: shell + env normalization ------------------------------------
 
@@ -189,7 +223,13 @@ function initializeApp(): Promise<void> {
       try {
         const config = await initializeConfig()
         logToPath(config.logPath as string)
-        if (config.startEdgeClientOnLaunch) {
+        compatibilityStatus = await checkApiCompatibility(
+          config.centralServerQueryUrl,
+        )
+        if (
+          compatibilityStatus.status === 'compatible' &&
+          config.startEdgeClientOnLaunch
+        ) {
           startEdgeFederatedClient(config.edgeClientConfig)
         }
       } catch (error) {
@@ -216,7 +256,7 @@ async function openMainWindow(): Promise<void> {
           const niiUrl = parsedUrl.searchParams.get('url')
           if (niiUrl) {
             window.webContents.executeJavaScript(
-              `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niiUrl)} } }))`
+              `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niiUrl)} } }))`,
             ).catch(() => {})
           }
           return { action: 'deny' }
@@ -252,6 +292,7 @@ async function openMainWindow(): Promise<void> {
 async function appOnReady(): Promise<void> {
   await initializeApp()
   await openMainWindow()
+  await initializeAutoUpdates(mainWindow)
 }
 
 // ---- Terminal IPC -----------------------------------------------------------
@@ -313,6 +354,10 @@ app.on('activate', () => {
 
 ipcMain.handle('getConfigPath', () => getConfigPath())
 ipcMain.handle('getConfig', getConfig)
+ipcMain.handle('getCompatibilityStatus', () => compatibilityStatus)
+ipcMain.handle('openLatestRelease', () =>
+  shell.openExternal('https://github.com/NeuroFlame/NeuroFLAME/releases/latest'),
+)
 ipcMain.handle('openConfig', openConfig)
 ipcMain.handle('saveConfig', async (_e, configString) => await saveConfig(configString))
 ipcMain.handle('applyDefaultConfig', applyDefaultConfig)

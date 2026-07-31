@@ -22,6 +22,33 @@ type ContainerService = 'docker' | 'singularity'
 type DockerStatus = 'missing' | 'pulling' | 'ready' | 'failed'
 type SingularityStatus = 'missing' | 'pending' | 'running' | 'ready' | 'failed'
 
+export interface ComputationImageMetadata {
+  title: string
+  computationVersion: string
+  revision: string
+  source: string
+  computationApiVersion: string
+  boilerplateVersion: string
+  nvflareVersion: string
+}
+
+export interface ResolvedComputationImage {
+  sourceImage: string
+  reference: string
+  digest: string
+  metadata: ComputationImageMetadata
+}
+
+const COMPUTATION_LABELS: Record<keyof ComputationImageMetadata, string> = {
+  title: 'org.opencontainers.image.title',
+  computationVersion: 'org.opencontainers.image.version',
+  revision: 'org.opencontainers.image.revision',
+  source: 'org.opencontainers.image.source',
+  computationApiVersion: 'org.neuroflame.computation-api.version',
+  boilerplateVersion: 'org.neuroflame.boilerplate.version',
+  nvflareVersion: 'org.neuroflame.nvflare.version',
+}
+
 interface DockerCacheState {
   localDigest?: string
   status?: DockerStatus
@@ -729,14 +756,18 @@ async function refreshDockerCache(imageName: string, remoteDigest?: string): Pro
     if (!localDigest) {
       entry.docker.status = 'pulling'
       await persistCacheState()
-      void pullDockerImageIfNeeded(imageName, remoteDigest)
+      pullDockerImageIfNeeded(imageName, remoteDigest).catch((error) => {
+        logger.warn(`Background Docker pull failed for ${imageName}`, { error })
+      })
       return
     }
 
     if (remoteDigest && localDigest !== remoteDigest) {
       entry.docker.status = 'pulling'
       await persistCacheState()
-      void pullDockerImageIfNeeded(imageName, remoteDigest)
+      pullDockerImageIfNeeded(imageName, remoteDigest).catch((error) => {
+        logger.warn(`Background Docker refresh failed for ${imageName}`, { error })
+      })
       return
     }
 
@@ -783,7 +814,9 @@ async function refreshSingularityCache(
       ? 'running'
       : 'pending'
     await persistCacheState()
-    void queueSingularityBuild(imageName, remoteDigest)
+    queueSingularityBuild(imageName, remoteDigest).catch((error) => {
+      logger.warn(`Background Singularity build failed for ${imageName}`, { error })
+    })
   } catch (error) {
     entry.singularity.status = 'failed'
     entry.singularity.lastError = (error as Error).message
@@ -851,7 +884,8 @@ async function refreshTrackedImages(): Promise<void> {
 
 async function ensureDockerImageReady(imageName: string): Promise<void> {
   const entry = ensureImageEntry(imageName)
-  const remoteDigest = await updateRemoteDigest(imageName)
+  const requestedDigest = /@(sha256:[0-9a-f]{64})$/.exec(imageName)?.[1]
+  const remoteDigest = requestedDigest ?? await updateRemoteDigest(imageName)
   const localDigest = await getLocalDockerDigest(imageName)
   entry.docker.localDigest = localDigest
 
@@ -862,30 +896,16 @@ async function ensureDockerImageReady(imageName: string): Promise<void> {
     return
   }
 
-  try {
-    const updatedLocalDigest = await pullDockerImageIfNeeded(imageName, remoteDigest)
-    entry.docker.localDigest = updatedLocalDigest
-    entry.docker.status = updatedLocalDigest ? 'ready' : 'missing'
-    await persistCacheState()
-  } catch (error) {
-    if (localDigest) {
-      logger.warn(
-        `Docker refresh failed for ${imageName}, continuing with existing local image`,
-        { error },
-      )
-      entry.docker.status = 'ready'
-      entry.docker.lastError = (error as Error).message
-      await persistCacheState()
-      return
-    }
-
-    throw error
-  }
+  const updatedLocalDigest = await pullDockerImageIfNeeded(imageName, remoteDigest)
+  entry.docker.localDigest = updatedLocalDigest
+  entry.docker.status = updatedLocalDigest ? 'ready' : 'missing'
+  await persistCacheState()
 }
 
 async function ensureSingularityImageReady(imageName: string): Promise<void> {
   const entry = ensureImageEntry(imageName)
-  const remoteDigest = await updateRemoteDigest(imageName)
+  const requestedDigest = /@(sha256:[0-9a-f]{64})$/.exec(imageName)?.[1]
+  const remoteDigest = requestedDigest ?? await updateRemoteDigest(imageName)
 
   if (remoteDigest) {
     const targetHash = digestToShortHash(remoteDigest)
@@ -936,6 +956,32 @@ export async function ensureImageReadyForRun(
   await ensureSingularityImageReady(imageName)
 }
 
+export async function prepareResolvedComputationImage(
+  resolvedImage: ResolvedComputationImage,
+  containerService: ContainerService,
+): Promise<string> {
+  if (
+    !/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest) ||
+    !resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+  ) {
+    throw new Error('Resolved computation image reference is invalid')
+  }
+
+  await ensureImageReadyForRun(resolvedImage.reference, containerService)
+  if (containerService === 'docker') {
+    const inspection = await docker.getImage(resolvedImage.reference).inspect()
+    const labels = inspection.Config?.Labels ?? {}
+    for (const [field, label] of Object.entries(COMPUTATION_LABELS) as Array<
+      [keyof ComputationImageMetadata, string]
+    >) {
+      if (labels[label] !== resolvedImage.metadata[field]) {
+        throw new Error(`Computation image label "${label}" does not match the run`)
+      }
+    }
+  }
+  return resolvedImage.reference
+}
+
 export async function startImageManager(): Promise<void> {
   if (refreshInterval) {
     return
@@ -945,7 +991,7 @@ export async function startImageManager(): Promise<void> {
   await refreshTrackedImages()
 
   refreshInterval = setInterval(() => {
-    void refreshTrackedImages().catch((error) => {
+    refreshTrackedImages().catch((error) => {
       logger.error('Periodic image cache refresh failed', { error })
     })
   }, IMAGE_REFRESH_INTERVAL_MS)

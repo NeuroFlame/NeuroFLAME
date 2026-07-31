@@ -58,6 +58,22 @@ export async function reservePort({
   })
 }
 
+export async function releasePortReservation(server: net.Server): Promise<void> {
+  if (!server.listening) {
+    return
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve()
+    })
+  })
+}
+
 function createServer(): net.Server {
   return net.createServer((sock) => {
     sock.end('Hello world\n')

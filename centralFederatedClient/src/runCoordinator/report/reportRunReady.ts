@@ -1,6 +1,7 @@
 import { ACCESS_TOKEN, HTTP_URL } from '../../config.js'
 import { logger } from '../../logger.js'
 import fetch from 'node-fetch' // Import node-fetch
+import type { ResolvedComputationImage } from '../nodeManager/launchNode.js'
 
 // TypeScript interfaces for the GraphQL response
 interface GraphQLResponse<T> {
@@ -17,12 +18,18 @@ interface ReportRunReadyResponse {
 
 // GraphQL mutation
 const REPORT_RUN_READY_MUTATION = `
-  mutation reportRunReady($runId: String!) {
-    reportRunReady(runId: $runId)
+  mutation reportRunReady($runId: String!, $resolvedImage: ResolvedComputationImageInput!) {
+    reportRunReady(runId: $runId, resolvedImage: $resolvedImage)
   }
 `
 
-export default async function reportReady({ runId }: { runId: string }) {
+export default async function reportReady({
+  runId,
+  resolvedImage,
+}: {
+  runId: string
+  resolvedImage: ResolvedComputationImage
+}) {
   try {
     const response = await fetch(HTTP_URL, {
       method: 'POST',
@@ -32,7 +39,7 @@ export default async function reportReady({ runId }: { runId: string }) {
       },
       body: JSON.stringify({
         query: REPORT_RUN_READY_MUTATION,
-        variables: { runId },
+        variables: { runId, resolvedImage },
       }),
     })
 

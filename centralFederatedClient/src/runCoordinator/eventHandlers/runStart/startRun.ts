@@ -1,9 +1,12 @@
 import path from 'path'
 import { provisionRun } from './provisionRun/provisionRun.js'
-import { reservePort } from './portManagement.js'
 import {
-  ensureDockerImageReady,
+  releasePortReservation,
+  reservePort,
+} from './portManagement.js'
+import {
   launchNode,
+  resolveDockerComputationImage,
 } from '../../nodeManager/launchNode.js'
 import uploadToFileServer from './uploadToFileServer.js'
 import reportRunError from '../../report/reportRunError.js'
@@ -25,6 +28,7 @@ interface StartRunArgs {
   consortiumId: string
   runId: string
   computationParameters: string
+  requiredComputationApiVersion: string
 }
 
 export default async function startRun({
@@ -33,6 +37,7 @@ export default async function startRun({
   consortiumId,
   runId,
   computationParameters,
+  requiredComputationApiVersion,
 }: StartRunArgs) {
   logger.info(`Starting run ${runId} for consortium ${consortiumId}`)
 
@@ -42,32 +47,30 @@ export default async function startRun({
     start: HOSTING_PORT_START,
     end: HOSTING_PORT_END,
   }
+  let releaseFedLearnPort: (() => Promise<void>) | undefined
 
   try {
-    // Refresh floating tags once, then pin both run phases to the same local image.
-    const resolvedImageName = await ensureDockerImageReady(imageName)
+    const resolvedImage = await resolveDockerComputationImage(
+      imageName,
+      requiredComputationApiVersion,
+    )
 
-    // Reserve ports for federated learning and admin servers
+    // Reserve the multiplexed federation and administration port
     const {
       port: reservedFedLearnPort,
       server: fedLearnServer,
     } = await reservePort(hostingPortRange)
-    const {
-      port: reservedAdminPort,
-      server: adminServer,
-    } = await reservePort(hostingPortRange)
     const fedLearnPort = reservedFedLearnPort
-    const adminPort = reservedAdminPort
+    releaseFedLearnPort = () => releasePortReservation(fedLearnServer)
 
     // Provision the run
     logger.info(`Provisioning run ${runId}`)
     await provisionRun({
-      imageName: resolvedImageName,
+      imageName: resolvedImage.reference,
       activeParticipants,
       pathRun,
       computationParameters,
       fedLearnPort,
-      adminPort,
       FQDN,
     })
 
@@ -79,31 +82,38 @@ export default async function startRun({
       pathBaseDirectory: BASE_DIR,
     })
 
-    // Close the reserved servers before launching the Docker container
-    fedLearnServer.close()
-    adminServer.close()
+    // Release and fully close the reservation before Docker binds the port.
+    await releaseFedLearnPort()
+    releaseFedLearnPort = undefined
 
     // Launch the Docker node
     await launchNode({
       containerService: 'docker',
-      imageName: resolvedImageName,
+      imageName: resolvedImage.reference,
       directoriesToMount: [
         {
           hostDirectory: pathCentralNodeRunKit,
           containerDirectory: '/workspace/runKit/',
         },
       ],
-      portBindings: [
-        { hostPort: fedLearnPort, containerPort: fedLearnPort },
-        { hostPort: adminPort, containerPort: adminPort },
-      ],
+      portBindings: [{ hostPort: fedLearnPort, containerPort: fedLearnPort }],
       commandsToRun: ['python', '/workspace/system/entry_central.py'],
+      failureLogPath: path.join(pathRun, 'central-failed-container.log'),
       onContainerExitSuccess: () => reportRunComplete({ runId }),
       onContainerExitError: (_, error) =>
         reportRunError({ runId, errorMessage: error }),
     })
-  } catch (error) {
-    logger.error('Start Run Failed', { error })
-    await reportRunError({ runId, errorMessage: (error as Error).message })
+    return resolvedImage
+  } finally {
+    if (releaseFedLearnPort) {
+      try {
+        await releaseFedLearnPort()
+      } catch (releaseError) {
+        logger.error('Failed to release reserved federation port', {
+          error: releaseError,
+          runId,
+        })
+      }
+    }
   }
 }
