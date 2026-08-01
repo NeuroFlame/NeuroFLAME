@@ -350,8 +350,25 @@ const readComputationImageMetadata = (
 export const resolveDockerComputationImage = async (
   imageName: string,
   requiredComputationApiVersion: string,
+  mode: 'local' | 'registry' = 'registry',
 ): Promise<ResolvedComputationImage> => {
   await isDockerRunning()
+  if (mode === 'local') {
+    const inspection = await docker.getImage(imageName).inspect()
+    const metadata = readComputationImageMetadata(inspection.Config?.Labels)
+    validateComputationImageMetadata(metadata, requiredComputationApiVersion)
+    if (!DIGEST_PATTERN.test(inspection.Id)) {
+      throw new Error(`Docker returned an invalid local image ID: ${inspection.Id}`)
+    }
+    logger.info(`Using local computation image ${imageName} as ${inspection.Id}`)
+    return {
+      sourceImage: imageName,
+      reference: inspection.Id,
+      digest: inspection.Id,
+      metadata,
+    }
+  }
+
   if (imageName.includes('@sha256:')) {
     try {
       await pullDockerImage(imageName)
@@ -369,16 +386,7 @@ export const resolveDockerComputationImage = async (
 
   const inspection = await docker.getImage(imageName).inspect()
   const metadata = readComputationImageMetadata(inspection.Config?.Labels)
-  if (metadata.computationApiVersion !== requiredComputationApiVersion) {
-    throw new Error(
-      `Computation API ${metadata.computationApiVersion} is incompatible with required version ${requiredComputationApiVersion}`,
-    )
-  }
-  if (metadata.nvflareVersion !== '2.8.0') {
-    throw new Error(
-      `NVFlare ${metadata.nvflareVersion} is incompatible with required version 2.8.0`,
-    )
-  }
+  validateComputationImageMetadata(metadata, requiredComputationApiVersion)
 
   const suppliedDigest = imageName.match(/@(sha256:[0-9a-f]{64})$/)?.[1]
   const sourceRepository = imageName
@@ -403,6 +411,22 @@ export const resolveDockerComputationImage = async (
     reference: repositoryDigest,
     digest,
     metadata,
+  }
+}
+
+const validateComputationImageMetadata = (
+  metadata: ComputationImageMetadata,
+  requiredComputationApiVersion: string,
+): void => {
+  if (metadata.computationApiVersion !== requiredComputationApiVersion) {
+    throw new Error(
+      `Computation API ${metadata.computationApiVersion} is incompatible with required version ${requiredComputationApiVersion}`,
+    )
+  }
+  if (metadata.nvflareVersion !== '2.8.0') {
+    throw new Error(
+      `NVFlare ${metadata.nvflareVersion} is incompatible with required version 2.8.0`,
+    )
   }
 }
 

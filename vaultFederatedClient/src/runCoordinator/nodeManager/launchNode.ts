@@ -347,19 +347,13 @@ const isDockerRunning = async () => {
 
 const doesImageExist = async (imageName: string) => {
   try {
-    const images = await docker.listImages({
-      filters: { reference: [imageName] },
-    })
-    if (images.length === 0) {
-      throw new Error(
-        `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
-      )
-    }
+    await docker.getImage(imageName).inspect()
   } catch (error) {
+    const detail = (error as { statusCode?: number }).statusCode === 404
+      ? `Image "${imageName}" does not exist. Please pull the image or verify its name.`
+      : (error as Error).message
     throw new Error(
-      `Failed to check existence of image "${imageName}": ${
-        (error as Error).message
-      }`,
+      `Failed to check existence of image "${imageName}": ${detail}`,
     )
   }
 }
@@ -537,7 +531,7 @@ const attachSingularityEventHandlers = ({
   }
 
   instanceProcess.on('close', (code: number | null) => {
-    void handleClose(code).catch((handlerError) => {
+    handleClose(code).catch((handlerError) => {
       logger.error(`Failed to handle exit for container ${containerId}`, {
         error: handlerError,
       })
@@ -545,7 +539,7 @@ const attachSingularityEventHandlers = ({
   })
 
   instanceProcess.on('error', (error: Error) => {
-    void handleError(error).catch((handlerError) => {
+    handleError(error).catch((handlerError) => {
       logger.error(`Failed to handle process error for container ${containerId}`, {
         error: handlerError,
       })

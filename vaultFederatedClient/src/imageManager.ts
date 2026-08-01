@@ -962,14 +962,29 @@ export async function prepareResolvedComputationImage(
 ): Promise<string> {
   if (
     !/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest) ||
-    !resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+    !(
+      resolvedImage.reference === resolvedImage.digest ||
+      resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+    )
   ) {
     throw new Error('Resolved computation image reference is invalid')
   }
 
-  await ensureImageReadyForRun(resolvedImage.reference, containerService)
+  const isLocalImage = resolvedImage.reference === resolvedImage.digest
+  if (isLocalImage && containerService !== 'docker') {
+    throw new Error(
+      'Local computation images require the Docker container service',
+    )
+  }
+
+  if (!isLocalImage) {
+    await ensureImageReadyForRun(resolvedImage.reference, containerService)
+  }
   if (containerService === 'docker') {
     const inspection = await docker.getImage(resolvedImage.reference).inspect()
+    if (isLocalImage && inspection.Id !== resolvedImage.digest) {
+      throw new Error('Local computation image ID does not match the run')
+    }
     const labels = inspection.Config?.Labels ?? {}
     for (const [field, label] of Object.entries(COMPUTATION_LABELS) as Array<
       [keyof ComputationImageMetadata, string]

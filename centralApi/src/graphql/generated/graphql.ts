@@ -333,6 +333,7 @@ export type MutationReportRunCompleteArgs = {
 
 export type MutationReportRunErrorArgs = {
   errorMessage: Scalars['String']['input'];
+  redactErrorDetails?: InputMaybe<Scalars['Boolean']['input']>;
   runId: Scalars['String']['input'];
 };
 

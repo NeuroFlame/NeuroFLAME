@@ -7,6 +7,7 @@ import fs from 'fs/promises'
 import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
 import { prepareComputationImage } from '../../computationImage.js'
+import { ensureLocalRuntimeError } from '../../terminalError.js'
 
 export const RUN_START_SUBSCRIPTION = `
   subscription runStartSubscription {
@@ -41,6 +42,7 @@ export const runStartHandler = {
   complete: () => logger.info('Run Start - Subscription completed'),
   next: async ({ data }: { data: any }) => {
     logger.info('Run Start - Received data')
+    let resultsPath: string | undefined
     try {
       const {
         consortiumId,
@@ -53,27 +55,29 @@ export const runStartHandler = {
 
       const config = await getConfig()
       const { pathBaseDirectory, containerService = 'docker' } = config
-      const runtimeImage = await prepareComputationImage(
-        resolvedImage,
-        containerService,
-        pathBaseDirectory,
-      )
 
       const consortiumPath = path.join(pathBaseDirectory, consortiumId)
       const runPath = path.join(consortiumPath, runId, participantId)
       const runKitPath = path.join(runPath, 'runKit')
-      const resultsPath = path.join(runPath, 'results')
+      const currentResultsPath = path.join(runPath, 'results')
+      resultsPath = currentResultsPath
 
       // Keep run artifacts private to the federated-client service account.
       for (const directory of [
         consortiumPath,
         runPath,
         runKitPath,
-        resultsPath,
+        currentResultsPath,
       ]) {
         await fs.mkdir(directory, { recursive: true, mode: 0o700 })
         await fs.chmod(directory, 0o700)
       }
+
+      const runtimeImage = await prepareComputationImage(
+        resolvedImage,
+        containerService,
+        pathBaseDirectory,
+      )
 
       const mountConfigPath = path.join(consortiumPath, 'mount_config.json')
 
@@ -104,7 +108,7 @@ export const runStartHandler = {
           readOnly: false,
         },
         {
-          hostDirectory: resultsPath,
+          hostDirectory: currentResultsPath,
           containerDirectory: '/workspace/output',
           readOnly: false,
         },
@@ -133,15 +137,21 @@ export const runStartHandler = {
         directoriesToMount,
         portBindings: [],
         commandsToRun: ['python', '/workspace/system/entry_edge.py'],
-        failureLogPath: path.join(resultsPath, 'failed-container.log'),
+        failureLogPath: path.join(currentResultsPath, 'failed-container.log'),
         onContainerExitError: async (containerId, error) => {
           logger.error(`[runStart] onContainerExitError called for container: ${containerId}`, { error })
           logger.info(`[runStart] runId: ${runId}`)
-          logger.info(`[runStart] About to call reportRunError with errorMessage: Error in container ${containerId}: ${error}`)
+          logger.info('[runStart] Reporting a site computation failure')
           try {
+            await ensureLocalRuntimeError(
+              currentResultsPath,
+              'container_runtime',
+              error,
+            )
             const result = await reportRunError({
               runId,
-              errorMessage: `Error in container ${containerId}: ${error}`,
+              errorMessage:
+                'Site computation failed. Detailed error is available in the participant\'s local run results.',
             })
             logger.info(`[runStart] reportRunError completed successfully, result: ${result}`)
           } catch (err) {
@@ -156,6 +166,20 @@ export const runStartHandler = {
       })
     } catch (error) {
       logger.error('Error in runStartHandler', { error })
+
+      if (resultsPath) {
+        try {
+          await ensureLocalRuntimeError(
+            resultsPath,
+            'run_startup',
+            (error as Error).message,
+          )
+        } catch (markerError) {
+          logger.error('Failed to record the local run error', {
+            error: markerError,
+          })
+        }
+      }
 
       await reportRunError({
         runId: data.runStartEdge.runId,

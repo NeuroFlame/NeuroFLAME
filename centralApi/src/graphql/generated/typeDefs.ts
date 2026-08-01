@@ -290,7 +290,7 @@ type Mutation {
   vaultHeartbeat(heartbeat: VaultHeartbeatInput!): Boolean!
   # used by federated clients
   reportRunReady(runId: String!, resolvedImage: ResolvedComputationImageInput!): Boolean!
-  reportRunError(runId: String!, errorMessage: String!): Boolean!
+  reportRunError(runId: String!, errorMessage: String!, redactErrorDetails: Boolean = false): Boolean!
   reportRunComplete(runId: String!): Boolean!
   reportRunStatus(runId: String!, status: String!): Boolean!
   # used by desktop App

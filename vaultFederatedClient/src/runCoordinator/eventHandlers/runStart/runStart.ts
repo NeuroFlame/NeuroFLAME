@@ -62,7 +62,9 @@ export const runStartHandler = {
         downloadToken,
       } = data.runStartEdge
 
-      await registerTrackedImage(resolvedImage.reference)
+      if (resolvedImage.reference !== resolvedImage.digest) {
+        await registerTrackedImage(resolvedImage.reference)
+      }
       const runtimeImage = await prepareResolvedComputationImage(
         resolvedImage,
         VAULT_CONTAINER_SERVICE,

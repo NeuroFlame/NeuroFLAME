@@ -36,7 +36,10 @@ function validateResolvedImage(resolvedImage: ResolvedComputationImage): void {
   if (!/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest)) {
     throw new Error('Resolved computation image digest is invalid')
   }
-  if (!resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)) {
+  if (
+    resolvedImage.reference !== resolvedImage.digest &&
+    !resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+  ) {
     throw new Error('Resolved computation image reference does not match its digest')
   }
 }
@@ -73,14 +76,22 @@ async function prepareDockerImage(
   resolvedImage: ResolvedComputationImage,
 ): Promise<string> {
   let inspection: Docker.ImageInspectInfo
-  try {
-    await pullDockerImage(resolvedImage.reference)
+  const isLocalImage = resolvedImage.reference === resolvedImage.digest
+  if (isLocalImage) {
     inspection = await docker.getImage(resolvedImage.reference).inspect()
-  } catch (error) {
+    if (inspection.Id !== resolvedImage.digest) {
+      throw new Error('Local computation image ID does not match the run')
+    }
+  } else {
     try {
+      await pullDockerImage(resolvedImage.reference)
       inspection = await docker.getImage(resolvedImage.reference).inspect()
-    } catch {
-      throw error
+    } catch (error) {
+      try {
+        inspection = await docker.getImage(resolvedImage.reference).inspect()
+      } catch {
+        throw error
+      }
     }
   }
   const labels = inspection.Config?.Labels ?? {}
@@ -169,6 +180,11 @@ export async function prepareComputationImage(
     return prepareDockerImage(resolvedImage)
   }
   if (containerService === 'singularity') {
+    if (resolvedImage.reference === resolvedImage.digest) {
+      throw new Error(
+        'Local computation images require the Docker container service',
+      )
+    }
     return prepareSingularityImage(resolvedImage, baseDirectory)
   }
   throw new Error(`Unsupported container service: ${containerService}`)

@@ -18,3 +18,12 @@ inspect the digest's labels again; Singularity and Apptainer caches are built
 from and keyed by that digest. Images without the required metadata or with a
 different computation API or NVFlare version are rejected before run data is
 downloaded or mounted.
+
+The development-only central launcher instead selects an already-built local
+Docker tag without pulling it. It validates the same metadata and pins the run
+to the content-addressed Docker image ID. Edge and vault Docker clients verify
+that exact ID and its labels before execution. This requires the local clients
+to share a Docker daemon; local image IDs are intentionally unsupported by the
+Singularity and Apptainer paths. Production startup defaults to registry
+resolution, and `COMPUTATION_IMAGE_MODE=registry node dev-start.js` can be used
+to exercise production resolution during development.

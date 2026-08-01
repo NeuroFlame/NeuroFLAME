@@ -1434,7 +1434,10 @@ export default {
       }
       if (
         !/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest) ||
-        !resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+        !(
+          resolvedImage.reference === resolvedImage.digest ||
+          resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+        )
       ) {
         throw new Error('Resolved computation image digest is invalid')
       }
@@ -1512,7 +1515,15 @@ export default {
     },
     reportRunError: async (
       _: unknown,
-      { runId, errorMessage }: { runId: string; errorMessage: string },
+      {
+        runId,
+        errorMessage,
+        redactErrorDetails = false,
+      }: {
+        runId: string
+        errorMessage: string
+        redactErrorDetails?: boolean
+      },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunError', { runId })
@@ -1549,20 +1560,25 @@ export default {
         throw new Error('User not authorized')
       }
 
-      // Append the error to the runErrors array and update the run's status and lastUpdated fields
-      await Run.updateOne(
-        { _id: runId },
-        {
-          status: 'Error',
-          lastUpdated: Date.now().toString(), // Store as a string
-          $push: {
-            runErrors: {
-              user: context.userId, // Reference to the user who reported the error
-              message: errorMessage,
-              timestamp: Date.now().toString(), // Store as a string
-            },
+      const runUpdate: Record<string, unknown> = {
+        status: 'Error',
+        lastUpdated: Date.now().toString(),
+        $push: {
+          runErrors: {
+            user: context.userId,
+            message: redactErrorDetails
+              ? 'Site computation failed. Detailed error is available only to that participant.'
+              : errorMessage,
+            timestamp: Date.now().toString(),
           },
         },
+      }
+
+      // Site failures store only a server-generated shared notification. Their
+      // detailed marker remains private to the participant that executed them.
+      await Run.updateOne(
+        { _id: runId },
+        runUpdate,
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
