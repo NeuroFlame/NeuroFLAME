@@ -2,6 +2,7 @@ import Docker from 'dockerode'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import { logger } from '../../logger.js'
+import { extractSharedError } from './sharedError.js'
 const docker = new Docker()
 
 const MAX_FAILURE_LOG_BYTES = 1024 * 1024
@@ -182,7 +183,10 @@ const attachDockerEventHandlers = async ({
       })
       await captureFailedContainerLogs(container, failureLogPath)
       if (onContainerExitError) {
-        await onContainerExitError(containerId, (waitError as Error).message)
+        await onContainerExitError(
+          containerId,
+          'Central computation container could not be monitored',
+        )
       }
       return
     }
@@ -191,9 +195,13 @@ const attachDockerEventHandlers = async ({
       logger.error(
         `Container ${containerId} exited with error code ${statusCode}`,
       )
-      await captureFailedContainerLogs(container, failureLogPath)
+      const localLogs = await captureFailedContainerLogs(container, failureLogPath)
+      const sharedError = extractSharedError(
+        localLogs,
+        `Computation container exited with code ${statusCode}`,
+      )
       if (onContainerExitError) {
-        await onContainerExitError(containerId, `Exit Code: ${statusCode}`)
+        await onContainerExitError(containerId, sharedError)
       }
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
@@ -220,11 +228,7 @@ const attachDockerEventHandlers = async ({
 const captureFailedContainerLogs = async (
   container: ReturnType<typeof docker.getContainer>,
   failureLogPath?: string,
-): Promise<void> => {
-  if (!failureLogPath) {
-    return
-  }
-
+): Promise<string> => {
   try {
     const rawLogs = await container.logs({
       stdout: true,
@@ -233,6 +237,9 @@ const captureFailedContainerLogs = async (
       tail: 10000,
     })
     const decodedLogs = decodeDockerLogs(rawLogs)
+    if (!failureLogPath) {
+      return decodedLogs
+    }
     const logBuffer = Buffer.from(decodedLogs, 'utf8')
     const wasTruncated = logBuffer.length > MAX_FAILURE_LOG_BYTES
     const retainedLogs = wasTruncated
@@ -253,10 +260,12 @@ const captureFailedContainerLogs = async (
     )
     await fs.chmod(failureLogPath, 0o600)
     logger.info(`Saved failed-container logs to ${failureLogPath}`)
+    return decodedLogs
   } catch (logError) {
     logger.warn(`Could not save failed-container logs for ${container.id}`, {
       error: logError,
     })
+    return ''
   }
 }
 
@@ -303,6 +312,19 @@ const getLocalDockerImageId = async (
     }
 
     throw error
+  }
+}
+
+const validateImageCompatibility = async (imageName: string): Promise<void> => {
+  const image = await docker.getImage(imageName).inspect()
+  const labels = image.Config?.Labels ?? {}
+  for (const [label, expected] of Object.entries(REQUIRED_IMAGE_LABELS)) {
+    const actual = labels[label]
+    if (actual !== expected) {
+      throw new Error(
+        `Image "${imageName}" is incompatible: label "${label}" must be "${expected}"`,
+      )
+    }
   }
 }
 
@@ -426,6 +448,11 @@ const validateComputationImageMetadata = (
   if (metadata.nvflareVersion !== '2.8.0') {
     throw new Error(
       `NVFlare ${metadata.nvflareVersion} is incompatible with required version 2.8.0`,
+    )
+  }
+  if (metadata.boilerplateVersion !== '0.1.0') {
+    throw new Error(
+      `Boilerplate ${metadata.boilerplateVersion} is incompatible with required version 0.1.0`,
     )
   }
 }

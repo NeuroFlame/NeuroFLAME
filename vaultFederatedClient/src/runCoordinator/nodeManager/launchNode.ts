@@ -4,6 +4,7 @@ import { promises as fs } from 'fs'
 import * as path from 'path'
 import { logger } from '../../logger.js'
 import { VAULT_BASE_DIR } from '../../config.js'
+import { extractSharedError } from './sharedError.js'
 const docker = new Docker()
 
 const MAX_FAILURE_LOG_BYTES = 1024 * 1024
@@ -195,7 +196,10 @@ const attachDockerEventHandlers = async ({
       })
       await captureFailedContainerLogs(container, failureLogPath)
       if (onContainerExitError) {
-        await onContainerExitError(containerId, (waitError as Error).message)
+        await onContainerExitError(
+          containerId,
+          'Participant computation container could not be monitored',
+        )
       }
       return
     }
@@ -208,9 +212,13 @@ const attachDockerEventHandlers = async ({
       logger.error(
         `Container ${containerId} exited with error code ${statusCode}`,
       )
-      await captureFailedContainerLogs(container, failureLogPath)
+      const localLogs = await captureFailedContainerLogs(container, failureLogPath)
+      const sharedError = extractSharedError(
+        localLogs,
+        `Participant computation container exited with code ${statusCode}`,
+      )
       if (onContainerExitError) {
-        await onContainerExitError(containerId, `Exit Code: ${statusCode}`)
+        await onContainerExitError(containerId, sharedError)
       }
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
@@ -239,11 +247,7 @@ const attachDockerEventHandlers = async ({
 const captureFailedContainerLogs = async (
   container: ReturnType<typeof docker.getContainer>,
   failureLogPath?: string,
-): Promise<void> => {
-  if (!failureLogPath) {
-    return
-  }
-
+): Promise<string> => {
   try {
     const rawLogs = await container.logs({
       stdout: true,
@@ -251,12 +255,17 @@ const captureFailedContainerLogs = async (
       timestamps: true,
       tail: 10000,
     })
-    await writeFailureLog(failureLogPath, decodeDockerLogs(rawLogs))
-    logger.info(`Saved failed-container logs to ${failureLogPath}`)
+    const decodedLogs = decodeDockerLogs(rawLogs)
+    if (failureLogPath) {
+      await writeFailureLog(failureLogPath, decodedLogs)
+      logger.info(`Saved failed-container logs to ${failureLogPath}`)
+    }
+    return decodedLogs
   } catch (logError) {
     logger.warn(`Could not save failed-container logs for ${container.id}`, {
       error: logError,
     })
+    return ''
   }
 }
 
@@ -500,13 +509,17 @@ const attachSingularityEventHandlers = ({
     }
 
     if (code !== 0) {
-      const errorMessage = capturedStderr || capturedStdout || `Exit Code: ${code}`
+      const localError = capturedStderr || capturedStdout || `Exit Code: ${code}`
+      const errorMessage = extractSharedError(
+        `${capturedStdout}\n${capturedStderr}`,
+        `Participant computation process exited with code ${code}`,
+      )
       logger.error(
         `Container ${containerId} exited with error code ${code}`,
       )
-      await captureFailedProcessLogs(failureLogPath, errorMessage)
+      await captureFailedProcessLogs(failureLogPath, localError)
       if (onContainerExitError) {
-        await onContainerExitError(containerId, `Exit Code: ${code}`)
+        await onContainerExitError(containerId, errorMessage)
       }
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
@@ -526,7 +539,10 @@ const attachSingularityEventHandlers = ({
       error.stack || error.message,
     )
     if (onContainerExitError) {
-      await onContainerExitError(containerId, error.message)
+      await onContainerExitError(
+        containerId,
+        'Participant computation process could not be started',
+      )
     }
   }
 

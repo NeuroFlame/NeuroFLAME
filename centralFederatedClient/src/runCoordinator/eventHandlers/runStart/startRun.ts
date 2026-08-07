@@ -67,7 +67,7 @@ export default async function startRun({
     await fs.mkdir(pathCentralResults, { recursive: true, mode: 0o700 })
     await fs.chmod(pathCentralResults, 0o700)
 
-    // Reserve the multiplexed federation and administration port
+    // NVFlare 2.8 uses one externally routed server port for this computation API.
     const {
       port: reservedFedLearnPort,
       server: fedLearnServer,
@@ -112,7 +112,7 @@ export default async function startRun({
           containerDirectory: '/workspace/output/',
         },
       ],
-      portBindings: [{ hostPort: fedLearnPort, containerPort: fedLearnPort }],
+    portBindings: [{ hostPort: fedLearnPort, containerPort: fedLearnPort }],
       commandsToRun: ['python', '/workspace/system/entry_central.py'],
       failureLogPath: path.join(pathRun, 'central-failed-container.log'),
       onContainerExitSuccess: () => reportRunComplete({ runId }),

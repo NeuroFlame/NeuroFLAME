@@ -18,6 +18,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "compile": "tsc",
+    "test": "npm run compile && node --test tests/sharedError.test.mjs",
     "start": "npm run compile && node ./dist/cli.js start",
     "start-configured": "npm run compile && node ./dist/cli.js start",
     "prepack": "npm run clean && npm run compile"
