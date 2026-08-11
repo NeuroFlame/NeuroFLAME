@@ -5,6 +5,9 @@ import {
   ReactNode,
   useEffect,
 } from 'react'
+import { connectAsUser } from '../apis/edgeApi/connectAsUser'
+import { disconnectAsUser } from '../apis/edgeApi/disconnectAsUser'
+import { useApolloClients } from './ApolloClientsContext'
 
 interface UserStateContextType {
   userId: string;
@@ -15,14 +18,15 @@ interface UserStateContextType {
     userId: string,
     username: string,
     roles: string[],
-  }, options?: { keepLoggedIn?: boolean }) => void;
-  clearUserData: () => void;
+  }, options?: { keepLoggedIn?: boolean }) => Promise<void>;
+  clearUserData: () => Promise<void>;
 }
 
 const UserStateContext =
   createContext<UserStateContextType | undefined>(undefined)
 
 export const UserStateProvider = ({ children }: { children: ReactNode }) => {
+  const { edgeClientApolloClient } = useApolloClients()
   const [userData, _setUserData] = useState({
     accessToken: '',
     userId: '',
@@ -31,14 +35,16 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   })
 
   useEffect(() => {
-    loadUserFromLocalStorage()
-  }, [])
+    loadUserFromLocalStorage().catch(() => {
+      console.warn('Unable to restore the saved local session')
+    })
+  }, [edgeClientApolloClient])
 
   const loadUserFromLocalStorage = async () => {
     const keepLoggedIn = localStorage.getItem('keepLoggedIn') === 'true'
 
     if (!keepLoggedIn) {
-      clearLocalStorageForUser()
+      await clearLocalStorageForUser()
       return
     }
 
@@ -48,14 +54,36 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     const localRoles = localStorage.getItem('roles')
 
     // if all of these exist, set the user state
-    if (localAccessToken && localUserId && localUsername && localRoles) {
-      _setUserData({
-        accessToken: localAccessToken,
-        userId: localUserId,
-        username: localUsername,
-        roles: JSON.parse(localRoles),
-      })
+    if (
+      localAccessToken &&
+      localUserId &&
+      localUsername &&
+      localRoles &&
+      edgeClientApolloClient
+    ) {
       sessionStorage.setItem('accessToken', localAccessToken)
+      try {
+        const roles = JSON.parse(localRoles)
+        if (!Array.isArray(roles) || roles.some((role) => typeof role !== 'string')) {
+          throw new Error('Invalid stored roles')
+        }
+        const authenticatedUserId = await connectAsUser(edgeClientApolloClient)
+        if (authenticatedUserId !== localUserId) throw new Error('Stored user does not match token')
+        _setUserData({
+          accessToken: localAccessToken,
+          userId: localUserId,
+          username: localUsername,
+          roles,
+        })
+      } catch {
+        try {
+          await disconnectAsUser(edgeClientApolloClient)
+        } catch {
+          console.warn('Unable to confirm local edge disconnection during session restore')
+        }
+        await clearLocalStorageForUser()
+        _setUserData({ accessToken: '', userId: '', username: '', roles: [] })
+      }
     }
   }
 
@@ -83,7 +111,7 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   }: {
     accessToken: string,
   }) => {
-    clearLocalStorageForUser()
+    await clearLocalStorageForUser()
     sessionStorage.setItem('accessToken', accessToken)
   }
 
@@ -94,7 +122,7 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
       username: '',
       roles: [],
     })
-    clearLocalStorageForUser()
+    await clearLocalStorageForUser()
   }
 
   const clearLocalStorageForUser = async () => {
@@ -120,11 +148,11 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     })
 
     if (options?.keepLoggedIn) {
-      setLocalStorageForUser(data)
+      await setLocalStorageForUser(data)
       return
     }
 
-    setSessionStorageForUser(data)
+    await setSessionStorageForUser(data)
   }
 
   return (

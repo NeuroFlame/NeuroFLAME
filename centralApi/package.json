@@ -1,6 +1,6 @@
 {
   "name": "centralapi",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "convert-typedefs-to-ts": "node ./convert-typedefs-to-ts.js",
     "compile": "tsc",
     "build": "npm run generate-graphql-types && npm run convert-typedefs-to-ts && npm run compile",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "start": "npm run build && node ./dist/index.js",
     "getTokens": "node ./dev-start.js npm run getTokens:raw",
     "getTokens:raw": "npm run build && node ./dist/authentication/getTokens.js",
@@ -20,6 +21,7 @@
   "type": "module",
   "dependencies": {
     "@apollo/server": "^4.10.2",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "bcrypt": "^5.1.1",
     "graphql": "^16.8.1",
     "graphql-subscriptions": "^2.0.0",
@@ -28,7 +30,8 @@
     "mongoose": "^8.3.2",
     "resend": "^4.6.0",
     "winston": "^3.14.1",
-    "ws": "^8.17.1"
+    "ws": "^8.17.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.2",

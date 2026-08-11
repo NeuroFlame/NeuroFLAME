@@ -218,6 +218,50 @@ type UserProfile {
   roles: [String!]!
 }
 
+type McpConnection {
+  id: String!
+  clientName: String!
+  createdAt: String!
+  lastUsedAt: String!
+}
+
+type McpPendingWrite {
+  id: String!
+  clientName: String!
+  toolName: String!
+  summary: String!
+  operationHash: String!
+  preview: [McpWritePreviewField!]!
+  createdAt: String!
+  expiresAt: String!
+}
+
+type McpWritePreviewField {
+  label: String!
+  value: String!
+  fullValue: String
+}
+
+type McpSettings {
+  enabled: Boolean!
+  resultsEnabled: Boolean!
+  endpoint: String!
+  connections: [McpConnection!]!
+  pendingWrites: [McpPendingWrite!]!
+}
+
+type McpResultRequest {
+  requestId: String!
+  targetUserId: String!
+  consortiumId: String!
+  runId: String!
+  operation: String!
+  relativePath: String
+  callbackUrl: String!
+  callbackToken: String!
+  expiresAt: String!
+}
+
 type RunEventPayload {
   consortiumId: String!
   consortiumTitle: String!
@@ -283,6 +327,7 @@ type Query {
   getHostedVaultList(serverId: String): [HostedVault!]!
   getInviteInfo(inviteToken: String!): InviteInfo!
   getUserProfile: UserProfile!
+  getMcpSettings: McpSettings!
 }
 
 type Mutation {
@@ -348,6 +393,10 @@ type Mutation {
   requestPasswordReset(username: String!): Boolean!
   resetPassword(token: String!, newPassword: String!): LoginOutput!
   runDelete(runId: String!): Boolean!
+  setMcpEnabled(enabled: Boolean!): McpSettings!
+  setMcpResultsEnabled(enabled: Boolean!): McpSettings!
+  revokeMcpConnection(connectionId: String!): Boolean!
+  decideMcpWrite(requestId: String!, approved: Boolean!): Boolean!
 }
 
 type Subscription {
@@ -360,5 +409,6 @@ type Subscription {
   consortiumLatestRunChanged(consortiumId: String!): String!
   consortiumDetailsChanged(consortiumId: String!): String!
   runDetailsChanged(runId: String!): String!
+  mcpResultRequest: McpResultRequest!
 }
 `;

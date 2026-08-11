@@ -95,6 +95,13 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
         <ListItem
           onClick={() => { navSetDrawerOpen(false) }}
           component={Link}
+          to='/settings'
+        >
+          <ListItemText primary='User Settings' />
+        </ListItem>
+        <ListItem
+          onClick={() => { navSetDrawerOpen(false) }}
+          component={Link}
           to='/appConfig'
         >
           <ListItemText primary='App Config' />

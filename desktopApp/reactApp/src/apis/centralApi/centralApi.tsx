@@ -92,6 +92,13 @@ import { leaderSetHostedVaultActive } from './leaderSetHostedVaultActive'
 import { leaderAddVaultUser } from './leaderAddVaultUser'
 import { leaderRemoveMember } from './leaderRemoveMember'
 import { leaderSetMemberInactive } from './leaderSetMemberInactive'
+import {
+  decideMcpWrite,
+  getMcpSettings,
+  revokeMcpConnection,
+  setMcpEnabled,
+  setMcpResultsEnabled,
+} from './mcpSettings'
 
 export const useCentralApi = () => {
   const { centralApiApolloClient } = useApolloClients()
@@ -102,6 +109,15 @@ export const useCentralApi = () => {
   }
 
   return useMemo(() => ({
+    getMcpSettings: () => getMcpSettings(centralApiApolloClient),
+    setMcpEnabled: (enabled: boolean) =>
+      setMcpEnabled(centralApiApolloClient, enabled),
+    setMcpResultsEnabled: (enabled: boolean) =>
+      setMcpResultsEnabled(centralApiApolloClient, enabled),
+    revokeMcpConnection: (connectionId: string) =>
+      revokeMcpConnection(centralApiApolloClient, connectionId),
+    decideMcpWrite: (requestId: string, approved: boolean) =>
+      decideMcpWrite(centralApiApolloClient, requestId, approved),
     getConsortiumList: () => getConsortiumList(centralApiApolloClient),
     getComputationList: () => getComputationList(centralApiApolloClient),
     getConsortiumDetails: (input: QueryGetConsortiumDetailsArgs) =>

@@ -114,6 +114,55 @@ export type LoginOutput = {
   username: Scalars['String']['output'];
 };
 
+export type McpConnection = {
+  __typename?: 'McpConnection';
+  clientName: Scalars['String']['output'];
+  createdAt: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  lastUsedAt: Scalars['String']['output'];
+};
+
+export type McpPendingWrite = {
+  __typename?: 'McpPendingWrite';
+  clientName: Scalars['String']['output'];
+  createdAt: Scalars['String']['output'];
+  expiresAt: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  operationHash: Scalars['String']['output'];
+  preview: Array<McpWritePreviewField>;
+  summary: Scalars['String']['output'];
+  toolName: Scalars['String']['output'];
+};
+
+export type McpResultRequest = {
+  __typename?: 'McpResultRequest';
+  callbackToken: Scalars['String']['output'];
+  callbackUrl: Scalars['String']['output'];
+  consortiumId: Scalars['String']['output'];
+  expiresAt: Scalars['String']['output'];
+  operation: Scalars['String']['output'];
+  relativePath?: Maybe<Scalars['String']['output']>;
+  requestId: Scalars['String']['output'];
+  runId: Scalars['String']['output'];
+  targetUserId: Scalars['String']['output'];
+};
+
+export type McpSettings = {
+  __typename?: 'McpSettings';
+  connections: Array<McpConnection>;
+  enabled: Scalars['Boolean']['output'];
+  endpoint: Scalars['String']['output'];
+  pendingWrites: Array<McpPendingWrite>;
+  resultsEnabled: Scalars['Boolean']['output'];
+};
+
+export type McpWritePreviewField = {
+  __typename?: 'McpWritePreviewField';
+  fullValue?: Maybe<Scalars['String']['output']>;
+  label: Scalars['String']['output'];
+  value: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   adminChangeUserPassword: Scalars['Boolean']['output'];
@@ -135,6 +184,7 @@ export type Mutation = {
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
   consortiumSetMemberReady: Scalars['Boolean']['output'];
+  decideMcpWrite: Scalars['Boolean']['output'];
   leaderAddHostedVault: Scalars['Boolean']['output'];
   leaderAddVaultUser: Scalars['Boolean']['output'];
   leaderRemoveHostedVault: Scalars['Boolean']['output'];
@@ -148,7 +198,10 @@ export type Mutation = {
   reportRunStatus: Scalars['Boolean']['output'];
   requestPasswordReset: Scalars['Boolean']['output'];
   resetPassword: LoginOutput;
+  revokeMcpConnection: Scalars['Boolean']['output'];
   runDelete: Scalars['Boolean']['output'];
+  setMcpEnabled: McpSettings;
+  setMcpResultsEnabled: McpSettings;
   startRun: StartRunOutput;
   studySetComputation: Scalars['Boolean']['output'];
   studySetNotes: Scalars['Boolean']['output'];
@@ -282,6 +335,12 @@ export type MutationConsortiumSetMemberReadyArgs = {
 };
 
 
+export type MutationDecideMcpWriteArgs = {
+  approved: Scalars['Boolean']['input'];
+  requestId: Scalars['String']['input'];
+};
+
+
 export type MutationLeaderAddHostedVaultArgs = {
   consortiumId: Scalars['String']['input'];
   vaultId: Scalars['String']['input'];
@@ -361,8 +420,23 @@ export type MutationResetPasswordArgs = {
 };
 
 
+export type MutationRevokeMcpConnectionArgs = {
+  connectionId: Scalars['String']['input'];
+};
+
+
 export type MutationRunDeleteArgs = {
   runId: Scalars['String']['input'];
+};
+
+
+export type MutationSetMcpEnabledArgs = {
+  enabled: Scalars['Boolean']['input'];
+};
+
+
+export type MutationSetMcpResultsEnabledArgs = {
+  enabled: Scalars['Boolean']['input'];
 };
 
 
@@ -420,6 +494,7 @@ export type Query = {
   getConsortiumList: Array<ConsortiumListItem>;
   getHostedVaultList: Array<HostedVault>;
   getInviteInfo: InviteInfo;
+  getMcpSettings: McpSettings;
   getMyVaultConfig: Vault;
   getMyVaultServerConfig: VaultServer;
   getRunDetails: RunDetails;
@@ -567,6 +642,7 @@ export type Subscription = {
   __typename?: 'Subscription';
   consortiumDetailsChanged: Scalars['String']['output'];
   consortiumLatestRunChanged: Scalars['String']['output'];
+  mcpResultRequest: McpResultRequest;
   runDetailsChanged: Scalars['String']['output'];
   runEvent: RunEventPayload;
   runStartCentral: RunStartCentralPayload;

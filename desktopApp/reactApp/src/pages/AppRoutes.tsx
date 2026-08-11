@@ -18,6 +18,7 @@ import AdminPage from './Admin/AdminPage'
 import ConsortiumWizard from './ConsortiumWizard/ConsortiumWizard'
 import VaultListPage from './VaultList/VaultListPage'
 import HealthPage from './HealthPage/HealthPage'
+import UserSettings from './UserSettings/UserSettings'
 
 export default function AppRoutes() {
   return (
@@ -49,6 +50,7 @@ export default function AppRoutes() {
       <Route path='/vaults/list' element={<VaultListPage />} />
       <Route path='/appConfig' element={<AppConfig />} />
       <Route path='/appHealth' element={<HealthPage />} />
+      <Route path='/settings' element={<UserSettings />} />
       <Route path='/admin' element={<AdminPage />} />
     </Routes>
   )

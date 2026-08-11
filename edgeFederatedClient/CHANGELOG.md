@@ -1,5 +1,14 @@
 # edge-federated-client
 
+## 1.8.0
+
+### Minor Changes
+
+- serialize deidentified derivative Results-page output for explicitly enabled
+  MCP requests
+- bind result relays to the signed-in desktop user and harden derivative file
+  reads against symlinks, races, special files, and oversized content
+
 ## 1.7.0
 
 ### Minor Changes

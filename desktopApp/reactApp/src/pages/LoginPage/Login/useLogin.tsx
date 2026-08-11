@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 export function useLogin() {
   const { login } = useCentralApi()
   const { connectAsUser } = useEdgeApi()
-  const { setUserData } = useUserState()
+  const { setUserData, clearUserData } = useUserState()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
@@ -27,6 +27,7 @@ export function useLogin() {
       await connectAsUser()
       navigate('/home')
     } catch (err) {
+      await clearUserData()
       setError('Login failed, please try again.')
     } finally {
       setLoading(false)

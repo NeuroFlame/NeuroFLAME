@@ -1,5 +1,18 @@
 # neuroflame
 
+## 0.9.0
+
+### Minor Changes
+
+- add per-user MCP access and connection controls
+- require MCP writes to be approved in the authenticated NeuroFLAME settings UI
+  and disconnect participant result relays on logout
+
+### Patch Changes
+
+- Updated dependencies
+  - edge-federated-client@1.8.0
+
 ## 0.8.0
 
 ### Minor Changes

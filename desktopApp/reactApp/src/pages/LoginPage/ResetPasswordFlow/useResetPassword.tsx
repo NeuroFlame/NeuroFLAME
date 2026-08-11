@@ -7,7 +7,7 @@ import { useUserState } from '../../../contexts/UserStateContext'
 export function useResetPassword() {
   const { resetPassword } = useCentralApi()
   const { connectAsUser } = useEdgeApi()
-  const { setUserData } = useUserState()
+  const { setUserData, clearUserData } = useUserState()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState<boolean>(false)
@@ -23,6 +23,7 @@ export function useResetPassword() {
       await connectAsUser()
       navigate('/home')
     } catch (err) {
+      await clearUserData()
       setError((err as Error).message ||
         'Resetting password failed, please try again.')
     } finally {

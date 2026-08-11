@@ -73,18 +73,23 @@ export const resolvers = {
       logger.info('connectAsUser')
       try {
         // Make the runCoordinator connect to the centralApi
-        inMemoryStore.set('accessToken', context.accessToken)
-
         const { wsUrl } = getConfig()
-        runCoordinator.subscribeToCentralApi({
+        await runCoordinator.subscribeToCentralApi({
           wsUrl,
           accessToken: context.accessToken,
         })
-        return JSON.stringify(context)
+        inMemoryStore.set('accessToken', context.accessToken)
+        return context.tokenPayload?.userId || ''
       } catch (error) {
         logger.error('Error in connectAsUser:', error)
         throw new Error('Failed to connect as user')
       }
+    },
+    disconnectAsUser: async (_: any, _args: any, context: any): Promise<boolean> => {
+      if (!context.accessToken) throw new Error('Not authorized')
+      await runCoordinator.disconnectFromCentralApi(context.accessToken)
+      inMemoryStore.set('accessToken', '')
+      return true
     },
     setMountDir: async (
       _: any,

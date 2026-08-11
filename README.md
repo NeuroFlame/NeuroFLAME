@@ -30,6 +30,6 @@ To make this process seamless, NeuroFlame provides an **easy-to-use desktop appl
 - **[User Guide](./docs/user-guide.md)** – How to configure studies, execute runs, and interpret results.
 - **[Computation Author Guide](./docs/computation-author-guide.md)** – How to create and integrate custom computation modules.
 - **[Hosting and Deployment Guide](./docs/hosting-and-deployment-guide.md)** – How to set up and maintain a NeuroFlame deployment.
+- **[MCP Service](./docs/mcp-service.md)** – Agent access, OAuth setup, tool scope, and PHI boundaries.
 - **[Developer Guide](./docs/developer-guide.md)** – How to contribute to and extend the platform.
 - **[Architecture and Design](./docs/architecture-and-design.md)** – Technical deep dive into system architecture.
-

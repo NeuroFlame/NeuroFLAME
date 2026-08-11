@@ -18,8 +18,11 @@ import resolvers from './graphql/resolvers.js'
 
 import { httpServerContext, wsServerContext } from './serverContexts.js'
 import { validateAccessToken } from './authentication/authentication.js'
-import { APOLLO_PORT, DATABASE_URI, LOG_PATH } from './config.js'
+import { APOLLO_PORT, DATABASE_URI, LOG_PATH, MCP_TRUST_PROXY } from './config.js'
 import { APPLICATION_API_VERSION } from './versions.js'
+import { createMcpOAuthRouter } from './mcp/oauthRouter.js'
+import { createMcpRelayRouter } from './mcp/resultRelay.js'
+import { registerMcpEndpoint } from './mcp/server.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -51,6 +54,7 @@ export async function start({
   // Create an Express app and HTTP server; we will attach the WebSocket
   // server and the ApolloServer to this HTTP server.
   const app = express()
+  if (MCP_TRUST_PROXY !== undefined) app.set('trust proxy', MCP_TRUST_PROXY)
   const httpServer = createServer(app)
 
   // Set up WebSocket server.
@@ -90,7 +94,12 @@ export async function start({
   await server.start()
 
   app.use(cors())
+  // Derivative result payloads have their own bounded parser. Mount this
+  // before the smaller application-wide JSON parser.
+  app.use(createMcpRelayRouter())
   app.use(bodyParser.json())
+  app.use(createMcpOAuthRouter())
+  registerMcpEndpoint(app)
   app.get('/version', (_req, res) => {
     res.set('Cache-Control', 'no-store')
     res.status(200).json({ version: APPLICATION_API_VERSION })

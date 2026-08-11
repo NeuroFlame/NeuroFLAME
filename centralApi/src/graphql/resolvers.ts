@@ -34,6 +34,13 @@ import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
 import { COMPUTATION_API_VERSION } from '../versions.js'
+import {
+  decideMcpWrite,
+  getMcpSettings,
+  revokeMcpConnection,
+  setMcpEnabled,
+  setMcpResultsEnabled,
+} from '../mcp/settings.js'
 
 interface Context {
   userId: string
@@ -422,6 +429,14 @@ const sendInviteEmail = async ({
 
 export default {
   Query: {
+    getMcpSettings: async (
+      _: unknown,
+      __: unknown,
+      context: Context,
+    ) => {
+      if (!context.userId) throw new Error('User is not authenticated')
+      return getMcpSettings(context.userId)
+    },
     getUserProfile: async (
       _: unknown,
       __: unknown,
@@ -3080,6 +3095,38 @@ export default {
 
       return true
     },
+    setMcpEnabled: async (
+      _: unknown,
+      { enabled }: { enabled: boolean },
+      context: Context,
+    ) => {
+      if (!context.userId) throw new Error('User is not authenticated')
+      return setMcpEnabled(context.userId, enabled)
+    },
+    setMcpResultsEnabled: async (
+      _: unknown,
+      { enabled }: { enabled: boolean },
+      context: Context,
+    ) => {
+      if (!context.userId) throw new Error('User is not authenticated')
+      return setMcpResultsEnabled(context.userId, enabled)
+    },
+    revokeMcpConnection: async (
+      _: unknown,
+      { connectionId }: { connectionId: string },
+      context: Context,
+    ) => {
+      if (!context.userId) throw new Error('User is not authenticated')
+      return revokeMcpConnection(context.userId, connectionId)
+    },
+    decideMcpWrite: async (
+      _: unknown,
+      { requestId, approved }: { requestId: string; approved: boolean },
+      context: Context,
+    ) => {
+      if (!context.userId) throw new Error('User is not authenticated')
+      return decideMcpWrite(context.userId, requestId, approved)
+    },
   },
 
   Subscription: {
@@ -3290,6 +3337,17 @@ export default {
 
           return isMember
         },
+      ),
+    },
+    mcpResultRequest: {
+      resolve: (payload: unknown): unknown => payload,
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(['MCP_RESULT_REQUEST']),
+        async (
+          payload: { targetUserId: string },
+          _variables: unknown,
+          context: Context,
+        ) => Boolean(context.userId) && payload.targetUserId === context.userId,
       ),
     },
   },

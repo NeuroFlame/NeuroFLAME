@@ -1,13 +1,13 @@
 {
   "name": "edge-federated-client",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "compile": "tsc",
     "build": "tsc",
-    "test": "npm run compile && node --test tests/sharedError.test.mjs",
+    "test": "npm run compile && node --test tests/*.test.mjs",
     "start": "npm run compile && node ./dist/index.js $npm_config_path"
   },
   "author": "",

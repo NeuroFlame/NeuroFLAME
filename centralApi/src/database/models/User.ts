@@ -46,6 +46,9 @@ export interface IUser extends Document {
   vaultStatus?: IVaultStatus // Optional vault status (for vault users)
   resetToken?: string
   resetTokenExpiry?: number
+  mcpEnabled: boolean
+  mcpResultsEnabled: boolean
+  mcpAuthorizationEpoch: number
 }
 
 // Define the Vault sub-schema
@@ -95,6 +98,9 @@ const userSchema: Schema = new Schema({
   vaultStatus: { type: vaultStatusSchema, required: false }, // Optional vault status
   resetToken: { type: String, required: false },
   resetTokenExpiry: { type: Date, required: false },
+  mcpEnabled: { type: Boolean, required: true, default: false },
+  mcpResultsEnabled: { type: Boolean, required: true, default: false },
+  mcpAuthorizationEpoch: { type: Number, required: true, default: 0 },
 })
 
 // Create the model

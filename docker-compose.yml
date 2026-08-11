@@ -42,6 +42,9 @@ services:
       - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:-access-token-secret-example}
       - ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION:-24h}
       - CONSORTIUM_INVITE_URL=${CONSORTIUM_INVITE_URL:-http://localhost:3001}
+      - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-http://localhost:3001/mcp}
+      - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-}
+      - MCP_TRUST_PROXY=${MCP_TRUST_PROXY:-}
 
   centralFederatedClient:
     depends_on:

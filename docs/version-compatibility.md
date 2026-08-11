@@ -10,6 +10,10 @@ directs the user to the latest NeuroFLAME desktop release, while an older API
 must be updated by the server administrator. A network outage does not produce
 a separate version error screen.
 
+MCP management tools are served by the central API and configured by the
+desktop UI. Serialization of deidentified Results-page derivatives requires an
+Electron release embedding edge-federated-client 1.8.0 or newer.
+
 Computation images use the exact computation API version stored in OCI image
 metadata. Before provisioning, the central client pulls the configured image,
 validates its metadata, and resolves a registry digest. The central API stores

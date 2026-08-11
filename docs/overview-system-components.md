@@ -2,6 +2,7 @@
 The system consists of several independent components:
 
 - **Central API**: Connects to the central database and manages requests.
+- **MCP Service**: An optional OAuth-protected interface hosted by the Central API for agent-assisted management. See [MCP service](./mcp-service.md).
 - **Central Federated Client**: Listens to the Central API, handles provisioning, and manages run execution.
 - **File Server**: Distributes provisioned run kits.
 - **Desktop App**: Electron-based UI that launches the Edge Federated Client.

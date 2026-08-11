@@ -6,6 +6,7 @@ export const typeDefs = `
 
   type Mutation {
     connectAsUser: String
+    disconnectAsUser: Boolean
     setMountDir(consortiumId: String, mountDir: String): Boolean
     setLocalParams(consortiumId: String, mountDir: String, localParams: String): Boolean
   }

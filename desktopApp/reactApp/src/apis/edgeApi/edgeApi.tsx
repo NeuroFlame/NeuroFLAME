@@ -1,5 +1,6 @@
 import { useApolloClients } from '../../contexts/ApolloClientsContext'
 import { connectAsUser } from './connectAsUser'
+import { disconnectAsUser } from './disconnectAsUser'
 import { getMountDir } from './getMountDir'
 import { setMountDir } from './setMountDir'
 import { getLocalParams } from './getLocalParams'
@@ -14,6 +15,7 @@ export const useEdgeApi = () => {
 
   return {
     connectAsUser: () => connectAsUser(edgeClientApolloClient),
+    disconnectAsUser: () => disconnectAsUser(edgeClientApolloClient),
 
     // Get the mount directory for a consortium
     getMountDir: (consortiumId: string) =>
