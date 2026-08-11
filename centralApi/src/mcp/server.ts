@@ -17,6 +17,7 @@ import { MCP_ALLOWED_ORIGINS, MCP_PUBLIC_URL } from '../config.js'
 import { logger } from '../logger.js'
 import { APPLICATION_API_VERSION } from '../versions.js'
 import { oauthMetadata, oauthProvider } from './oauthRouter.js'
+import { buildInviteWriteApproval } from './inviteApproval.js'
 import { requestDesktopResult } from './resultRelay.js'
 import { mcpSessionRegistry } from './sessionRegistry.js'
 import {
@@ -25,7 +26,7 @@ import {
   requestWriteApproval,
 } from './writeConfirmation.js'
 
-type Context = {
+export type Context = {
   userId: string
   familyId: string
   authorizationEpoch: number
@@ -161,21 +162,29 @@ const toolError = () => ({
   }],
 })
 
-async function callResolver(
+export async function callResolver(
   group: 'Query' | 'Mutation',
   name: string,
   args: unknown,
   context: Context,
 ) {
   try {
-    return await resolverMap[group][name](null, args, await currentResolverContext(context))
+    const requiredScope = group === 'Mutation' ? 'neuroflame:write' : undefined
+    return await resolverMap[group][name](
+      null,
+      args,
+      await currentResolverContext(context, requiredScope),
+    )
   } catch (error) {
     logger.warn('MCP operation was rejected', { tool: name, userId: context.userId })
     throw error
   }
 }
 
-async function currentResolverContext(context: Context): Promise<{
+export async function currentResolverContext(
+  context: Context,
+  requiredScope?: 'neuroflame:write',
+): Promise<{
   userId: string
   roles: string[]
   error: string
@@ -189,6 +198,7 @@ async function currentResolverContext(context: Context): Promise<{
       revokedAt: { $exists: false },
       refreshExpiresAt: { $gt: new Date() },
       familyExpiresAt: { $gt: new Date() },
+      ...(requiredScope ? { scopes: requiredScope } : {}),
     }),
   ])
   if (
@@ -225,19 +235,36 @@ function createServer(context: Context, scopes: string[]): McpServer {
     inputSchema: Record<string, z.ZodTypeAny>,
     summary: (args: any) => string,
     fn: (args: any) => Promise<unknown>,
-    annotations?: { destructive?: boolean; openWorld?: boolean },
+    options?: {
+      destructive?: boolean
+      openWorld?: boolean
+      prepareApproval?: (args: any) => Promise<{
+        summary: string
+        preview: ReturnType<typeof buildWritePreview>
+      }>
+    },
   ) => server.registerTool(name, {
     description: `${description} This tool requires approval in the authenticated NeuroFLAME app.`,
     inputSchema,
     annotations: {
       readOnlyHint: false,
-      destructiveHint: annotations?.destructive ?? true,
+      destructiveHint: options?.destructive ?? true,
       idempotentHint: false,
-      openWorldHint: annotations?.openWorld ?? false,
+      openWorldHint: options?.openWorld ?? false,
     },
   }, async (args, extra) => {
     if (!writeAllowed) return toolError()
-    const operationSummary = summary(args)
+    let operationSummary: string
+    let operationPreview: ReturnType<typeof buildWritePreview>
+    try {
+      const approval = options?.prepareApproval
+        ? await options.prepareApproval(args)
+        : { summary: summary(args), preview: buildWritePreview(name, args) }
+      operationSummary = approval.summary
+      operationPreview = approval.preview
+    } catch {
+      return toolError()
+    }
     if (!(await authorizeWrite(
       extra as unknown as ToolExtra,
       operationSummary,
@@ -249,7 +276,7 @@ function createServer(context: Context, scopes: string[]): McpServer {
         toolName: name,
         args,
         summary: operationSummary,
-        preview: buildWritePreview(name, args),
+        preview: operationPreview,
         signal: (extra as unknown as ToolExtra).signal,
       }),
     ))) {
@@ -330,7 +357,10 @@ function createServer(context: Context, scopes: string[]): McpServer {
   write('join_consortium_by_invite', 'Join using an invitation token.', { inviteToken: z.string() },
     () => 'Accept this invitation and join the consortium?',
     (args) => callResolver('Mutation', 'consortiumJoinByInvite', args, context),
-    { destructive: false })
+    {
+      destructive: false,
+      prepareApproval: ({ inviteToken }) => buildInviteWriteApproval(context.userId, inviteToken),
+    })
   write('leave_consortium', 'Leave a consortium.', { consortiumId: z.string() },
     (a) => `Leave consortium ${a.consortiumId} and remove your active/ready state?`,
     (args) => callResolver('Mutation', 'consortiumLeave', args, context))

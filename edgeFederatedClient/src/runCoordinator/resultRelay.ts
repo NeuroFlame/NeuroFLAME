@@ -69,10 +69,15 @@ const directoryFlags = (): number => {
 }
 
 const fileFlags = (): number => {
-  if (typeof fsConstants.O_NOFOLLOW !== 'number' || fsConstants.O_NOFOLLOW === 0) {
+  if (
+    typeof fsConstants.O_NOFOLLOW !== 'number' ||
+    fsConstants.O_NOFOLLOW === 0 ||
+    typeof fsConstants.O_NONBLOCK !== 'number' ||
+    fsConstants.O_NONBLOCK === 0
+  ) {
     throw new Error('Secure derivative result access is unsupported on this platform')
   }
-  return fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW
+  return fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK
 }
 
 const sameIdentity = (

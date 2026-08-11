@@ -54,9 +54,11 @@ Open **User Settings → Agent access (MCP)** in the desktop application.
    mutation creates a two-minute request containing a structured preview of
    every central value being changed and an exact-operation fingerprint. Long
    previews are explicitly truncated with their length and SHA-256 digest, with
-   the complete value available to expand before approval; invite tokens are
-   never displayed. Approve or deny it in NeuroFLAME; an MCP
-   client's own elicitation response cannot authorize the change.
+   the complete value available to expand before approval. Invitation approvals
+   identify the consortium and intended account, while raw invite tokens are
+   never displayed or persisted in the approval request. Approve or deny it in
+   NeuroFLAME; an MCP client's own elicitation response cannot authorize the
+   change.
 
 The settings page lists connected clients. A user can revoke one connection or
 disable MCP to revoke all connections. OAuth uses authorization code flow with

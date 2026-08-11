@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'crypto'
+import { win32 } from 'path'
 import { Router, json } from 'express'
 import Run from '../database/models/Run.js'
 import McpGrant from '../database/models/McpGrant.js'
@@ -120,8 +121,15 @@ const hasExactKeys = (value: Record<string, unknown>, keys: string[]): boolean =
   return actual.length === keys.length && actual.every((key, index) => key === [...keys].sort()[index])
 }
 
-const normalizeRelativePath = (value: string): string => {
-  if (!value || value.includes('\0') || value.startsWith('/') || value.startsWith('\\')) {
+export const normalizeRelativePath = (value: string): string => {
+  if (
+    !value ||
+    value.includes('\0') ||
+    value.startsWith('/') ||
+    value.startsWith('\\') ||
+    win32.isAbsolute(value) ||
+    /^[A-Za-z]:/.test(value)
+  ) {
     throw new Error('Invalid derivative result path')
   }
   const segments = value.split(/[\\/]+/)

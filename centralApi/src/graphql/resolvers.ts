@@ -41,6 +41,10 @@ import {
   setMcpEnabled,
   setMcpResultsEnabled,
 } from '../mcp/settings.js'
+import {
+  INVITE_EXPIRATION_MS,
+  validateConsortiumInviteForUser,
+} from '../invitations.js'
 
 interface Context {
   userId: string
@@ -70,7 +74,6 @@ const toObjectIdString = (value: unknown): string | null => {
 
 const resend = new Resend(RESEND_API_KEY)
 const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
-const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const mapAllowedComputations = (
@@ -2046,53 +2049,16 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      const invite = await Invite.findOne({ token: inviteToken })
-        .populate('leader', 'id username')
-        .populate('consortium', 'id members') as any
+      const validatedInvite = await validateConsortiumInviteForUser(inviteToken, userId)
 
-      if (!invite) {
-        throw new Error('Invalid invite link')
-      }
-
-      if (!invite.consortium || !invite.leader) {
-        throw new Error('Invite is missing consortium or leader information')
-      }
-
-      const consortiumId = invite.consortium._id?.toString?.() ?? invite.consortium.id
-      const isExistingMember = invite.consortium.members.some(
-        (memberId: { toString: () => string }) => memberId.toString() === userId,
-      )
-
-      if (isExistingMember) {
-        throw new Error('You\'re already a member of this consortium')
-      }
-
-      // Invite was sent to someone else.
-      const user = await User.findById(userId)
-      if (!user) {
-        throw new Error('User not found')
-      }
-
-      if (user.username !== invite.email) {
-        throw new Error('Invalid invite link')
-      }
-
-      const createdAtMs = new Date(invite.createdAt).getTime()
-      const isExpired = createdAtMs < Date.now() - INVITE_EXPIRATION_MS
-
-      // Invite is expired
-      if (isExpired) {
-        throw new Error('Invite is expired')
-      }
-
-      await Consortium.findByIdAndUpdate(consortiumId, {
+      await Consortium.findByIdAndUpdate(validatedInvite.consortiumId, {
         $addToSet: { members: userId, activeMembers: userId },
       })
 
-      await invite.deleteOne()
+      await validatedInvite.invite.deleteOne()
 
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId,
+        consortiumId: validatedInvite.consortiumId,
       })
 
       return true

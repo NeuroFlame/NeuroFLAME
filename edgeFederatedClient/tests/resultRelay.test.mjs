@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
 import fs, { mkdtemp, mkdir, realpath, rename, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it } from 'node:test'
+import { promisify } from 'node:util'
 import {
   htmlToInactiveText,
   isResultRelayRequestForUser,
@@ -10,6 +12,8 @@ import {
   serializeDerivativeResult,
   validateResultRoot,
 } from '../dist/runCoordinator/resultRelay.js'
+
+const execFileAsync = promisify(execFile)
 
 describe('MCP derivative result filesystem boundary', () => {
   it('resolves an ordinary file under the result root', async () => {
@@ -29,6 +33,29 @@ describe('MCP derivative result filesystem boundary', () => {
     await assert.rejects(resolveSafeEntry(root, '../outside.txt'))
     await assert.rejects(resolveSafeEntry(root, 'failed-container.log'))
     await assert.rejects(resolveSafeEntry(root, 'escape.txt'))
+  })
+
+  it('rejects a supported-extension FIFO promptly without a writer', {
+    skip: process.platform === 'win32',
+  }, async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'neuroflame-result-'))
+    await execFileAsync('mkfifo', [path.join(root, 'summary.txt')])
+    const moduleUrl = new URL('../dist/runCoordinator/resultRelay.js', import.meta.url).href
+    const probe = `
+      import { serializeDerivativeResult } from ${JSON.stringify(moduleUrl)};
+      try {
+        await serializeDerivativeResult(${JSON.stringify(root)}, {
+          operation: 'read', relativePath: 'summary.txt'
+        });
+      } catch (error) {
+        if (String(error).includes('not a regular file')) process.exit(0);
+        throw error;
+      }
+      throw new Error('FIFO was accepted as a derivative result');
+    `
+    await execFileAsync(process.execPath, ['--input-type=module', '--eval', probe], {
+      timeout: 2_000,
+    })
   })
 
   it('rejects intermediate and result-root symlinks', async () => {
