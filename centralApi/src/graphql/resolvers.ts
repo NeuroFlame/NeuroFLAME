@@ -2792,6 +2792,124 @@ export default {
 
       return true
     },
+    adminDeleteVaultServer: async (
+      _: unknown,
+      { serverId }: { serverId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const user = await User.findById(server.user).select('_id roles').exec()
+      if (user && user.roles.some((role) => role !== 'vault')) {
+        throw new Error('Cannot delete a vault server that uses a shared user account')
+      }
+
+      const hostedVaults = await HostedVault.find({ server: server._id })
+        .select('_id')
+        .lean()
+        .exec()
+      const hostedVaultIds = hostedVaults.map((vault) => vault._id)
+
+      const [consortia, runReference] = await Promise.all([
+        Consortium.find({
+          $or: [
+            { leader: server.user },
+            { members: server.user },
+            { activeMembers: server.user },
+            { readyMembers: server.user },
+            { vaultMembers: { $in: hostedVaultIds } },
+            { activeVaultMembers: { $in: hostedVaultIds } },
+            { readyVaultMembers: { $in: hostedVaultIds } },
+          ],
+        }).select('_id leader').lean().exec(),
+        Run.exists({
+          $or: [
+            { consortiumLeader: server.user },
+            { members: server.user },
+            { 'runErrors.user': server.user },
+            { vaultMembers: { $in: hostedVaultIds } },
+          ],
+        }),
+      ])
+
+      if ((server.status?.runningComputations.length ?? 0) > 0) {
+        throw new Error('Cannot delete a vault server with running computations')
+      }
+
+      if (runReference) {
+        throw new Error(
+          'Cannot delete a vault server referenced by run history',
+        )
+      }
+
+      if (consortia.some((consortium) => consortium.leader.toString() === server.user.toString())) {
+        throw new Error('Cannot delete a vault server whose service account leads a consortium')
+      }
+
+      if (consortia.length > 0) {
+        await Consortium.updateMany(
+          { _id: { $in: consortia.map((consortium) => consortium._id) } },
+          {
+            $pull: {
+              members: server.user,
+              activeMembers: server.user,
+              readyMembers: server.user,
+              vaultMembers: { $in: hostedVaultIds },
+              activeVaultMembers: { $in: hostedVaultIds },
+              readyVaultMembers: { $in: hostedVaultIds },
+            },
+          },
+        ).exec()
+
+        consortia.forEach((consortium) => {
+          pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+            consortiumId: consortium._id.toString(),
+          })
+        })
+      }
+
+      await Invite.deleteMany({ leader: server.user }).exec()
+
+      // Delete the account first so its existing token cannot recreate the server.
+      if (user) {
+        const userResult = await User.deleteOne({ _id: user._id }).exec()
+        if (userResult.deletedCount !== 1) {
+          throw new Error('Vault service account could not be deleted')
+        }
+      }
+
+      if (hostedVaultIds.length > 0) {
+        const hostedVaultResult = await HostedVault.deleteMany({
+          _id: { $in: hostedVaultIds },
+          server: server._id,
+        }).exec()
+        if (hostedVaultResult.deletedCount !== hostedVaultIds.length) {
+          throw new Error('Hosted vaults could not be deleted')
+        }
+      }
+
+      const serverResult = await VaultServer.deleteOne({ _id: server._id }).exec()
+      if (serverResult.deletedCount !== 1) {
+        throw new Error('Vault server could not be deleted')
+      }
+
+      return true
+    },
     adminSetHostedVaultAllowedComputations: async (
       _: unknown,
       {

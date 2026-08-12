@@ -546,6 +546,7 @@ interface VaultServerRowProps {
     serverId: string,
     input: { name: string; description: string },
   ) => Promise<void>
+  onDeleteVaultServer: (serverId: string) => Promise<void>
   onUpdateHostedVault: (
     vaultId: string,
     input: { name: string; description: string },
@@ -566,6 +567,7 @@ function VaultServerRow({
   server,
   onCreateHostedVault,
   onUpdateVaultServer,
+  onDeleteVaultServer,
   onUpdateHostedVault,
   onDeleteHostedVault,
   onSaveAllowedComputations,
@@ -577,6 +579,7 @@ function VaultServerRow({
   const [editingServer, setEditingServer] = useState(false)
   const [serverName, setServerName] = useState(server.name)
   const [serverDescription, setServerDescription] = useState(server.description)
+  const [confirmingServerDelete, setConfirmingServerDelete] = useState(false)
 
   const status = server.status
   const online = status ? isOnline(status.lastHeartbeat) : false
@@ -687,13 +690,24 @@ function VaultServerRow({
                     Server
                   </Typography>
                   {!editingServer && (
-                    <Button
-                      size='small'
-                      variant='outlined'
-                      onClick={() => setEditingServer(true)}
-                    >
-                      Edit Server
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size='small'
+                        variant='outlined'
+                        onClick={() => setEditingServer(true)}
+                      >
+                        Edit Server
+                      </Button>
+                      <Button
+                        size='small'
+                        variant='outlined'
+                        color='error'
+                        startIcon={<DeleteOutlineIcon />}
+                        onClick={() => setConfirmingServerDelete(true)}
+                      >
+                        Delete Server
+                      </Button>
+                    </Box>
                   )}
                 </Box>
                 {editingServer ? (
@@ -755,6 +769,43 @@ function VaultServerRow({
                     {server.description || 'No description'}
                   </Typography>
                 )}
+                <Dialog
+                  open={confirmingServerDelete}
+                  onClose={() => !isSavingServer && setConfirmingServerDelete(false)}
+                >
+                  <DialogTitle>Delete entire vault server?</DialogTitle>
+                  <DialogContent>
+                    <DialogContentText>
+                      This permanently deletes “{server.name}”, its service
+                      account, and {server.vaults.length} hosted vault
+                      {server.vaults.length === 1 ? '' : 's'}. Existing access
+                      tokens will stop working. Deletion is blocked if the
+                      account or any hosted vault is referenced by run history.
+                      Current consortium memberships are removed automatically.
+                    </DialogContentText>
+                    {saveError && (
+                      <Alert severity='error' sx={{ mt: 2 }}>
+                        {saveError}
+                      </Alert>
+                    )}
+                  </DialogContent>
+                  <DialogActions>
+                    <Button
+                      disabled={isSavingServer}
+                      onClick={() => setConfirmingServerDelete(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      color='error'
+                      variant='contained'
+                      disabled={isSavingServer}
+                      onClick={() => onDeleteVaultServer(server.id)}
+                    >
+                      {isSavingServer ? 'Deleting...' : 'Delete Entire Server'}
+                    </Button>
+                  </DialogActions>
+                </Dialog>
               </Box>
 
               <Box>
@@ -958,6 +1009,7 @@ export default function VaultStatus() {
     adminCreateVaultUser,
     adminCreateHostedVault,
     adminDeleteHostedVault,
+    adminDeleteVaultServer,
     adminSetHostedVaultAllowedComputations,
     adminUpdateHostedVault,
     adminUpdateVaultServer,
@@ -1128,6 +1180,24 @@ export default function VaultStatus() {
     [adminUpdateVaultServer, loadVaults],
   )
 
+  const handleDeleteVaultServer = useCallback(
+    async (serverId: string) => {
+      try {
+        setSavingServerId(serverId)
+        setSaveError(null)
+        await adminDeleteVaultServer({ serverId })
+        await loadVaults()
+      } catch (err) {
+        setSaveError(
+          err instanceof Error ? err.message : 'Failed to delete vault server',
+        )
+      } finally {
+        setSavingServerId(null)
+      }
+    },
+    [adminDeleteVaultServer, loadVaults],
+  )
+
   const handleCreateVaultUser = useCallback(
     async ({ username, password }: { username: string; password: string }) => {
       try {
@@ -1247,6 +1317,7 @@ export default function VaultStatus() {
                   allComputations={computations}
                   creatingServerId={creatingServerId}
                   onDeleteHostedVault={handleDeleteHostedVault}
+                  onDeleteVaultServer={handleDeleteVaultServer}
                   onCreateHostedVault={handleCreateHostedVault}
                   onUpdateHostedVault={handleUpdateHostedVault}
                   onUpdateVaultServer={handleUpdateVaultServer}
