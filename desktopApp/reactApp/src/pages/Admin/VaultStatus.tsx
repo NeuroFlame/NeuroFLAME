@@ -9,6 +9,11 @@ import {
   Chip,
   CircularProgress,
   Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   IconButton,
@@ -32,6 +37,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
   ComputationListItem,
@@ -258,6 +264,7 @@ interface HostedVaultCardProps {
     vaultId: string,
     input: { name: string; description: string },
   ) => Promise<void>
+  onDeleteHostedVault: (vaultId: string) => Promise<void>
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
@@ -270,6 +277,7 @@ function HostedVaultCard({
   saveError,
   savingVaultId,
   onUpdateHostedVault,
+  onDeleteHostedVault,
   onSaveAllowedComputations,
 }: HostedVaultCardProps) {
   const [selectedComputationIds, setSelectedComputationIds] = useState<string[]>(
@@ -278,6 +286,7 @@ function HostedVaultCard({
   const [editingDetails, setEditingDetails] = useState(false)
   const [editName, setEditName] = useState(hostedVault.name)
   const [editDescription, setEditDescription] = useState(hostedVault.description)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   useEffect(() => {
     setSelectedComputationIds(
@@ -363,13 +372,25 @@ function HostedVaultCard({
             variant="outlined"
           />
           {!editingDetails && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setEditingDetails(true)}
-            >
-              Edit Details
-            </Button>
+            <>
+              <Button
+                variant='outlined'
+                size='small'
+                onClick={() => setEditingDetails(true)}
+              >
+                Edit Details
+              </Button>
+              <Button
+                variant='outlined'
+                color='error'
+                size='small'
+                startIcon={<DeleteOutlineIcon />}
+                disabled={isSaving}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete
+              </Button>
+            </>
           )}
         </Box>
       </Box>
@@ -472,6 +493,40 @@ function HostedVaultCard({
           Reset
         </Button>
       </Box>
+
+      <Dialog
+        open={confirmingDelete}
+        onClose={() => !isSaving && setConfirmingDelete(false)}
+      >
+        <DialogTitle>Delete hosted vault?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This permanently deletes “{hostedVault.name}”. A vault that belongs
+            to a consortium or is referenced by run history cannot be deleted.
+          </DialogContentText>
+          {saveError && (
+            <Alert severity='error' sx={{ mt: 2 }}>
+              {saveError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            disabled={isSaving}
+            onClick={() => setConfirmingDelete(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            color='error'
+            variant='contained'
+            disabled={isSaving}
+            onClick={() => onDeleteHostedVault(hostedVault.id)}
+          >
+            {isSaving ? 'Deleting...' : 'Delete Vault'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   )
 }
@@ -490,6 +545,7 @@ interface VaultServerRowProps {
     vaultId: string,
     input: { name: string; description: string },
   ) => Promise<void>
+  onDeleteHostedVault: (vaultId: string) => Promise<void>
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
@@ -504,6 +560,7 @@ function VaultServerRow({
   server,
   onCreateHostedVault,
   onUpdateHostedVault,
+  onDeleteHostedVault,
   onSaveAllowedComputations,
 }: VaultServerRowProps) {
   const [expanded, setExpanded] = useState(false)
@@ -692,6 +749,7 @@ function VaultServerRow({
                         key={hostedVault.id}
                         allComputations={allComputations}
                         hostedVault={hostedVault}
+                        onDeleteHostedVault={onDeleteHostedVault}
                         onUpdateHostedVault={onUpdateHostedVault}
                         onSaveAllowedComputations={onSaveAllowedComputations}
                         saveError={savingVaultId === hostedVault.id ? saveError : null}
@@ -814,6 +872,7 @@ export default function VaultStatus() {
   const {
     adminCreateVaultUser,
     adminCreateHostedVault,
+    adminDeleteHostedVault,
     adminSetHostedVaultAllowedComputations,
     adminUpdateHostedVault,
     getComputationList,
@@ -940,6 +999,26 @@ export default function VaultStatus() {
     [adminUpdateHostedVault, loadVaults],
   )
 
+  const handleDeleteHostedVault = useCallback(
+    async (vaultId: string) => {
+      try {
+        setSavingVaultId(vaultId)
+        setSaveError(null)
+        await adminDeleteHostedVault({ vaultId })
+        await loadVaults()
+      } catch (err) {
+        setSaveError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to delete hosted vault',
+        )
+      } finally {
+        setSavingVaultId(null)
+      }
+    },
+    [adminDeleteHostedVault, loadVaults],
+  )
+
   const handleCreateVaultUser = useCallback(
     async ({ username, password }: { username: string; password: string }) => {
       try {
@@ -1058,6 +1137,7 @@ export default function VaultStatus() {
                   key={server.id}
                   allComputations={computations}
                   creatingServerId={creatingServerId}
+                  onDeleteHostedVault={handleDeleteHostedVault}
                   onCreateHostedVault={handleCreateHostedVault}
                   onUpdateHostedVault={handleUpdateHostedVault}
                   onSaveAllowedComputations={handleSaveAllowedComputations}

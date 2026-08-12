@@ -120,6 +120,7 @@ export type Mutation = {
   adminChangeUserRoles: Scalars['Boolean']['output'];
   adminCreateHostedVault: Scalars['String']['output'];
   adminCreateVaultUser: LoginOutput;
+  adminDeleteHostedVault: Scalars['Boolean']['output'];
   adminSetHostedVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultDatasetMappings: Scalars['Boolean']['output'];
@@ -182,6 +183,11 @@ export type MutationAdminCreateHostedVaultArgs = {
 export type MutationAdminCreateVaultUserArgs = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+};
+
+
+export type MutationAdminDeleteHostedVaultArgs = {
+  vaultId: Scalars['String']['input'];
 };
 
 
