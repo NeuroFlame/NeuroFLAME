@@ -2703,6 +2703,95 @@ export default {
 
       return true
     },
+    adminDeleteHostedVault: async (
+      _: unknown,
+      { vaultId }: { vaultId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(vaultId)) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId).select('_id').exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const [consortiumReference, runReference] = await Promise.all([
+        Consortium.exists({
+          $or: [
+            { vaultMembers: hostedVault._id },
+            { activeVaultMembers: hostedVault._id },
+            { readyVaultMembers: hostedVault._id },
+          ],
+        }),
+        Run.exists({ vaultMembers: hostedVault._id }),
+      ])
+
+      if (consortiumReference) {
+        throw new Error(
+          'Cannot delete a hosted vault while it belongs to a consortium',
+        )
+      }
+
+      if (runReference) {
+        throw new Error(
+          'Cannot delete a hosted vault referenced by run history',
+        )
+      }
+
+      const result = await HostedVault.deleteOne({ _id: hostedVault._id }).exec()
+      if (result.deletedCount !== 1) {
+        throw new Error('Hosted vault not found')
+      }
+
+      return true
+    },
+    adminUpdateVaultServer: async (
+      _: unknown,
+      {
+        serverId,
+        name,
+        description,
+      }: { serverId: string; name: string; description: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const normalizedName = name.trim()
+      if (normalizedName.length === 0) {
+        throw new Error('Vault server name is required')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      server.name = normalizedName
+      server.description = description.trim()
+      await server.save()
+
+      return true
+    },
     adminSetHostedVaultAllowedComputations: async (
       _: unknown,
       {

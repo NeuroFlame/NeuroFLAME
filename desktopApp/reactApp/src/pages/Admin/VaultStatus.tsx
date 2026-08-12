@@ -9,6 +9,11 @@ import {
   Chip,
   CircularProgress,
   Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   IconButton,
@@ -32,6 +37,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
   ComputationListItem,
@@ -258,6 +264,7 @@ interface HostedVaultCardProps {
     vaultId: string,
     input: { name: string; description: string },
   ) => Promise<void>
+  onDeleteHostedVault: (vaultId: string) => Promise<void>
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
@@ -270,6 +277,7 @@ function HostedVaultCard({
   saveError,
   savingVaultId,
   onUpdateHostedVault,
+  onDeleteHostedVault,
   onSaveAllowedComputations,
 }: HostedVaultCardProps) {
   const [selectedComputationIds, setSelectedComputationIds] = useState<string[]>(
@@ -278,6 +286,7 @@ function HostedVaultCard({
   const [editingDetails, setEditingDetails] = useState(false)
   const [editName, setEditName] = useState(hostedVault.name)
   const [editDescription, setEditDescription] = useState(hostedVault.description)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   useEffect(() => {
     setSelectedComputationIds(
@@ -363,13 +372,25 @@ function HostedVaultCard({
             variant="outlined"
           />
           {!editingDetails && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setEditingDetails(true)}
-            >
-              Edit Details
-            </Button>
+            <>
+              <Button
+                variant='outlined'
+                size='small'
+                onClick={() => setEditingDetails(true)}
+              >
+                Edit Details
+              </Button>
+              <Button
+                variant='outlined'
+                color='error'
+                size='small'
+                startIcon={<DeleteOutlineIcon />}
+                disabled={isSaving}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete
+              </Button>
+            </>
           )}
         </Box>
       </Box>
@@ -472,6 +493,40 @@ function HostedVaultCard({
           Reset
         </Button>
       </Box>
+
+      <Dialog
+        open={confirmingDelete}
+        onClose={() => !isSaving && setConfirmingDelete(false)}
+      >
+        <DialogTitle>Delete hosted vault?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This permanently deletes “{hostedVault.name}”. A vault that belongs
+            to a consortium or is referenced by run history cannot be deleted.
+          </DialogContentText>
+          {saveError && (
+            <Alert severity='error' sx={{ mt: 2 }}>
+              {saveError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            disabled={isSaving}
+            onClick={() => setConfirmingDelete(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            color='error'
+            variant='contained'
+            disabled={isSaving}
+            onClick={() => onDeleteHostedVault(hostedVault.id)}
+          >
+            {isSaving ? 'Deleting...' : 'Delete Vault'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   )
 }
@@ -481,15 +536,21 @@ interface VaultServerRowProps {
   creatingServerId: string | null
   saveError: string | null
   savingVaultId: string | null
+  savingServerId: string | null
   server: VaultServer
   onCreateHostedVault: (
     serverId: string,
     input: { datasetKey: string; name: string; description: string },
   ) => Promise<void>
+  onUpdateVaultServer: (
+    serverId: string,
+    input: { name: string; description: string },
+  ) => Promise<void>
   onUpdateHostedVault: (
     vaultId: string,
     input: { name: string; description: string },
   ) => Promise<void>
+  onDeleteHostedVault: (vaultId: string) => Promise<void>
   onSaveAllowedComputations: (
     vaultId: string,
     computationIds: string[],
@@ -501,15 +562,21 @@ function VaultServerRow({
   creatingServerId,
   saveError,
   savingVaultId,
+  savingServerId,
   server,
   onCreateHostedVault,
+  onUpdateVaultServer,
   onUpdateHostedVault,
+  onDeleteHostedVault,
   onSaveAllowedComputations,
 }: VaultServerRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [newVaultDatasetKey, setNewVaultDatasetKey] = useState('')
   const [newVaultName, setNewVaultName] = useState('')
   const [newVaultDescription, setNewVaultDescription] = useState('')
+  const [editingServer, setEditingServer] = useState(false)
+  const [serverName, setServerName] = useState(server.name)
+  const [serverDescription, setServerDescription] = useState(server.description)
 
   const status = server.status
   const online = status ? isOnline(status.lastHeartbeat) : false
@@ -523,6 +590,12 @@ function VaultServerRow({
     (dataset) => !assignedDatasetKeys.has(dataset.key),
   )
   const isCreating = creatingServerId === server.id
+  const isSavingServer = savingServerId === server.id
+
+  useEffect(() => {
+    setServerName(server.name)
+    setServerDescription(server.description)
+  }, [server.description, server.name])
 
   useEffect(() => {
     if (unassignedDatasets.length === 0) {
@@ -609,10 +682,79 @@ function VaultServerRow({
           <Collapse in={expanded} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 2, display: 'grid', gap: 2 }}>
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Server
-                </Typography>
-                <Typography variant="body2">{server.description || 'No description'}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                  <Typography variant='subtitle2' gutterBottom>
+                    Server
+                  </Typography>
+                  {!editingServer && (
+                    <Button
+                      size='small'
+                      variant='outlined'
+                      onClick={() => setEditingServer(true)}
+                    >
+                      Edit Server
+                    </Button>
+                  )}
+                </Box>
+                {editingServer ? (
+                  <Box sx={{ display: 'grid', gap: 1.25 }}>
+                    <TextField
+                      size='small'
+                      label='Server Display Name'
+                      value={serverName}
+                      disabled={isSavingServer}
+                      onChange={(event) => setServerName(event.target.value)}
+                      helperText={`Login username remains ${server.username}`}
+                    />
+                    <TextField
+                      multiline
+                      minRows={3}
+                      size='small'
+                      label='Server Description'
+                      value={serverDescription}
+                      disabled={isSavingServer}
+                      onChange={(event) => setServerDescription(event.target.value)}
+                    />
+                    {saveError && (
+                      <Alert severity='error'>{saveError}</Alert>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size='small'
+                        variant='contained'
+                        disabled={isSavingServer || serverName.trim().length === 0}
+                        onClick={async () => {
+                          try {
+                            await onUpdateVaultServer(server.id, {
+                              name: serverName,
+                              description: serverDescription,
+                            })
+                            setEditingServer(false)
+                          } catch {
+                            // Keep the editor open so the admin can retry.
+                          }
+                        }}
+                      >
+                        {isSavingServer ? 'Saving...' : 'Save Server'}
+                      </Button>
+                      <Button
+                        size='small'
+                        disabled={isSavingServer}
+                        onClick={() => {
+                          setServerName(server.name)
+                          setServerDescription(server.description)
+                          setEditingServer(false)
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant='body2'>
+                    {server.description || 'No description'}
+                  </Typography>
+                )}
               </Box>
 
               <Box>
@@ -692,6 +834,7 @@ function VaultServerRow({
                         key={hostedVault.id}
                         allComputations={allComputations}
                         hostedVault={hostedVault}
+                        onDeleteHostedVault={onDeleteHostedVault}
                         onUpdateHostedVault={onUpdateHostedVault}
                         onSaveAllowedComputations={onSaveAllowedComputations}
                         saveError={savingVaultId === hostedVault.id ? saveError : null}
@@ -814,8 +957,10 @@ export default function VaultStatus() {
   const {
     adminCreateVaultUser,
     adminCreateHostedVault,
+    adminDeleteHostedVault,
     adminSetHostedVaultAllowedComputations,
     adminUpdateHostedVault,
+    adminUpdateVaultServer,
     getComputationList,
     getVaultServerList,
   } = useCentralApi()
@@ -825,6 +970,7 @@ export default function VaultStatus() {
   const [error, setError] = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [savingVaultId, setSavingVaultId] = useState<string | null>(null)
+  const [savingServerId, setSavingServerId] = useState<string | null>(null)
   const [creatingServerId, setCreatingServerId] = useState<string | null>(null)
   const [creatingVaultUser, setCreatingVaultUser] = useState(false)
   const [createdVaultUser, setCreatedVaultUser] = useState<LoginOutput | null>(null)
@@ -938,6 +1084,48 @@ export default function VaultStatus() {
       }
     },
     [adminUpdateHostedVault, loadVaults],
+  )
+
+  const handleDeleteHostedVault = useCallback(
+    async (vaultId: string) => {
+      try {
+        setSavingVaultId(vaultId)
+        setSaveError(null)
+        await adminDeleteHostedVault({ vaultId })
+        await loadVaults()
+      } catch (err) {
+        setSaveError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to delete hosted vault',
+        )
+      } finally {
+        setSavingVaultId(null)
+      }
+    },
+    [adminDeleteHostedVault, loadVaults],
+  )
+
+  const handleUpdateVaultServer = useCallback(
+    async (
+      serverId: string,
+      { name, description }: { name: string; description: string },
+    ) => {
+      try {
+        setSavingServerId(serverId)
+        setSaveError(null)
+        await adminUpdateVaultServer({ serverId, name, description })
+        await loadVaults()
+      } catch (err) {
+        setSaveError(
+          err instanceof Error ? err.message : 'Failed to update vault server',
+        )
+        throw err
+      } finally {
+        setSavingServerId(null)
+      }
+    },
+    [adminUpdateVaultServer, loadVaults],
   )
 
   const handleCreateVaultUser = useCallback(
@@ -1058,10 +1246,13 @@ export default function VaultStatus() {
                   key={server.id}
                   allComputations={computations}
                   creatingServerId={creatingServerId}
+                  onDeleteHostedVault={handleDeleteHostedVault}
                   onCreateHostedVault={handleCreateHostedVault}
                   onUpdateHostedVault={handleUpdateHostedVault}
+                  onUpdateVaultServer={handleUpdateVaultServer}
                   onSaveAllowedComputations={handleSaveAllowedComputations}
                   saveError={saveError}
+                  savingServerId={savingServerId}
                   savingVaultId={savingVaultId}
                   server={server}
                 />
