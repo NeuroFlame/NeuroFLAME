@@ -1,6 +1,6 @@
 {
   "name": "neuroflame",
-  "version": "0.8.0",
+  "version": "1.0.0",
   "description": "desktop app",
   "main": "build/main.js",
   "type": "module",
@@ -24,7 +24,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "edge-federated-client": "1.7.0",
+    "edge-federated-client": "1.8.0",
     "electron-updater": "6.6.2",
     "node-pty": "^1.0.0",
     "winston": "^3.13.1",
