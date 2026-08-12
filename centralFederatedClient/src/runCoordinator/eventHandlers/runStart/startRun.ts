@@ -1,10 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import { provisionRun } from './provisionRun/provisionRun.js'
-import {
-  releasePortReservation,
-  reservePort,
-} from './portManagement.js'
+import { reservePort } from './portManagement.js'
 import {
   launchNode,
   resolveDockerComputationImage,
@@ -70,10 +67,13 @@ export default async function startRun({
     // NVFlare 2.8 uses one externally routed server port for this computation API.
     const {
       port: reservedFedLearnPort,
-      server: fedLearnServer,
-    } = await reservePort(hostingPortRange)
+      release,
+    } = await reservePort({
+      ...hostingPortRange,
+      imageName: resolvedImage.reference,
+    })
     const fedLearnPort = reservedFedLearnPort
-    releaseFedLearnPort = () => releasePortReservation(fedLearnServer)
+    releaseFedLearnPort = release
 
     // Provision the run
     logger.info(`Provisioning run ${runId}`)
@@ -112,7 +112,7 @@ export default async function startRun({
           containerDirectory: '/workspace/output/',
         },
       ],
-    portBindings: [{ hostPort: fedLearnPort, containerPort: fedLearnPort }],
+      portBindings: [{ hostPort: fedLearnPort, containerPort: fedLearnPort }],
       commandsToRun: ['python', '/workspace/system/entry_central.py'],
       failureLogPath: path.join(pathRun, 'central-failed-container.log'),
       onContainerExitSuccess: () => reportRunComplete({ runId }),
