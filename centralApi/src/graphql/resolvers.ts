@@ -2755,6 +2755,43 @@ export default {
 
       return true
     },
+    adminUpdateVaultServer: async (
+      _: unknown,
+      {
+        serverId,
+        name,
+        description,
+      }: { serverId: string; name: string; description: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const normalizedName = name.trim()
+      if (normalizedName.length === 0) {
+        throw new Error('Vault server name is required')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      server.name = normalizedName
+      server.description = description.trim()
+      await server.save()
+
+      return true
+    },
     adminSetHostedVaultAllowedComputations: async (
       _: unknown,
       {

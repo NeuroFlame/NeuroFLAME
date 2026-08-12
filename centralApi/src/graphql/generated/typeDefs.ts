@@ -332,6 +332,11 @@ type Mutation {
     description: String!
   ): Boolean!
   adminDeleteHostedVault(vaultId: String!): Boolean!
+  adminUpdateVaultServer(
+    serverId: String!
+    name: String!
+    description: String!
+  ): Boolean!
   adminSetHostedVaultAllowedComputations(
     vaultId: String!
     computationIds: [String!]!

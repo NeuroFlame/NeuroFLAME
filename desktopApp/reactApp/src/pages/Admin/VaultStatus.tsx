@@ -536,10 +536,15 @@ interface VaultServerRowProps {
   creatingServerId: string | null
   saveError: string | null
   savingVaultId: string | null
+  savingServerId: string | null
   server: VaultServer
   onCreateHostedVault: (
     serverId: string,
     input: { datasetKey: string; name: string; description: string },
+  ) => Promise<void>
+  onUpdateVaultServer: (
+    serverId: string,
+    input: { name: string; description: string },
   ) => Promise<void>
   onUpdateHostedVault: (
     vaultId: string,
@@ -557,8 +562,10 @@ function VaultServerRow({
   creatingServerId,
   saveError,
   savingVaultId,
+  savingServerId,
   server,
   onCreateHostedVault,
+  onUpdateVaultServer,
   onUpdateHostedVault,
   onDeleteHostedVault,
   onSaveAllowedComputations,
@@ -567,6 +574,9 @@ function VaultServerRow({
   const [newVaultDatasetKey, setNewVaultDatasetKey] = useState('')
   const [newVaultName, setNewVaultName] = useState('')
   const [newVaultDescription, setNewVaultDescription] = useState('')
+  const [editingServer, setEditingServer] = useState(false)
+  const [serverName, setServerName] = useState(server.name)
+  const [serverDescription, setServerDescription] = useState(server.description)
 
   const status = server.status
   const online = status ? isOnline(status.lastHeartbeat) : false
@@ -580,6 +590,12 @@ function VaultServerRow({
     (dataset) => !assignedDatasetKeys.has(dataset.key),
   )
   const isCreating = creatingServerId === server.id
+  const isSavingServer = savingServerId === server.id
+
+  useEffect(() => {
+    setServerName(server.name)
+    setServerDescription(server.description)
+  }, [server.description, server.name])
 
   useEffect(() => {
     if (unassignedDatasets.length === 0) {
@@ -666,10 +682,79 @@ function VaultServerRow({
           <Collapse in={expanded} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 2, display: 'grid', gap: 2 }}>
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Server
-                </Typography>
-                <Typography variant="body2">{server.description || 'No description'}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                  <Typography variant='subtitle2' gutterBottom>
+                    Server
+                  </Typography>
+                  {!editingServer && (
+                    <Button
+                      size='small'
+                      variant='outlined'
+                      onClick={() => setEditingServer(true)}
+                    >
+                      Edit Server
+                    </Button>
+                  )}
+                </Box>
+                {editingServer ? (
+                  <Box sx={{ display: 'grid', gap: 1.25 }}>
+                    <TextField
+                      size='small'
+                      label='Server Display Name'
+                      value={serverName}
+                      disabled={isSavingServer}
+                      onChange={(event) => setServerName(event.target.value)}
+                      helperText={`Login username remains ${server.username}`}
+                    />
+                    <TextField
+                      multiline
+                      minRows={3}
+                      size='small'
+                      label='Server Description'
+                      value={serverDescription}
+                      disabled={isSavingServer}
+                      onChange={(event) => setServerDescription(event.target.value)}
+                    />
+                    {saveError && (
+                      <Alert severity='error'>{saveError}</Alert>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size='small'
+                        variant='contained'
+                        disabled={isSavingServer || serverName.trim().length === 0}
+                        onClick={async () => {
+                          try {
+                            await onUpdateVaultServer(server.id, {
+                              name: serverName,
+                              description: serverDescription,
+                            })
+                            setEditingServer(false)
+                          } catch {
+                            // Keep the editor open so the admin can retry.
+                          }
+                        }}
+                      >
+                        {isSavingServer ? 'Saving...' : 'Save Server'}
+                      </Button>
+                      <Button
+                        size='small'
+                        disabled={isSavingServer}
+                        onClick={() => {
+                          setServerName(server.name)
+                          setServerDescription(server.description)
+                          setEditingServer(false)
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant='body2'>
+                    {server.description || 'No description'}
+                  </Typography>
+                )}
               </Box>
 
               <Box>
@@ -875,6 +960,7 @@ export default function VaultStatus() {
     adminDeleteHostedVault,
     adminSetHostedVaultAllowedComputations,
     adminUpdateHostedVault,
+    adminUpdateVaultServer,
     getComputationList,
     getVaultServerList,
   } = useCentralApi()
@@ -884,6 +970,7 @@ export default function VaultStatus() {
   const [error, setError] = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [savingVaultId, setSavingVaultId] = useState<string | null>(null)
+  const [savingServerId, setSavingServerId] = useState<string | null>(null)
   const [creatingServerId, setCreatingServerId] = useState<string | null>(null)
   const [creatingVaultUser, setCreatingVaultUser] = useState(false)
   const [createdVaultUser, setCreatedVaultUser] = useState<LoginOutput | null>(null)
@@ -1019,6 +1106,28 @@ export default function VaultStatus() {
     [adminDeleteHostedVault, loadVaults],
   )
 
+  const handleUpdateVaultServer = useCallback(
+    async (
+      serverId: string,
+      { name, description }: { name: string; description: string },
+    ) => {
+      try {
+        setSavingServerId(serverId)
+        setSaveError(null)
+        await adminUpdateVaultServer({ serverId, name, description })
+        await loadVaults()
+      } catch (err) {
+        setSaveError(
+          err instanceof Error ? err.message : 'Failed to update vault server',
+        )
+        throw err
+      } finally {
+        setSavingServerId(null)
+      }
+    },
+    [adminUpdateVaultServer, loadVaults],
+  )
+
   const handleCreateVaultUser = useCallback(
     async ({ username, password }: { username: string; password: string }) => {
       try {
@@ -1140,8 +1249,10 @@ export default function VaultStatus() {
                   onDeleteHostedVault={handleDeleteHostedVault}
                   onCreateHostedVault={handleCreateHostedVault}
                   onUpdateHostedVault={handleUpdateHostedVault}
+                  onUpdateVaultServer={handleUpdateVaultServer}
                   onSaveAllowedComputations={handleSaveAllowedComputations}
                   saveError={saveError}
+                  savingServerId={savingServerId}
                   savingVaultId={savingVaultId}
                   server={server}
                 />

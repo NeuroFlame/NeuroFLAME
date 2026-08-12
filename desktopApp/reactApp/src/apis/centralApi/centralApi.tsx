@@ -27,6 +27,7 @@ import { adminSetHostedVaultAllowedComputations } from './adminSetHostedVaultAll
 import { adminSetVaultAllowedComputations } from './adminSetVaultAllowedComputations'
 import { adminSetVaultDatasetMappings } from './adminSetVaultDatasetMappings'
 import { adminUpdateHostedVault } from './adminUpdateHostedVault'
+import { adminUpdateVaultServer } from './adminUpdateVaultServer'
 import { computationCreate } from './computationCreate'
 import { computationEdit } from './computationEdit'
 import { consortiumCreate } from './consortiumCreate'
@@ -53,6 +54,7 @@ import {
   MutationAdminSetVaultAllowedComputationsArgs,
   MutationAdminSetVaultDatasetMappingsArgs,
   MutationAdminUpdateHostedVaultArgs,
+  MutationAdminUpdateVaultServerArgs,
   MutationComputationCreateArgs,
   MutationComputationEditArgs,
   MutationConsortiumCreateArgs,
@@ -141,6 +143,8 @@ export const useCentralApi = () => {
       adminDeleteHostedVault(centralApiApolloClient, input),
     adminUpdateHostedVault: (input: MutationAdminUpdateHostedVaultArgs) =>
       adminUpdateHostedVault(centralApiApolloClient, input),
+    adminUpdateVaultServer: (input: MutationAdminUpdateVaultServerArgs) =>
+      adminUpdateVaultServer(centralApiApolloClient, input),
     adminSetHostedVaultAllowedComputations: (
       input: MutationAdminSetHostedVaultAllowedComputationsArgs,
     ) => adminSetHostedVaultAllowedComputations(centralApiApolloClient, input),
