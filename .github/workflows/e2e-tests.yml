@@ -46,6 +46,12 @@ jobs:
           docker inspect "$c" >> docker_inspect/$c.json 2>&1
           done
 
+      - name: Make test artifacts readable by the runner
+        if: always()
+        run: |
+          # Run data remains owner-only; transfer ownership after the containers stop.
+          sudo chown -R "$(id -u):$(id -g)" _devTestDirectories
+
       - name: Upload test artifacts
         if: always() # ensures it runs even if tests fail
         uses: actions/upload-artifact@v4
