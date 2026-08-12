@@ -5,6 +5,7 @@ import * as path from 'path'
 import { logger } from '../../logger.js'
 import { VAULT_BASE_DIR } from '../../config.js'
 import { extractSharedError } from './sharedError.js'
+import { dockerContainerUser } from './dockerContainerUser.js'
 const docker = new Docker()
 
 const MAX_FAILURE_LOG_BYTES = 1024 * 1024
@@ -130,6 +131,12 @@ const launchDockerNode = async ({
     const container = await docker.createContainer({
       Image: imageName,
       Cmd: commandsToRun,
+      // Match the owner of private run-kit/result mounts without restoring capabilities.
+      User: dockerContainerUser(
+        process.platform,
+        typeof process.getuid === 'function' ? process.getuid() : undefined,
+        typeof process.getgid === 'function' ? process.getgid() : undefined,
+      ),
       ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: binds,
