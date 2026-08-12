@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('ElectronAPI', {
   getConfig: async () => ipcRenderer.invoke('getConfig'),
+  getCompatibilityStatus: async () => ipcRenderer.invoke('getCompatibilityStatus'),
+  openLatestRelease: async () => ipcRenderer.invoke('openLatestRelease'),
   openConfig: async () => ipcRenderer.invoke('openConfig'),
   applyDefaultConfig: async () => ipcRenderer.invoke('applyDefaultConfig'),
   saveConfig: async (config) => ipcRenderer.invoke('saveConfig', config),

@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { useUserState } from '../../contexts/UserStateContext'
+import {
+  getLocalComputationError,
+  LocalComputationError,
+} from '../../apis/edgeApi/getLocalComputationError'
 
 export interface FileInfo {
   name: string;
@@ -21,6 +25,8 @@ export function useRunResults() {
   const [fileList, setFileList] = useState<FileInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [localComputationError, setLocalComputationError] =
+    useState<LocalComputationError | null>(null)
   const [frameSrc, setFrameSrc] = useState<string | null>(null)
   const [indexSrc, setIndexSrc] = useState<string | null>(null)
   const [
@@ -84,7 +90,23 @@ export function useRunResults() {
     const fetchResultsFilesList = async () => {
       try {
         const basePath = `${consortiumId}/${runId}/${userId}`
-        const files = await fetchRecursive(basePath)
+        const [files, localError] = await Promise.all([
+          fetchRecursive(basePath),
+          getLocalComputationError({
+            edgeClientRunResultsUrl,
+            consortiumId,
+            runId,
+            participantId: userId,
+          }).catch((localErrorFetchFailure) => {
+            console.warn(
+              'Failed to fetch the local computation error',
+              localErrorFetchFailure,
+            )
+            return null
+          }),
+        ])
+
+        setLocalComputationError(localError)
 
         const indexFile = files.find((file) =>
           file.name === 'index.html' && file.url.endsWith('/index.html'),
@@ -130,6 +152,7 @@ export function useRunResults() {
     fileList,
     loading,
     error,
+    localComputationError,
     frameSrc,
     setFrameSrc,
     indexSrc,

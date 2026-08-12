@@ -14,6 +14,7 @@ type UnzipFileParams = {
 }
 
 async function setPermissions(dir: string, mode: number): Promise<void> {
+  await chmod(dir, mode)
   const files = await readdir(dir)
 
   for (const file of files) {
@@ -23,7 +24,7 @@ async function setPermissions(dir: string, mode: number): Promise<void> {
     if (fileStat.isDirectory()) {
       await setPermissions(filePath, mode)
     } else {
-      await chmod(filePath, mode)
+      await chmod(filePath, filePath.endsWith('.sh') ? 0o700 : 0o600)
     }
   }
 }
@@ -59,8 +60,8 @@ export async function unzipFile({
   }
 
   try {
-    await setPermissions(directory, 0o777)
-    logger.info(`Permissions set to 0o777 for all extracted files in: ${directory}`)
+    await setPermissions(directory, 0o700)
+    logger.info(`Restricted extracted run-kit permissions in: ${directory}`)
   } catch (err) {
     logger.error(`Error setting file permissions: ${(err as Error).message}`)
     throw err

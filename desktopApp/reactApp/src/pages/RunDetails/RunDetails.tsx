@@ -17,6 +17,7 @@ import ReactMarkdown from 'react-markdown'
 import { useCallback, useState } from 'react'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { useUserState } from '../../contexts/UserStateContext'
+import { SHARED_SITE_FAILURE_MESSAGE } from '../../apis/edgeApi/getLocalComputationError'
 
 function RunDeleteModal({
   open,
@@ -72,7 +73,7 @@ function RunDeleteModal({
 
 export function RunDetails() {
   const navigate = useNavigate()
-  const { runDetails, loading, error } = useRunDetails()
+  const { runDetails, loading, error, localComputationError } = useRunDetails()
   const { runDelete } = useCentralApi()
   const { userId } = useUserState()
 
@@ -200,7 +201,7 @@ export function RunDetails() {
               />
             </Grid>
             {/* Errors */}
-            {runDetails.runErrors.length > 0 && (
+            {(runDetails.runErrors.length > 0 || localComputationError) && (
               <Grid size={{ sm: 12 }}>
                 <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
                   <Typography variant='h6' gutterBottom>
@@ -209,9 +210,38 @@ export function RunDetails() {
                   {runDetails.runErrors.map((error, index) => (
                     <Typography key={index} variant='body2' color='error'>
                       {new Date(+error.timestamp).toLocaleString()}{' '}
-                      {error.user.username} - {error.message}
+                      {error.user.username} -{' '}
+                      {localComputationError &&
+                      error.user.id === userId &&
+                      error.message === SHARED_SITE_FAILURE_MESSAGE
+                        ? <>
+                            {localComputationError.scope && (
+                              <strong>[{localComputationError.scope}] </strong>
+                            )}
+                            {localComputationError.errorType && (
+                              <strong>{localComputationError.errorType}: </strong>
+                            )}
+                            {localComputationError.message}
+                          </>
+                        : error.message}
                     </Typography>
                   ))}
+                  {localComputationError &&
+                  !runDetails.runErrors.some((runError) =>
+                    runError.user.id === userId &&
+                    runError.message === SHARED_SITE_FAILURE_MESSAGE
+                  ) && (
+                    <Typography variant='body2' color='error'>
+                      Local computation -{' '}
+                      {localComputationError.scope && (
+                        <strong>[{localComputationError.scope}] </strong>
+                      )}
+                      {localComputationError.errorType && (
+                        <strong>{localComputationError.errorType}: </strong>
+                      )}
+                      {localComputationError.message}
+                    </Typography>
+                  )}
                 </Box>
               </Grid>
             )}

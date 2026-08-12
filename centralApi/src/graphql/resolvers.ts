@@ -6,7 +6,7 @@ import {
 } from '../authentication/authentication.js'
 import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
-import Run, { IRun } from '../database/models/Run.js'
+import Run, { IRun, IResolvedComputationImage } from '../database/models/Run.js'
 import User from '../database/models/User.js'
 import VaultServer from '../database/models/VaultServer.js'
 import HostedVault from '../database/models/HostedVault.js'
@@ -33,6 +33,7 @@ import {
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
+import { COMPUTATION_API_VERSION } from '../versions.js'
 
 interface Context {
   userId: string
@@ -1377,6 +1378,7 @@ export default {
         activeParticipants,
         consortiumId: consortium._id.toString(),
         computationParameters,
+        requiredComputationApiVersion: COMPUTATION_API_VERSION,
       })
 
       pubsub.publish('RUN_EVENT', {
@@ -1399,7 +1401,10 @@ export default {
     },
     reportRunReady: async (
       _: unknown,
-      { runId }: { runId: string },
+      {
+        runId,
+        resolvedImage,
+      }: { runId: string; resolvedImage: IResolvedComputationImage },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunReady', runId)
@@ -1416,11 +1421,35 @@ export default {
 
       // get the run's details from the database
       const run = await Run.findById(runId)
+      if (!run) {
+        throw new Error('Run not found')
+      }
+      if (resolvedImage.sourceImage !== run.studyConfiguration.computation.imageName) {
+        throw new Error('Resolved computation image does not match the configured image')
+      }
+      if (
+        resolvedImage.metadata.computationApiVersion !== COMPUTATION_API_VERSION
+      ) {
+        throw new Error('Resolved computation image uses an incompatible computation API')
+      }
+      if (
+        !/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest) ||
+        !(
+          resolvedImage.reference === resolvedImage.digest ||
+          resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+        )
+      ) {
+        throw new Error('Resolved computation image digest is invalid')
+      }
       await Run.updateOne(
         { _id: runId },
-        { status: 'In Progress', lastUpdated: Date.now() },
+        {
+          status: 'In Progress',
+          resolvedComputationImage: resolvedImage,
+          lastUpdated: Date.now(),
+        },
       )
-      const imageName = run.studyConfiguration.computation.imageName
+      const imageName = resolvedImage.reference
       const computationId = run.studyConfiguration.computation._id.toString()
       const consortiumId = run.consortium._id
 
@@ -1434,6 +1463,7 @@ export default {
           targetUserId: memberId.toString(),
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         })
       })
@@ -1460,6 +1490,7 @@ export default {
           targetUserId: serverUserId.toString(),
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         })
       })
@@ -1484,7 +1515,15 @@ export default {
     },
     reportRunError: async (
       _: unknown,
-      { runId, errorMessage }: { runId: string; errorMessage: string },
+      {
+        runId,
+        errorMessage,
+        redactErrorDetails = false,
+      }: {
+        runId: string
+        errorMessage: string
+        redactErrorDetails?: boolean
+      },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunError', { runId })
@@ -1521,20 +1560,25 @@ export default {
         throw new Error('User not authorized')
       }
 
-      // Append the error to the runErrors array and update the run's status and lastUpdated fields
-      await Run.updateOne(
-        { _id: runId },
-        {
-          status: 'Error',
-          lastUpdated: Date.now().toString(), // Store as a string
-          $push: {
-            runErrors: {
-              user: context.userId, // Reference to the user who reported the error
-              message: errorMessage,
-              timestamp: Date.now().toString(), // Store as a string
-            },
+      const runUpdate: Record<string, unknown> = {
+        status: 'Error',
+        lastUpdated: Date.now().toString(),
+        $push: {
+          runErrors: {
+            user: context.userId,
+            message: redactErrorDetails
+              ? 'Site computation failed. Detailed error is available only to that participant.'
+              : errorMessage,
+            timestamp: Date.now().toString(),
           },
         },
+      }
+
+      // Site failures store only a server-generated shared notification. Their
+      // detailed marker remains private to the participant that executed them.
+      await Run.updateOne(
+        { _id: runId },
+        runUpdate,
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -3083,6 +3127,7 @@ export default {
           vaultId,
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         } = payload
         // create a token
@@ -3099,6 +3144,7 @@ export default {
           vaultId: vaultId ?? null,
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
           downloadUrl: `${CLIENT_FILE_SERVER_URL}/download/${consortiumId}/${runId}/${participantId}`,
           downloadToken: accessToken,

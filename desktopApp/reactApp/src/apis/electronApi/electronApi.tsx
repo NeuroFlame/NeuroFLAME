@@ -34,9 +34,17 @@ export interface EdgeClientLogsResponse {
   error?: string;
 }
 
+export type CompatibilityStatus = {
+  status: 'compatible' | 'appUpdateRequired' | 'serverUpdateRequired';
+  appVersion: string;
+  apiVersion?: string;
+}
+
 interface ElectronAPI {
   getConfigPath: () => Promise<string>;
   getConfig: () => Promise<Config>;
+  getCompatibilityStatus: () => Promise<CompatibilityStatus>;
+  openLatestRelease: () => Promise<void>;
   openConfig: () => Promise<void>;
   saveConfig: (configString: string) => Promise<void>;
   applyDefaultConfig: () => Promise<void>;
@@ -66,6 +74,8 @@ declare global {
 
 export const electronApi = {
   getConfig,
+  getCompatibilityStatus: window.ElectronAPI.getCompatibilityStatus,
+  openLatestRelease: window.ElectronAPI.openLatestRelease,
   openConfig,
   getConfigPath,
   saveConfig,

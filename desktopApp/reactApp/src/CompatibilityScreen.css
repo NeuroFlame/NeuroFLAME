@@ -1,0 +1,32 @@
+.compatibility-screen {
+  align-items: center;
+  background: #f5f7fa;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.compatibility-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgb(15 23 42 / 12%);
+  max-width: 520px;
+  padding: 40px;
+  width: 100%;
+}
+
+.compatibility-card h1 { margin-top: 0; }
+.compatibility-card dl { margin: 28px 0; }
+.compatibility-card dl div { display: flex; justify-content: space-between; }
+.compatibility-card dt { font-weight: 600; }
+.compatibility-card dd { margin: 0; }
+.compatibility-card button {
+  background: #175cd3;
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  padding: 12px 18px;
+}
