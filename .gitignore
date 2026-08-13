@@ -2,6 +2,7 @@
 **/node_modules/
 **/dist/
 _devTestDirectories/
+_devLogs/
 configs/*.json
 *.log
 .DS_Store
