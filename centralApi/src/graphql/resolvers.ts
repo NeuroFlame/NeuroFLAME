@@ -1205,6 +1205,7 @@ export default {
         {
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         },
         { shouldExpire: false },
       )
@@ -1281,6 +1282,7 @@ export default {
         const tokens = generateTokens({
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         })
         const { accessToken } = tokens as { accessToken: string }
 
@@ -2313,6 +2315,7 @@ export default {
         const tokens = generateTokens({
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         })
         const { accessToken } = tokens as { accessToken: string }
 
@@ -2400,10 +2403,14 @@ export default {
         roles: ['vault'],
       })
 
-      const tokens = generateTokens({
-        userId: user._id,
-        roles: user.roles,
-      })
+      const tokens = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+          tokenVersion: user.tokenVersion,
+        },
+        { shouldExpire: false },
+      )
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -2798,6 +2805,48 @@ export default {
       await server.save()
 
       return true
+    },
+    adminRotateVaultToken: async (
+      _: unknown,
+      { serverId }: { serverId: string },
+      context: Context,
+    ): Promise<string> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const server = await VaultServer.findById(serverId).select('user').lean().exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const user = await User.findOneAndUpdate(
+        { _id: server.user, roles: 'vault' },
+        { $inc: { tokenVersion: 1 } },
+        { new: true },
+      ).select('_id roles tokenVersion').exec()
+      if (!user) {
+        throw new Error('Vault service account not found')
+      }
+
+      const { accessToken } = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+          tokenVersion: user.tokenVersion,
+        },
+        { shouldExpire: false },
+      )
+
+      return accessToken
     },
     adminDeleteVaultServer: async (
       _: unknown,

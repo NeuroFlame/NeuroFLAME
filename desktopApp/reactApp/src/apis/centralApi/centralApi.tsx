@@ -23,6 +23,7 @@ import { adminChangeUserRoles } from './adminChangeUserRoles'
 import { adminCreateHostedVault } from './adminCreateHostedVault'
 import { adminDeleteHostedVault } from './adminDeleteHostedVault'
 import { adminDeleteVaultServer } from './adminDeleteVaultServer'
+import { adminRotateVaultToken } from './adminRotateVaultToken'
 import { adminCreateVaultUser } from './adminCreateVaultUser'
 import { adminSetHostedVaultAllowedComputations } from './adminSetHostedVaultAllowedComputations'
 import { adminSetVaultAllowedComputations } from './adminSetVaultAllowedComputations'
@@ -50,6 +51,7 @@ import {
   MutationAdminCreateHostedVaultArgs,
   MutationAdminDeleteHostedVaultArgs,
   MutationAdminDeleteVaultServerArgs,
+  MutationAdminRotateVaultTokenArgs,
   MutationAdminChangeUserPasswordArgs,
   MutationAdminChangeUserRolesArgs,
   MutationAdminSetHostedVaultAllowedComputationsArgs,
@@ -145,6 +147,8 @@ export const useCentralApi = () => {
       adminDeleteHostedVault(centralApiApolloClient, input),
     adminDeleteVaultServer: (input: MutationAdminDeleteVaultServerArgs) =>
       adminDeleteVaultServer(centralApiApolloClient, input),
+    adminRotateVaultToken: (input: MutationAdminRotateVaultTokenArgs) =>
+      adminRotateVaultToken(centralApiApolloClient, input),
     adminUpdateHostedVault: (input: MutationAdminUpdateHostedVaultArgs) =>
       adminUpdateHostedVault(centralApiApolloClient, input),
     adminUpdateVaultServer: (input: MutationAdminUpdateVaultServerArgs) =>

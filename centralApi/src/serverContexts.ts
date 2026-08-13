@@ -1,5 +1,6 @@
 import { validateAccessToken } from './authentication/authentication.js'
 import { IncomingHttpHeaders } from 'http'
+import User from './database/models/User.js'
 
 interface ServerContext {
   userId?: string
@@ -24,15 +25,31 @@ interface HttpContext {
   res: HttpResponse
 }
 
-const wsServerContext = (
+const validateServerAccessToken = async (accessToken: string): Promise<ServerContext> => {
+  const context = validateAccessToken(accessToken)
+  if (!context.userId) {
+    return { ...context }
+  }
+
+  const user = await User.findById(context.userId)
+    .select('roles tokenVersion')
+    .lean()
+    .exec()
+  if (!user || (context.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+    throw new Error('Access token has been revoked')
+  }
+
+  return { ...context, roles: user.roles }
+}
+
+const wsServerContext = async (
   ctx: WebSocketContext,
   msg: any,
   args: any,
-): ServerContext => {
+): Promise<ServerContext> => {
   try {
     const { accessToken } = ctx.connectionParams
-    const context = { ...(validateAccessToken(accessToken) as object) }
-    return context
+    return await validateServerAccessToken(accessToken)
   } catch (e) {
     return {
       error: (e as Error).message,
@@ -50,8 +67,7 @@ const httpServerContext = async ({
         ? req.headers['x-access-token'][0]
         : req.headers['x-access-token']
       )?.replace(/^null$/, '') || ''
-    const context = { ...(validateAccessToken(accessToken) as object) }
-    return context
+    return await validateServerAccessToken(accessToken)
   } catch (e) {
     return {
       error: (e as Error).message,

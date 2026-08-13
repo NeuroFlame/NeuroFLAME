@@ -11,6 +11,7 @@ export interface AccessTokenPayload extends JwtPayload {
   participantId?: string;
   runId?: string;
   consortiumId?: string;
+  tokenVersion?: number;
 }
 
 export const generateTokens = (

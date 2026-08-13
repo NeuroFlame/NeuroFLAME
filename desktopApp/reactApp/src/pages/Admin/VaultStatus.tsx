@@ -547,6 +547,7 @@ interface VaultServerRowProps {
     input: { name: string; description: string },
   ) => Promise<void>
   onDeleteVaultServer: (serverId: string) => Promise<void>
+  onRotateVaultToken: (serverId: string) => Promise<string>
   onUpdateHostedVault: (
     vaultId: string,
     input: { name: string; description: string },
@@ -568,6 +569,7 @@ function VaultServerRow({
   onCreateHostedVault,
   onUpdateVaultServer,
   onDeleteVaultServer,
+  onRotateVaultToken,
   onUpdateHostedVault,
   onDeleteHostedVault,
   onSaveAllowedComputations,
@@ -580,6 +582,8 @@ function VaultServerRow({
   const [serverName, setServerName] = useState(server.name)
   const [serverDescription, setServerDescription] = useState(server.description)
   const [confirmingServerDelete, setConfirmingServerDelete] = useState(false)
+  const [confirmingTokenRotation, setConfirmingTokenRotation] = useState(false)
+  const [rotatedToken, setRotatedToken] = useState<string | null>(null)
 
   const status = server.status
   const online = status ? isOnline(status.lastHeartbeat) : false
@@ -694,6 +698,17 @@ function VaultServerRow({
                       <Button
                         size='small'
                         variant='outlined'
+                        disabled={isSavingServer}
+                        onClick={() => {
+                          setRotatedToken(null)
+                          setConfirmingTokenRotation(true)
+                        }}
+                      >
+                        Rotate Token
+                      </Button>
+                      <Button
+                        size='small'
+                        variant='outlined'
                         onClick={() => setEditingServer(true)}
                       >
                         Edit Server
@@ -769,6 +784,84 @@ function VaultServerRow({
                     {server.description || 'No description'}
                   </Typography>
                 )}
+                <Dialog
+                  open={confirmingTokenRotation}
+                  onClose={() => !isSavingServer && setConfirmingTokenRotation(false)}
+                  maxWidth='md'
+                  fullWidth
+                >
+                  <DialogTitle>
+                    {rotatedToken ? 'Vault token rotated' : 'Rotate vault token?'}
+                  </DialogTitle>
+                  <DialogContent>
+                    {rotatedToken ? (
+                      <>
+                        <Alert severity='success' sx={{ mb: 2 }}>
+                          All previous tokens for {server.username} are now revoked.
+                          Replace VAULT_ACCESS_TOKEN before restarting the service.
+                        </Alert>
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={4}
+                          label='VAULT_ACCESS_TOKEN'
+                          value={rotatedToken}
+                          InputProps={{ readOnly: true }}
+                        />
+                      </>
+                    ) : (
+                      <DialogContentText>
+                        This immediately revokes every existing token for
+                        {` ${server.username}`} and issues one replacement. The
+                        current vault service will lose access until its
+                        VAULT_ACCESS_TOKEN is updated.
+                      </DialogContentText>
+                    )}
+                    {saveError && (
+                      <Alert severity='error' sx={{ mt: 2 }}>
+                        {saveError}
+                      </Alert>
+                    )}
+                  </DialogContent>
+                  <DialogActions>
+                    {rotatedToken ? (
+                      <>
+                        <Button
+                          startIcon={<ContentCopyIcon />}
+                          onClick={() => navigator.clipboard.writeText(rotatedToken)}
+                        >
+                          Copy Token
+                        </Button>
+                        <Button
+                          variant='contained'
+                          onClick={() => setConfirmingTokenRotation(false)}
+                        >
+                          Done
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          disabled={isSavingServer}
+                          onClick={() => setConfirmingTokenRotation(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant='contained'
+                          color='warning'
+                          disabled={isSavingServer}
+                          onClick={async () => {
+                            const token = await onRotateVaultToken(server.id)
+                            if (token) setRotatedToken(token)
+                          }}
+                        >
+                          {isSavingServer ? 'Rotating...' : 'Rotate and Revoke Old Token'}
+                        </Button>
+                      </>
+                    )}
+                  </DialogActions>
+                </Dialog>
                 <Dialog
                   open={confirmingServerDelete}
                   onClose={() => !isSavingServer && setConfirmingServerDelete(false)}
@@ -1010,6 +1103,7 @@ export default function VaultStatus() {
     adminCreateHostedVault,
     adminDeleteHostedVault,
     adminDeleteVaultServer,
+    adminRotateVaultToken,
     adminSetHostedVaultAllowedComputations,
     adminUpdateHostedVault,
     adminUpdateVaultServer,
@@ -1198,6 +1292,24 @@ export default function VaultStatus() {
     [adminDeleteVaultServer, loadVaults],
   )
 
+  const handleRotateVaultToken = useCallback(
+    async (serverId: string): Promise<string> => {
+      try {
+        setSavingServerId(serverId)
+        setSaveError(null)
+        return await adminRotateVaultToken({ serverId })
+      } catch (err) {
+        setSaveError(
+          err instanceof Error ? err.message : 'Failed to rotate vault token',
+        )
+        return ''
+      } finally {
+        setSavingServerId(null)
+      }
+    },
+    [adminRotateVaultToken],
+  )
+
   const handleCreateVaultUser = useCallback(
     async ({ username, password }: { username: string; password: string }) => {
       try {
@@ -1318,6 +1430,7 @@ export default function VaultStatus() {
                   creatingServerId={creatingServerId}
                   onDeleteHostedVault={handleDeleteHostedVault}
                   onDeleteVaultServer={handleDeleteVaultServer}
+                  onRotateVaultToken={handleRotateVaultToken}
                   onCreateHostedVault={handleCreateHostedVault}
                   onUpdateHostedVault={handleUpdateHostedVault}
                   onUpdateVaultServer={handleUpdateVaultServer}
