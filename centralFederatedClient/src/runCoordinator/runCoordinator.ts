@@ -35,6 +35,8 @@ export async function subscribeToCentralApi({
     connectionParams: {
       accessToken,
     },
+    retryAttempts: Infinity,
+    shouldRetry: () => true,
   })
 
   logger.info(`Subscribing to central API at ${wsUrl}`)
