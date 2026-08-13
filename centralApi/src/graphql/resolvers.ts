@@ -2422,20 +2422,27 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      const callingUser = await User.findById(context.userId)
-      const isAdmin = callingUser.roles.includes('admin')
+      const callingUser = await User.findById(context.userId).exec()
+      const isAdmin = callingUser?.roles.includes('admin') === true
 
       if (!isAdmin) {
         throw new Error('Unauthorized')
       }
 
-      try {
-        await User.updateOne({ username }, { roles })
-        return true
-      } catch (error) {
-        logger.error('Error changing roles:', error)
-        throw new Error('Failed to change roles')
+      const targetUser = await User.findOne({ username }).select('roles').exec()
+      if (!targetUser) {
+        throw new Error('User not found')
       }
+
+      if (targetUser.roles.includes('vault') || roles.includes('vault')) {
+        throw new Error(
+          'Vault roles must be managed through the dedicated vault account workflow',
+        )
+      }
+
+      targetUser.roles = roles
+      await targetUser.save()
+      return true
     },
     adminSetVaultAllowedComputations: async (
       _: unknown,

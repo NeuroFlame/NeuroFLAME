@@ -26,7 +26,7 @@ export default function ChangeUserRoles() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const availableRoles = ['admin', 'user', 'vault']
+  const availableRoles = ['admin', 'user']
 
   const handleRolesChange = (event: SelectChangeEvent<string[]>) => {
     setRoles(event.target.value as string[])
@@ -40,7 +40,11 @@ export default function ChangeUserRoles() {
       await adminChangeUserRoles({ username, roles })
       setSuccess(`Roles for ${username} were successfully updated.`)
     } catch (err) {
-      setError('Failed to update roles. Please try again.')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to update roles. Please try again.',
+      )
     } finally {
       setLoading(false)
     }
@@ -49,6 +53,10 @@ export default function ChangeUserRoles() {
   return (
     <Box maxWidth='xs' sx={{ width: '100%' }}>
       <Typography variant='h6' sx={{ mb: 2 }}>Change User Roles</Typography>
+
+      <Alert severity='info' sx={{ mb: 2 }}>
+        Vault service accounts must be created and managed from the Vault Status tab.
+      </Alert>
 
       {error && <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity='success' sx={{ mb: 2 }}>{success}</Alert>}
