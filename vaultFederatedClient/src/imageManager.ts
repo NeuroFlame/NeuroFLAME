@@ -5,6 +5,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import {
   VAULT_BASE_DIR,
+  VAULT_CONTAINER_SERVICE,
 } from './config.js'
 import { logger } from './logger.js'
 import {
@@ -829,7 +830,10 @@ async function refreshSingularityCache(
 
 async function refreshTrackedImage(imageName: string): Promise<void> {
   const remoteDigest = await updateRemoteDigest(imageName)
-  await refreshDockerCache(imageName, remoteDigest)
+  if (VAULT_CONTAINER_SERVICE === 'docker') {
+    await refreshDockerCache(imageName, remoteDigest)
+    return
+  }
   await refreshSingularityCache(imageName, remoteDigest)
 }
 
