@@ -34,6 +34,7 @@ import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
 import { COMPUTATION_API_VERSION } from '../versions.js'
+import { disclosedRunErrorMessage } from './runErrorDisclosure.js'
 
 interface Context {
   userId: string
@@ -877,6 +878,13 @@ export default {
             select: 'id username', // Populate the user field in runErrors with id, username
             model: User,
           })
+          .populate({
+            path: 'runErrors.vault',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
+          })
           .populate(
             'studyConfiguration.computation',
             'title imageName imageDownloadUrl notes owner hasLocalParameters',
@@ -960,6 +968,7 @@ export default {
               id: error.user._id.toString(),
               username: error.user.username,
             },
+            vault: mapHostedVault(error.vault),
             timestamp: error.timestamp,
             message: error.message,
           })),
@@ -1519,10 +1528,12 @@ export default {
       _: unknown,
       {
         runId,
+        vaultId,
         errorMessage,
-        redactErrorDetails = false,
+        redactErrorDetails = true,
       }: {
         runId: string
+        vaultId?: string
         errorMessage: string
         redactErrorDetails?: boolean
       },
@@ -1544,40 +1555,63 @@ export default {
       const isUserMember = run.members.some((memberId) =>
         memberId.equals(context.userId),
       )
-      let isHostedVaultServerMember = false
-      if (!isUserCentral && !isUserMember && (run.vaultMembers?.length ?? 0) > 0) {
+      let reportingVault: { _id: unknown } | null = null
+      const runContainsVault = Boolean(
+        vaultId &&
+        mongoose.isValidObjectId(vaultId) &&
+        run.vaultMembers.some((memberId) => memberId.equals(vaultId)),
+      )
+      if (!isUserCentral && runContainsVault) {
         const viewerServer = await VaultServer.findOne({ user: context.userId })
           .select('_id')
           .lean()
         if (viewerServer?._id) {
-          const hostedVaultCount = await HostedVault.countDocuments({
-            _id: { $in: run.vaultMembers ?? [] },
+          reportingVault = await HostedVault.findOne({
+            _id: vaultId,
             server: viewerServer._id,
           })
-          isHostedVaultServerMember = hostedVaultCount > 0
+            .select('_id')
+            .lean()
         }
       }
+      const isHostedVaultServerMember = reportingVault !== null
 
       if (!isUserCentral && !isUserMember && !isHostedVaultServerMember) {
         throw new Error('User not authorized')
+      }
+      if (vaultId && !isHostedVaultServerMember) {
+        throw new Error('Hosted vault is not authorized for this run')
+      }
+
+      const reporter = isUserCentral
+        ? 'central'
+        : isHostedVaultServerMember
+          ? 'hostedVault'
+          : 'participant'
+
+      const runError: Record<string, unknown> = {
+        user: context.userId,
+        message: disclosedRunErrorMessage({
+          errorMessage,
+          reporter,
+          requestedRedaction: redactErrorDetails,
+        }),
+        timestamp: Date.now().toString(),
+      }
+      if (reportingVault?._id) {
+        runError.vault = reportingVault._id
       }
 
       const runUpdate: Record<string, unknown> = {
         status: 'Error',
         lastUpdated: Date.now().toString(),
         $push: {
-          runErrors: {
-            user: context.userId,
-            message: redactErrorDetails
-              ? 'Site computation failed. Detailed error is available only to that participant.'
-              : errorMessage,
-            timestamp: Date.now().toString(),
-          },
+          runErrors: runError,
         },
       }
 
-      // Site failures store only a server-generated shared notification. Their
-      // detailed marker remains private to the participant that executed them.
+      // Ordinary participants are always redacted. Only an authorized hosted
+      // vault server may apply its operator-controlled disclosure decision.
       await Run.updateOne(
         { _id: runId },
         runUpdate,

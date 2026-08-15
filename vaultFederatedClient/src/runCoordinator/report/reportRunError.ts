@@ -17,17 +17,21 @@ interface ReportRunErrorResponse {
 
 // GraphQL mutation
 const REPORT_RUN_ERROR_MUTATION = `
-  mutation reportRunError($runId: String!, $errorMessage: String!, $redactErrorDetails: Boolean!) {
-    reportRunError(runId: $runId, errorMessage: $errorMessage, redactErrorDetails: $redactErrorDetails)
+  mutation reportRunError($runId: String!, $vaultId: String!, $errorMessage: String!, $redactErrorDetails: Boolean!) {
+    reportRunError(runId: $runId, vaultId: $vaultId, errorMessage: $errorMessage, redactErrorDetails: $redactErrorDetails)
   }
 `
 
 export default async function reportRunError({
   runId,
+  vaultId,
   errorMessage,
+  redactErrorDetails = true,
 }: {
   runId: string
+  vaultId: string
   errorMessage: string
+  redactErrorDetails?: boolean
 }) {
   try {
     const response = await fetch(VAULT_HTTP_URL, {
@@ -38,7 +42,12 @@ export default async function reportRunError({
       },
       body: JSON.stringify({
         query: REPORT_RUN_ERROR_MUTATION,
-        variables: { runId, errorMessage, redactErrorDetails: true },
+        variables: {
+          runId,
+          vaultId,
+          errorMessage,
+          redactErrorDetails,
+        },
       }),
     })
 

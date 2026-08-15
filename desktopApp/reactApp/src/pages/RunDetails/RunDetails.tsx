@@ -210,7 +210,7 @@ export function RunDetails() {
                   {runDetails.runErrors.map((error, index) => (
                     <Typography key={index} variant='body2' color='error'>
                       {new Date(+error.timestamp).toLocaleString()}{' '}
-                      {error.user.username} -{' '}
+                      {error.vault?.name ?? error.user.username} -{' '}
                       {localComputationError &&
                       error.user.id === userId &&
                       error.message === SHARED_SITE_FAILURE_MESSAGE

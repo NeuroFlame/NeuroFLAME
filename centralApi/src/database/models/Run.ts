@@ -7,6 +7,7 @@ import {
 // Define an interface for the error entries in the runErrors array
 interface IRunError {
   user: mongoose.Types.ObjectId // Reference to the User model
+  vault?: mongoose.Types.ObjectId // Hosted vault that executed the computation
   timestamp: string // String representing the numeric timestamp
   message: string // Error message
 }
@@ -59,6 +60,7 @@ const runSchema: Schema = new Schema({
   runErrors: [
     {
       user: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
+      vault: { type: mongoose.Types.ObjectId, ref: 'HostedVault', required: false },
       timestamp: {
         type: String,
         default: () => Date.now().toString(), // Store the numeric timestamp as a string

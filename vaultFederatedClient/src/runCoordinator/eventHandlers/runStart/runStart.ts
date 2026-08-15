@@ -1,6 +1,7 @@
 import {
   VAULT_BASE_DIR,
   VAULT_CONTAINER_SERVICE,
+  VAULT_ERROR_DISCLOSURE,
 } from '../../../config.js'
 import {
   prepareResolvedComputationImage,
@@ -14,6 +15,7 @@ import { unzipFile } from './unzipFile.js'
 import { promises as fs } from 'fs'
 import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
+import { resolveContainerFailureReport } from '../../terminalError.js'
 
 export const RUN_START_SUBSCRIPTION = `
   subscription runStartSubscription {
@@ -142,9 +144,16 @@ export const runStartHandler = {
         failureLogPath: path.join(resultsPath, 'failed-container.log'),
         onContainerExitError: async (containerId, error) => {
           logger.error(`Error in container: ${containerId}`, { error })
+          const genericError = `Error in container: ${containerId}`
+          const failureReport = await resolveContainerFailureReport({
+            outputDirectory: resultsPath,
+            disclosure: VAULT_ERROR_DISCLOSURE,
+            genericError,
+          })
           await reportRunError({
             runId,
-            errorMessage: `Error in container: ${containerId}`,
+            vaultId,
+            ...failureReport,
           })
         },
         onContainerExitSuccess(containerId) {
@@ -156,6 +165,7 @@ export const runStartHandler = {
 
       await reportRunError({
         runId: data.runStartEdge.runId,
+        vaultId: data.runStartEdge.vaultId,
         errorMessage: `Error starting run: ${(error as Error).message}`,
       })
     }

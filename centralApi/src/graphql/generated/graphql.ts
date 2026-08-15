@@ -361,6 +361,7 @@ export type MutationReportRunErrorArgs = {
   errorMessage: Scalars['String']['input'];
   redactErrorDetails?: InputMaybe<Scalars['Boolean']['input']>;
   runId: Scalars['String']['input'];
+  vaultId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -529,6 +530,7 @@ export type RunError = {
   message: Scalars['String']['output'];
   timestamp: Scalars['String']['output'];
   user: PublicUser;
+  vault?: Maybe<HostedVault>;
 };
 
 export type RunEventPayload = {

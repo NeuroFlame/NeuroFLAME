@@ -43,7 +43,17 @@ Optional:
 ```bash
 VAULT_LOG_PATH=/var/log/neuroflame/vault
 VAULT_CONTAINER_SERVICE=docker
+VAULT_ERROR_DISCLOSURE=redacted
 ```
+
+`VAULT_ERROR_DISCLOSURE` is controlled by the vault operator and defaults to
+`redacted`. Set it to `detailed` only when computation exception messages,
+validation details, subject identifiers, and computation tracebacks from this
+vault are cleared for consortium-wide disclosure. This is an explicit
+trust-policy decision: enable it only for approved computation images whose
+output is trusted. Detailed mode forwards only a validated, size-limited
+`.neuroflame_error.json` computation artifact; it never
+forwards Docker, Singularity, NVFlare, or vault daemon logs.
 
 `VAULT_DATASET_DIR` should contain one directory per dataset. Each child directory is reported to central as an available dataset key.
 
@@ -146,5 +156,6 @@ VAULT_WS_URL=ws://localhost:4000/graphql \
 VAULT_ACCESS_TOKEN=your-vault-token \
 VAULT_BASE_DIR=/tmp/neuroflame-vault/work \
 VAULT_DATASET_DIR=/tmp/neuroflame-vault/datasets \
+VAULT_ERROR_DISCLOSURE=redacted \
 npm start
 ```
