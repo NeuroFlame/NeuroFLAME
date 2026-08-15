@@ -1,2 +1,2 @@
-export const APPLICATION_API_VERSION = '1.0.0'
+export const APPLICATION_API_VERSION = '1.1.0'
 export const COMPUTATION_API_VERSION = '0.1.0'
