@@ -1,18 +1,18 @@
 {
-  "centralServerQueryUrl": "http://localhost:3001/graphql",
-  "centralServerSubscriptionUrl": "ws://localhost:3001/graphql",
-  "edgeClientQueryUrl": "http://localhost:3004/graphql",
-  "edgeClientSubscriptionUrl": "ws://localhost:3004/graphql",
-  "edgeClientRunResultsUrl": "http://localhost:3004/run-results",
-  "startEdgeClientOnLaunch": true,
-  "logPath": "{{REPO_DIR}}/_devLogs/site2",
-  "edgeClientConfig": {
-    "httpUrl": "http://localhost:3001/graphql",
-    "wsUrl": "ws://localhost:3001/graphql",
-    "pathBaseDirectory": "{{REPO_DIR}}/_devTestDirectories/edgeSite2",
-    "authenticationEndpoint": "http://localhost:3001/authenticateToken",
-    "hostingPort": 3004,
-    "logPath": "{{REPO_DIR}}/_devLogs/site2/edgeClient",
-    "containerService": "docker"
-  }
+    "centralServerQueryUrl": "http://localhost:3001/graphql",
+    "centralServerSubscriptionUrl": "ws://localhost:3001/graphql",
+    "edgeClientQueryUrl": "http://localhost:3004/graphql",
+    "edgeClientSubscriptionUrl": "ws://localhost:3004/graphql",
+    "edgeClientRunResultsUrl": "http://localhost:3004/run-results",
+    "startEdgeClientOnLaunch": true,
+    "logPath": "{{REPO_DIR}}/_devLogs/site2",
+    "edgeClientConfig": {
+        "httpUrl": "http://localhost:3001/graphql",
+        "wsUrl": "ws://localhost:3001/graphql",
+        "pathBaseDirectory": "{{REPO_DIR}}/_devTestDirectories/edgeSite2",
+        "authenticationEndpoint": "http://localhost:3001/authenticateToken",
+        "hostingPort": 3004,
+        "logPath": "{{REPO_DIR}}/_devLogs/site2/edgeClient",
+        "containerService": "docker"
+    }
 }
