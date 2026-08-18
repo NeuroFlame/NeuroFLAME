@@ -17,7 +17,6 @@ interface provisionRunArgs {
   pathRun: string
   computationParameters: string
   fedLearnPort: number
-  adminPort: number
   FQDN: string
 }
 
@@ -27,7 +26,6 @@ export async function provisionRun({
   computationParameters,
   pathRun,
   fedLearnPort,
-  adminPort,
   FQDN,
 }: provisionRunArgs) {
   const pathHosting = path.join(pathRun, 'hosting')
@@ -35,15 +33,14 @@ export async function provisionRun({
   await ensureDirectoryExists(pathRun)
   await ensureDirectoryExists(pathHosting)
 
-  const participantIds = activeParticipants.map((participant) => participant.participantId)
-
   // make the input
   const provisionInput = {
-    active_participants: activeParticipants,
-    user_ids: participantIds,
+    users: activeParticipants.map(({ participantId, displayName }) => ({
+      id: participantId,
+      name: displayName,
+    })),
     computation_parameters: computationParameters,
     fed_learn_port: fedLearnPort,
-    admin_port: adminPort,
     host_identifier: FQDN,
   }
 
@@ -71,6 +68,7 @@ export async function provisionRun({
       ],
       portBindings: [],
       commandsToRun: ['python', '/workspace/system/entry_provision.py'],
+      failureLogPath: path.join(pathRun, 'provision-failed-container.log'),
       onContainerExitSuccess: () => resolve(undefined),
       onContainerExitError: (_, error) => reject(new Error(error)),
     }).catch(reject)

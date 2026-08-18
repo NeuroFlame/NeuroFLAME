@@ -34,6 +34,7 @@ Environment=VAULT_DATASET_DIR=/path/to/your/datasets
 # Optional NeuroFLAME vault configuration.
 Environment=VAULT_LOG_PATH=/var/log/neuroflame/vault
 Environment=VAULT_CONTAINER_SERVICE=docker
+Environment=VAULT_ERROR_DISCLOSURE=redacted
 
 ExecStart=/usr/bin/env neuroflame-vault start
 

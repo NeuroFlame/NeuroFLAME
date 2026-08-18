@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Box, Button, Typography } from '@mui/material'
+import { Alert, AlertTitle, Box, Button, Typography } from '@mui/material'
 import Grid from '@mui/material/Grid2'
 import { useNavigate } from 'react-router-dom'
 import { useRunResults } from './useRunResults'
@@ -20,6 +20,7 @@ export default function RunResults() {
     fileList,
     loading,
     error,
+    localComputationError,
     frameSrc,
     setFrameSrc,
     indexSrc,
@@ -135,6 +136,20 @@ export default function RunResults() {
           </Box>
         </Box>
       </Grid>
+      {localComputationError && (
+        <Grid size={{ sm: 12 }}>
+          <Alert severity='error'>
+            <AlertTitle>Local computation failed</AlertTitle>
+            {localComputationError.scope && (
+              <strong>[{localComputationError.scope}] </strong>
+            )}
+            {localComputationError.errorType && (
+              <strong>{localComputationError.errorType}: </strong>
+            )}
+            {localComputationError.message}
+          </Alert>
+        </Grid>
+      )}
       <Grid size={filesPanelWidth} style={{ transition: 'width 0.5s' }}>
         <Box display={filesPanelShow}>
           <Typography variant='h6' style={{ marginTop: '2rem' }}>

@@ -1,4 +1,5 @@
 import path from 'path'
+import { parseVaultErrorDisclosure } from './errorDisclosure.js'
 
 const requireEnv = (name: string): string => {
   const value = process.env[name]
@@ -51,3 +52,11 @@ export const VAULT_BASE_DIR = requireAbsoluteEnvPath('VAULT_BASE_DIR')
 export const VAULT_DATASET_DIR = requireAbsoluteEnvPath('VAULT_DATASET_DIR')
 export const VAULT_LOG_PATH = requireAbsoluteEnvOptionalPath('VAULT_LOG_PATH')
 export const VAULT_CONTAINER_SERVICE = resolveContainerService()
+export const VAULT_ERROR_DISCLOSURE = (() => {
+  try {
+    return parseVaultErrorDisclosure(process.env.VAULT_ERROR_DISCLOSURE)
+  } catch (error) {
+    console.error(`[CONFIG] ${(error as Error).message}`)
+    process.exit(1)
+  }
+})()

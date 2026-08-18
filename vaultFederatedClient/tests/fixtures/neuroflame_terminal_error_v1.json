@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "origin": "site",
+  "stage": "input_validation",
+  "scope": "prepare local mask",
+  "error_type": "ValueError",
+  "message": "Missing required covariate column: isControl",
+  "traceback": "Traceback (most recent call last):\nValueError: Missing required covariate column: isControl"
+}

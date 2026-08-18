@@ -3,10 +3,15 @@ import {
   ElectronApplication,
   Page,
 } from '@playwright/test'
+import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const appPath = path.resolve(__dirname, '../..')
+const appPackage = JSON.parse(
+  fs.readFileSync(path.join(appPath, 'package.json'), 'utf8'),
+) as { version: string }
 
 let instances: Array<{ app: ElectronApplication, appPage: Page }> = []
 
@@ -17,16 +22,23 @@ async function createInstance(appId: string | number) {
 
   const app = await electron.launch({
     args: [
-      'build/main.js',
-       `--config=${configPath}`,
-       '--enable-logging',
-       '--log-level=0',
+      appPath,
+      `--config=${configPath}`,
+      '--enable-logging',
+      '--log-level=0',
     ],
     env: Object.assign({}, process.env, {
       TEST_INSTANCE: instanceId,
       NODE_ENV: 'test',
     }) as { [key: string]: string },
   })
+  const appVersion = await app.evaluate(({ app }) => app.getVersion())
+  if (appVersion !== appPackage.version) {
+    await app.close()
+    throw new Error(
+      `Electron loaded version ${appVersion}; expected ${appPackage.version}`,
+    )
+  }
   const appPage = await app.firstWindow()
 
   appPage.on('console', (msg) => console.log(`INSTANCE ${appId} -> ${msg.text()}`))

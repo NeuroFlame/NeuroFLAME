@@ -52,3 +52,21 @@ The distributable file is located at:
 desktopApp/electronApp/dist
 ```
 
+### Automatic update artifacts
+
+Production builds check the repository's latest GitHub Release at startup and
+every six hours. Updates download in the background, then NeuroFLAME prompts the
+user to restart. Choosing **Later** installs the downloaded update on the next
+normal quit.
+
+GitHub Releases must contain the platform package and its generated update
+metadata:
+
+- Linux: the AppImage and `latest-linux.yml`
+- Windows: the NSIS installer and `latest.yml`
+- macOS: the DMG, ZIP, and `latest-mac.yml`
+
+Linux auto-update works only when NeuroFLAME is launched from the AppImage and
+both the AppImage and its containing directory are writable by that user.
+Development, unpacked, system package, and read-only AppImage launches skip the
+automatic check; users can still install the latest release manually.

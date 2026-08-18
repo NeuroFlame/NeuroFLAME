@@ -122,6 +122,41 @@ type RunStartCentralPayload {
   activeParticipants: [ActiveParticipant!]!
   consortiumId: String!
   computationParameters: String!
+  requiredComputationApiVersion: String!
+}
+
+type ComputationImageMetadata {
+  title: String!
+  computationVersion: String!
+  revision: String!
+  source: String!
+  computationApiVersion: String!
+  boilerplateVersion: String!
+  nvflareVersion: String!
+}
+
+type ResolvedComputationImage {
+  sourceImage: String!
+  reference: String!
+  digest: String!
+  metadata: ComputationImageMetadata!
+}
+
+input ComputationImageMetadataInput {
+  title: String!
+  computationVersion: String!
+  revision: String!
+  source: String!
+  computationApiVersion: String!
+  boilerplateVersion: String!
+  nvflareVersion: String!
+}
+
+input ResolvedComputationImageInput {
+  sourceImage: String!
+  reference: String!
+  digest: String!
+  metadata: ComputationImageMetadataInput!
 }
 
 type RunStartEdgePayload {
@@ -130,6 +165,7 @@ type RunStartEdgePayload {
   vaultId: String
   computationId: String!
   imageName: String!
+  resolvedImage: ResolvedComputationImage!
   consortiumId: String!
   downloadUrl: String!
   downloadToken: String!
@@ -201,6 +237,7 @@ type RunListItem {
 
 type RunError {
   user: PublicUser!
+  vault: HostedVault
   timestamp: String!
   message: String!
 }
@@ -253,8 +290,8 @@ type Mutation {
   # used by vault federated clients
   vaultHeartbeat(heartbeat: VaultHeartbeatInput!): Boolean!
   # used by federated clients
-  reportRunReady(runId: String!): Boolean!
-  reportRunError(runId: String!, errorMessage: String!): Boolean!
+  reportRunReady(runId: String!, resolvedImage: ResolvedComputationImageInput!): Boolean!
+  reportRunError(runId: String!, vaultId: String, errorMessage: String!, redactErrorDetails: Boolean = true): Boolean!
   reportRunComplete(runId: String!): Boolean!
   reportRunStatus(runId: String!, status: String!): Boolean!
   # used by desktop App
@@ -295,6 +332,14 @@ type Mutation {
     name: String!
     description: String!
   ): Boolean!
+  adminDeleteHostedVault(vaultId: String!): Boolean!
+  adminUpdateVaultServer(
+    serverId: String!
+    name: String!
+    description: String!
+  ): Boolean!
+  adminDeleteVaultServer(serverId: String!): Boolean!
+  adminRotateVaultToken(serverId: String!): String!
   adminSetHostedVaultAllowedComputations(
     vaultId: String!
     computationIds: [String!]!

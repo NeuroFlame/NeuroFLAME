@@ -1,19 +1,19 @@
 import { Config } from './types'
 
 export const defaultConfig: Config = {
-  centralServerQueryUrl: 'http://3.87.72.73:3001/graphql',
-  centralServerSubscriptionUrl: 'ws://3.87.72.73:3001/graphql',
+  centralServerQueryUrl: 'https://trendscenterdev.org/graphql',
+  centralServerSubscriptionUrl: 'wss://trendscenterdev.org/graphql',
   edgeClientQueryUrl: 'http://localhost:3003/graphql',
   edgeClientSubscriptionUrl: 'ws://localhost:3003/graphql',
   edgeClientRunResultsUrl: 'http://localhost:3003/run-results',
   startEdgeClientOnLaunch: true,
   logPath: '',
   edgeClientConfig: {
-    httpUrl: 'http://3.87.72.73:3001/graphql',
-    wsUrl: 'ws://3.87.72.73:3001/graphql',
-    pathBaseDirectory:
-      '',
-    authenticationEndpoint: 'http://3.87.72.73:3001/authenticateToken',
+    httpUrl: 'https://trendscenterdev.org/graphql',
+    wsUrl: 'wss://trendscenterdev.org/graphql',
+    pathBaseDirectory: '',
+    authenticationEndpoint:
+      'https://trendscenterdev.org/authenticateToken',
     hostingPort: 3003,
     logPath: '',
     containerService: 'docker',
@@ -31,8 +31,7 @@ export const testConfig: Config = {
   edgeClientConfig: {
     httpUrl: 'http://localhost:3001/graphql',
     wsUrl: 'ws://localhost:3001/graphql',
-    pathBaseDirectory:
-      '',
+    pathBaseDirectory: '',
     authenticationEndpoint: 'http://localhost:3001/authenticateToken',
     hostingPort: 3003,
     logPath: '',

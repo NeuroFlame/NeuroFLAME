@@ -1,5 +1,22 @@
 # neuroflame
 
+## 1.1.0
+
+### Minor Changes
+
+- Add autonomous vault administration and vault-policy-controlled actionable computation error disclosure to the desktop UI.
+
+## 1.0.0
+
+### Major Changes
+
+- Release NeuroFLAME with NVFlare 2.8 provisioning, unified federation port handling, application/API compatibility checks, and desktop automatic updates.
+
+### Patch Changes
+
+- Updated dependencies
+  - edge-federated-client@1.8.0
+
 ## 0.8.0
 
 ### Minor Changes

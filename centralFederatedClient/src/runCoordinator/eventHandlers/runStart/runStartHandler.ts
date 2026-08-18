@@ -16,6 +16,7 @@ export const RUN_START_SUBSCRIPTION = `
         vaultId
       }
       computationParameters
+      requiredComputationApiVersion
       imageName
     }
   }
@@ -32,23 +33,25 @@ export const runStartHandler = {
       runId,
       activeParticipants,
       computationParameters,
+      requiredComputationApiVersion,
       imageName,
     } = data.runStartCentral
 
     try {
-      await startRun({
+      const resolvedImage = await startRun({
         imageName,
         activeParticipants,
         consortiumId,
         runId,
         computationParameters,
+        requiredComputationApiVersion,
       })
 
       // wait a 1 second to report run ready
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // report to the central api that the run is ready
-      return await reportRunReady({ runId })
+      return await reportRunReady({ runId, resolvedImage })
     } catch (error) {
       logger.error('Error in Run Start Central:', { error })
 

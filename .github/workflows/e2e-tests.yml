@@ -37,7 +37,7 @@ jobs:
       - name: Dump Docker logs & inspect for debugging
         if: failure() # Remove if you want it to always run
         run: |
-          mkdir -p docker_logs docker_inspect
+          mkdir -p docker_logs docker_inspect ui_test_results edge_client_logs
           for c in $(docker ps -a --format '{{.Names}}'); do
           echo "=== Logs for $c ===" > docker_logs/$c.log
           docker logs --timestamps "$c" >> docker_logs/$c.log 2>&1
@@ -45,6 +45,22 @@ jobs:
           echo "=== Inspect for $c ===" > docker_inspect/$c.json
           docker inspect "$c" >> docker_inspect/$c.json 2>&1
           done
+
+          docker cp \
+            neuroflame-ui-1:/nf/desktopApp/electronApp/test-results/. \
+            ui_test_results/ 2>/dev/null || true
+          docker cp \
+            neuroflame-ui-1:/nf/desktopApp/electronApp/playwright-report/. \
+            playwright-report/ 2>/dev/null || true
+          docker cp \
+            neuroflame-ui-1:/tmp/neuroflame/logs/. \
+            edge_client_logs/ 2>/dev/null || true
+
+      - name: Make test artifacts readable by the runner
+        if: always()
+        run: |
+          # Run data remains owner-only; transfer ownership after the containers stop.
+          sudo chown -R "$(id -u):$(id -g)" _devTestDirectories
 
       - name: Upload test artifacts
         if: always() # ensures it runs even if tests fail
@@ -55,3 +71,6 @@ jobs:
             _devTestDirectories
             docker_logs
             docker_inspect
+            edge_client_logs
+            playwright-report
+            ui_test_results

@@ -70,11 +70,18 @@ try {
   }
 }
 
+// This launcher is development-only. Prefer an already-built local computation
+// image unless the developer explicitly asks to exercise registry resolution.
+if (!process.env.COMPUTATION_IMAGE_MODE) {
+  process.env.COMPUTATION_IMAGE_MODE = 'local'
+}
+
 // Now run the actual service
 const child = spawn('npm', ['start'], {
   stdio: 'inherit',
   shell: true,
   cwd: __dirname,
+  env: process.env,
 })
 
 child.on('exit', (code) => {

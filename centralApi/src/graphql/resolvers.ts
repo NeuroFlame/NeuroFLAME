@@ -6,7 +6,7 @@ import {
 } from '../authentication/authentication.js'
 import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
-import Run, { IRun } from '../database/models/Run.js'
+import Run, { IRun, IResolvedComputationImage } from '../database/models/Run.js'
 import User from '../database/models/User.js'
 import VaultServer from '../database/models/VaultServer.js'
 import HostedVault from '../database/models/HostedVault.js'
@@ -33,6 +33,8 @@ import {
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
+import { COMPUTATION_API_VERSION } from '../versions.js'
+import { disclosedRunErrorMessage } from './runErrorDisclosure.js'
 
 interface Context {
   userId: string
@@ -876,6 +878,13 @@ export default {
             select: 'id username', // Populate the user field in runErrors with id, username
             model: User,
           })
+          .populate({
+            path: 'runErrors.vault',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
+          })
           .populate(
             'studyConfiguration.computation',
             'title imageName imageDownloadUrl notes owner hasLocalParameters',
@@ -959,6 +968,7 @@ export default {
               id: error.user._id.toString(),
               username: error.user.username,
             },
+            vault: mapHostedVault(error.vault),
             timestamp: error.timestamp,
             message: error.message,
           })),
@@ -1205,6 +1215,7 @@ export default {
         {
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         },
         { shouldExpire: false },
       )
@@ -1283,6 +1294,7 @@ export default {
         const tokens = generateTokens({
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         })
         const { accessToken } = tokens as { accessToken: string }
 
@@ -1380,6 +1392,7 @@ export default {
         activeParticipants,
         consortiumId: consortium._id.toString(),
         computationParameters,
+        requiredComputationApiVersion: COMPUTATION_API_VERSION,
       })
 
       pubsub.publish('RUN_EVENT', {
@@ -1402,7 +1415,10 @@ export default {
     },
     reportRunReady: async (
       _: unknown,
-      { runId }: { runId: string },
+      {
+        runId,
+        resolvedImage,
+      }: { runId: string; resolvedImage: IResolvedComputationImage },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunReady', runId)
@@ -1419,11 +1435,35 @@ export default {
 
       // get the run's details from the database
       const run = await Run.findById(runId)
+      if (!run) {
+        throw new Error('Run not found')
+      }
+      if (resolvedImage.sourceImage !== run.studyConfiguration.computation.imageName) {
+        throw new Error('Resolved computation image does not match the configured image')
+      }
+      if (
+        resolvedImage.metadata.computationApiVersion !== COMPUTATION_API_VERSION
+      ) {
+        throw new Error('Resolved computation image uses an incompatible computation API')
+      }
+      if (
+        !/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest) ||
+        !(
+          resolvedImage.reference === resolvedImage.digest ||
+          resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+        )
+      ) {
+        throw new Error('Resolved computation image digest is invalid')
+      }
       await Run.updateOne(
         { _id: runId },
-        { status: 'In Progress', lastUpdated: Date.now() },
+        {
+          status: 'In Progress',
+          resolvedComputationImage: resolvedImage,
+          lastUpdated: Date.now(),
+        },
       )
-      const imageName = run.studyConfiguration.computation.imageName
+      const imageName = resolvedImage.reference
       const computationId = run.studyConfiguration.computation._id.toString()
       const consortiumId = run.consortium._id
 
@@ -1437,6 +1477,7 @@ export default {
           targetUserId: memberId.toString(),
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         })
       })
@@ -1463,6 +1504,7 @@ export default {
           targetUserId: serverUserId.toString(),
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         })
       })
@@ -1487,7 +1529,17 @@ export default {
     },
     reportRunError: async (
       _: unknown,
-      { runId, errorMessage }: { runId: string; errorMessage: string },
+      {
+        runId,
+        vaultId,
+        errorMessage,
+        redactErrorDetails = true,
+      }: {
+        runId: string
+        vaultId?: string
+        errorMessage: string
+        redactErrorDetails?: boolean
+      },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunError', { runId })
@@ -1506,38 +1558,66 @@ export default {
       const isUserMember = run.members.some((memberId) =>
         memberId.equals(context.userId),
       )
-      let isHostedVaultServerMember = false
-      if (!isUserCentral && !isUserMember && (run.vaultMembers?.length ?? 0) > 0) {
+      let reportingVault: { _id: unknown } | null = null
+      const runContainsVault = Boolean(
+        vaultId &&
+        mongoose.isValidObjectId(vaultId) &&
+        run.vaultMembers.some((memberId) => memberId.equals(vaultId)),
+      )
+      if (!isUserCentral && runContainsVault) {
         const viewerServer = await VaultServer.findOne({ user: context.userId })
           .select('_id')
           .lean()
         if (viewerServer?._id) {
-          const hostedVaultCount = await HostedVault.countDocuments({
-            _id: { $in: run.vaultMembers ?? [] },
+          reportingVault = await HostedVault.findOne({
+            _id: vaultId,
             server: viewerServer._id,
           })
-          isHostedVaultServerMember = hostedVaultCount > 0
+            .select('_id')
+            .lean()
         }
       }
+      const isHostedVaultServerMember = reportingVault !== null
 
       if (!isUserCentral && !isUserMember && !isHostedVaultServerMember) {
         throw new Error('User not authorized')
       }
+      if (vaultId && !isHostedVaultServerMember) {
+        throw new Error('Hosted vault is not authorized for this run')
+      }
 
-      // Append the error to the runErrors array and update the run's status and lastUpdated fields
+      const reporter = isUserCentral
+        ? 'central'
+        : isHostedVaultServerMember
+          ? 'hostedVault'
+          : 'participant'
+
+      const runError: Record<string, unknown> = {
+        user: context.userId,
+        message: disclosedRunErrorMessage({
+          errorMessage,
+          reporter,
+          requestedRedaction: redactErrorDetails,
+        }),
+        timestamp: Date.now().toString(),
+      }
+      if (reportingVault?._id) {
+        runError.vault = reportingVault._id
+      }
+
+      const runUpdate: Record<string, unknown> = {
+        status: 'Error',
+        lastUpdated: Date.now().toString(),
+        $push: {
+          runErrors: runError,
+        },
+      }
+
+      // Ordinary participants are always redacted. Only an authorized hosted
+      // vault server may apply its operator-controlled disclosure decision.
       await Run.updateOne(
         { _id: runId },
-        {
-          status: 'Error',
-          lastUpdated: Date.now().toString(), // Store as a string
-          $push: {
-            runErrors: {
-              user: context.userId, // Reference to the user who reported the error
-              message: errorMessage,
-              timestamp: Date.now().toString(), // Store as a string
-            },
-          },
-        },
+        runUpdate,
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -2274,6 +2354,7 @@ export default {
         const tokens = generateTokens({
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         })
         const { accessToken } = tokens as { accessToken: string }
 
@@ -2365,10 +2446,14 @@ export default {
         roles: ['vault'],
       })
 
-      const tokens = generateTokens({
-        userId: user._id,
-        roles: user.roles,
-      })
+      const tokens = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+          tokenVersion: user.tokenVersion,
+        },
+        { shouldExpire: false },
+      )
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -2387,22 +2472,31 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      const callingUser = await User.findById(context.userId)
-      const isAdmin = callingUser.roles.includes('admin')
+      const callingUser = await User.findById(context.userId).exec()
+      const isAdmin = callingUser?.roles.includes('admin') === true
 
       if (!isAdmin) {
         throw new Error('Unauthorized')
       }
 
-      try {
-        await User
-          .updateOne({ username }, { roles })
-          .collation({ locale: 'en', strength: 2 })
-        return true
-      } catch (error) {
-        logger.error('Error changing roles:', error)
-        throw new Error('Failed to change roles')
+      const targetUser = await User
+        .findOne({ username })
+        .collation({ locale: 'en', strength: 2 })
+        .select('roles')
+        .exec()
+      if (!targetUser) {
+        throw new Error('User not found')
       }
+
+      if (targetUser.roles.includes('vault') || roles.includes('vault')) {
+        throw new Error(
+          'Vault roles must be managed through the dedicated vault account workflow',
+        )
+      }
+
+      targetUser.roles = roles
+      await targetUser.save()
+      return true
     },
     adminSetVaultAllowedComputations: async (
       _: unknown,
@@ -2667,6 +2761,255 @@ export default {
       hostedVault.name = normalizedName
       hostedVault.description = normalizedDescription
       await hostedVault.save()
+
+      return true
+    },
+    adminDeleteHostedVault: async (
+      _: unknown,
+      { vaultId }: { vaultId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(vaultId)) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId).select('_id').exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const [consortiumReference, runReference] = await Promise.all([
+        Consortium.exists({
+          $or: [
+            { vaultMembers: hostedVault._id },
+            { activeVaultMembers: hostedVault._id },
+            { readyVaultMembers: hostedVault._id },
+          ],
+        }),
+        Run.exists({ vaultMembers: hostedVault._id }),
+      ])
+
+      if (consortiumReference) {
+        throw new Error(
+          'Cannot delete a hosted vault while it belongs to a consortium',
+        )
+      }
+
+      if (runReference) {
+        throw new Error(
+          'Cannot delete a hosted vault referenced by run history',
+        )
+      }
+
+      const result = await HostedVault.deleteOne({ _id: hostedVault._id }).exec()
+      if (result.deletedCount !== 1) {
+        throw new Error('Hosted vault not found')
+      }
+
+      return true
+    },
+    adminUpdateVaultServer: async (
+      _: unknown,
+      {
+        serverId,
+        name,
+        description,
+      }: { serverId: string; name: string; description: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const normalizedName = name.trim()
+      if (normalizedName.length === 0) {
+        throw new Error('Vault server name is required')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      server.name = normalizedName
+      server.description = description.trim()
+      await server.save()
+
+      return true
+    },
+    adminRotateVaultToken: async (
+      _: unknown,
+      { serverId }: { serverId: string },
+      context: Context,
+    ): Promise<string> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const server = await VaultServer.findById(serverId).select('user').lean().exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const user = await User.findOneAndUpdate(
+        { _id: server.user, roles: 'vault' },
+        { $inc: { tokenVersion: 1 } },
+        { new: true },
+      ).select('_id roles tokenVersion').exec()
+      if (!user) {
+        throw new Error('Vault service account not found')
+      }
+
+      const { accessToken } = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+          tokenVersion: user.tokenVersion,
+        },
+        { shouldExpire: false },
+      )
+
+      return accessToken
+    },
+    adminDeleteVaultServer: async (
+      _: unknown,
+      { serverId }: { serverId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const user = await User.findById(server.user).select('_id roles').exec()
+      if (user && user.roles.some((role) => role !== 'vault')) {
+        throw new Error('Cannot delete a vault server that uses a shared user account')
+      }
+
+      const hostedVaults = await HostedVault.find({ server: server._id })
+        .select('_id')
+        .lean()
+        .exec()
+      const hostedVaultIds = hostedVaults.map((vault) => vault._id)
+
+      const [consortia, runReference] = await Promise.all([
+        Consortium.find({
+          $or: [
+            { leader: server.user },
+            { members: server.user },
+            { activeMembers: server.user },
+            { readyMembers: server.user },
+            { vaultMembers: { $in: hostedVaultIds } },
+            { activeVaultMembers: { $in: hostedVaultIds } },
+            { readyVaultMembers: { $in: hostedVaultIds } },
+          ],
+        }).select('_id leader').lean().exec(),
+        Run.exists({
+          $or: [
+            { consortiumLeader: server.user },
+            { members: server.user },
+            { 'runErrors.user': server.user },
+            { vaultMembers: { $in: hostedVaultIds } },
+          ],
+        }),
+      ])
+
+      if ((server.status?.runningComputations.length ?? 0) > 0) {
+        throw new Error('Cannot delete a vault server with running computations')
+      }
+
+      if (runReference) {
+        throw new Error(
+          'Cannot delete a vault server referenced by run history',
+        )
+      }
+
+      if (consortia.some((consortium) => consortium.leader.toString() === server.user.toString())) {
+        throw new Error('Cannot delete a vault server whose service account leads a consortium')
+      }
+
+      if (consortia.length > 0) {
+        await Consortium.updateMany(
+          { _id: { $in: consortia.map((consortium) => consortium._id) } },
+          {
+            $pull: {
+              members: server.user,
+              activeMembers: server.user,
+              readyMembers: server.user,
+              vaultMembers: { $in: hostedVaultIds },
+              activeVaultMembers: { $in: hostedVaultIds },
+              readyVaultMembers: { $in: hostedVaultIds },
+            },
+          },
+        ).exec()
+
+        consortia.forEach((consortium) => {
+          pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+            consortiumId: consortium._id.toString(),
+          })
+        })
+      }
+
+      await Invite.deleteMany({ leader: server.user }).exec()
+
+      // Delete the account first so its existing token cannot recreate the server.
+      if (user) {
+        const userResult = await User.deleteOne({ _id: user._id }).exec()
+        if (userResult.deletedCount !== 1) {
+          throw new Error('Vault service account could not be deleted')
+        }
+      }
+
+      if (hostedVaultIds.length > 0) {
+        const hostedVaultResult = await HostedVault.deleteMany({
+          _id: { $in: hostedVaultIds },
+          server: server._id,
+        }).exec()
+        if (hostedVaultResult.deletedCount !== hostedVaultIds.length) {
+          throw new Error('Hosted vaults could not be deleted')
+        }
+      }
+
+      const serverResult = await VaultServer.deleteOne({ _id: server._id }).exec()
+      if (serverResult.deletedCount !== 1) {
+        throw new Error('Vault server could not be deleted')
+      }
 
       return true
     },
@@ -3094,6 +3437,7 @@ export default {
           vaultId,
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         } = payload
         // create a token
@@ -3110,6 +3454,7 @@ export default {
           vaultId: vaultId ?? null,
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
           downloadUrl: `${CLIENT_FILE_SERVER_URL}/download/${consortiumId}/${runId}/${participantId}`,
           downloadToken: accessToken,

@@ -28,6 +28,7 @@ services:
       - VAULT_BASE_DIR=/vault/workdir
       - VAULT_DATASET_DIR=/vault/data
       - VAULT_LOG_PATH=/vault/logs
+      - VAULT_ERROR_DISCLOSURE=${VAULT_ERROR_DISCLOSURE:-redacted}
     
     volumes:
       # Mount Docker socket for launching computation containers

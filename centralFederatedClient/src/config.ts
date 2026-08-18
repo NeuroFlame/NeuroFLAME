@@ -18,3 +18,13 @@ export const FQDN = requireEnv('FQDN')
 export const LOG_PATH = requireEnvOptional('LOG_PATH')
 export const HOSTING_PORT_START = Number(requireEnv('HOSTING_PORT_START'))
 export const HOSTING_PORT_END = Number(requireEnv('HOSTING_PORT_END'))
+
+const computationImageMode = process.env.COMPUTATION_IMAGE_MODE ?? 'registry'
+if (!['local', 'registry'].includes(computationImageMode)) {
+  throw new Error(
+    'COMPUTATION_IMAGE_MODE must be either "local" or "registry"',
+  )
+}
+export const COMPUTATION_IMAGE_MODE = computationImageMode as
+  | 'local'
+  | 'registry'

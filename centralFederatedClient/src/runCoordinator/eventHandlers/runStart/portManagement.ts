@@ -1,65 +1,99 @@
-import net from 'net'
+import Docker from 'dockerode'
 import { logger } from '../../../logger.js'
+
+const docker = new Docker()
+const RESERVATION_LABEL = 'org.neuroflame.port-reservation'
 
 interface ReservePortOptions {
   start: number
   end: number
+  imageName: string
 }
 
 interface ReservePortResult {
   port: number
-  server: net.Server
+  release: () => Promise<void>
 }
 
-export async function reservePort({
-  start,
-  end,
-}: ReservePortOptions): Promise<ReservePortResult> {
+export async function reservePort(
+  { start, end, imageName }: ReservePortOptions,
+  dockerClient: Pick<Docker, 'createContainer'> = docker,
+): Promise<ReservePortResult> {
   if (start < 1024 || end > 65535 || start > end) {
     throw new Error(
       'Invalid port range. Must be between 1024 and 65535 and start must be less than end.',
     )
   }
 
-  return new Promise((resolve, reject) => {
-    let port = start
+  for (let port = start; port <= end; port++) {
+    const portWithProtocol = `${port}/tcp`
+    const container = await dockerClient.createContainer({
+      Image: imageName,
+      Entrypoint: ['python'],
+      Cmd: ['-c', 'import time; time.sleep(86400)'],
+      Labels: { [RESERVATION_LABEL]: 'true' },
+      ExposedPorts: { [portWithProtocol]: {} },
+      HostConfig: {
+        AutoRemove: false,
+        CapDrop: ['ALL'],
+        NetworkMode: 'bridge',
+        PortBindings: {
+          [portWithProtocol]: [{ HostPort: `${port}` }],
+        },
+        SecurityOpt: ['no-new-privileges:true'],
+      },
+    })
 
-    const attemptPort = () => {
-      const server = createServer()
+    try {
+      await container.start()
+      logger.info(`Reserved Docker host port ${port}`)
 
-      server.listen(port, () => {
-        const address = server.address() as net.AddressInfo
-        const chosenPort = address.port
-        logger.info(`Listening on port ${chosenPort}`)
-
-        resolve({
-          port: chosenPort,
-          server,
-        })
-      })
-
-      server.on('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'EADDRINUSE' && port < end) {
-          port++
-          attemptPort() // Try the next port
-        } else if (err.code === 'EADDRINUSE') {
-          logger.error(
-            `No available ports in range ${start}-${end}. All are in use.`,
-          )
-          reject(new Error('All ports in the specified range are in use.'))
-        } else {
-          logger.error(`Error reserving port: ${err.message}`)
-          reject(err) // Reject if no available ports or another error occurs
-        }
-      })
+      let released = false
+      return {
+        port,
+        release: async () => {
+          if (released) return
+          try {
+            await container.remove({ force: true })
+          } catch (error) {
+            if ((error as { statusCode?: number }).statusCode !== 404) {
+              throw error
+            }
+          }
+          released = true
+        },
+      }
+    } catch (error) {
+      await removeFailedReservation(container, port)
+      if (isPortAllocationError(error)) {
+        continue
+      }
+      throw error
     }
+  }
 
-    attemptPort()
-  })
+  logger.error(`No available Docker host ports in range ${start}-${end}.`)
+  throw new Error('All ports in the specified range are in use.')
 }
 
-function createServer(): net.Server {
-  return net.createServer((sock) => {
-    sock.end('Hello world\n')
-  })
+async function removeFailedReservation(
+  container: Docker.Container,
+  port: number,
+): Promise<void> {
+  try {
+    await container.remove({ force: true })
+  } catch (error) {
+    if ((error as { statusCode?: number }).statusCode !== 404) {
+      logger.warn(`Failed to remove port reservation container for ${port}`, {
+        error,
+      })
+    }
+  }
+}
+
+function isPortAllocationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /port is already allocated|address already in use|port is not available/i.test(
+    message,
+  )
 }

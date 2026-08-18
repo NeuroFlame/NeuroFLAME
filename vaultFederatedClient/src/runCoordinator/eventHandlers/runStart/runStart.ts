@@ -1,9 +1,10 @@
 import {
   VAULT_BASE_DIR,
   VAULT_CONTAINER_SERVICE,
+  VAULT_ERROR_DISCLOSURE,
 } from '../../../config.js'
 import {
-  ensureImageReadyForRun,
+  prepareResolvedComputationImage,
   registerTrackedImage,
 } from '../../../imageManager.js'
 import { resolveDatasetPathForVault } from '../../../vaultConfigManager.js'
@@ -14,6 +15,7 @@ import { unzipFile } from './unzipFile.js'
 import { promises as fs } from 'fs'
 import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
+import { resolveContainerFailureReport } from '../../terminalError.js'
 
 export const RUN_START_SUBSCRIPTION = `
   subscription runStartSubscription {
@@ -24,6 +26,20 @@ export const RUN_START_SUBSCRIPTION = `
       vaultId
       computationId
       imageName
+      resolvedImage {
+        sourceImage
+        reference
+        digest
+        metadata {
+          title
+          computationVersion
+          revision
+          source
+          computationApiVersion
+          boilerplateVersion
+          nvflareVersion
+        }
+      }
       downloadUrl
       downloadToken
     }
@@ -43,24 +59,34 @@ export const runStartHandler = {
         participantId,
         vaultId,
         computationId,
-        imageName,
+        resolvedImage,
         downloadUrl,
         downloadToken,
       } = data.runStartEdge
 
-      await registerTrackedImage(imageName)
-      await ensureImageReadyForRun(imageName, VAULT_CONTAINER_SERVICE)
+      if (resolvedImage.reference !== resolvedImage.digest) {
+        await registerTrackedImage(resolvedImage.reference)
+      }
+      const runtimeImage = await prepareResolvedComputationImage(
+        resolvedImage,
+        VAULT_CONTAINER_SERVICE,
+      )
 
       const consortiumPath = path.join(VAULT_BASE_DIR, consortiumId)
       const runPath = path.join(consortiumPath, runId, participantId)
       const runKitPath = path.join(runPath, 'runKit')
       const resultsPath = path.join(runPath, 'results')
 
-      // Ensure all paths exist and are writable and executable
-      await fs.mkdir(consortiumPath, { recursive: true, mode: 0o777 })
-      await fs.mkdir(runPath, { recursive: true, mode: 0o777 })
-      await fs.mkdir(runKitPath, { recursive: true, mode: 0o777 })
-      await fs.mkdir(resultsPath, { recursive: true, mode: 0o777 })
+      // Keep run artifacts private to the federated-client service account.
+      for (const directory of [
+        consortiumPath,
+        runPath,
+        runKitPath,
+        resultsPath,
+      ]) {
+        await fs.mkdir(directory, { recursive: true, mode: 0o700 })
+        await fs.chmod(directory, 0o700)
+      }
 
       // Download the runkit to the appropriate directory
       await downloadFile({
@@ -86,10 +112,12 @@ export const runStartHandler = {
         {
           hostDirectory: runKitPath,
           containerDirectory: '/workspace/runKit',
+          readOnly: false,
         },
         {
           hostDirectory: resultsPath,
           containerDirectory: '/workspace/output',
+          readOnly: false,
         },
       ]
 
@@ -101,22 +129,31 @@ export const runStartHandler = {
       directoriesToMount.push({
         hostDirectory: datasetPath,
         containerDirectory: '/workspace/data',
+        readOnly: true,
       })
 
       // Launch the node
       await launchNode({
         containerService: VAULT_CONTAINER_SERVICE,
-        imageName,
+        imageName: runtimeImage,
         runId,
         consortiumId,
         directoriesToMount,
         portBindings: [],
         commandsToRun: ['python', '/workspace/system/entry_edge.py'],
+        failureLogPath: path.join(resultsPath, 'failed-container.log'),
         onContainerExitError: async (containerId, error) => {
           logger.error(`Error in container: ${containerId}`, { error })
-          reportRunError({
+          const genericError = `Error in container: ${containerId}`
+          const failureReport = await resolveContainerFailureReport({
+            outputDirectory: resultsPath,
+            disclosure: VAULT_ERROR_DISCLOSURE,
+            genericError,
+          })
+          await reportRunError({
             runId,
-            errorMessage: `Error in container: ${containerId}`,
+            vaultId,
+            ...failureReport,
           })
         },
         onContainerExitSuccess(containerId) {
@@ -128,6 +165,7 @@ export const runStartHandler = {
 
       await reportRunError({
         runId: data.runStartEdge.runId,
+        vaultId: data.runStartEdge.vaultId,
         errorMessage: `Error starting run: ${(error as Error).message}`,
       })
     }

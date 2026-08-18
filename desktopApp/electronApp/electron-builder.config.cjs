@@ -2,6 +2,7 @@ const packageJson = require('./package.json');
 module.exports = {
   appId: 'neuroflame',
   productName: 'NeuroFLAME',
+  electronVersion: packageJson.build.electronVersion,
   directories: {
     buildResources: 'assets',
     output: 'dist',
@@ -15,7 +16,7 @@ module.exports = {
   ],
   mac: {
     icon: 'img/icons/icon-osx.icns',
-    target: 'dmg',
+    target: ['dmg', 'zip'],
     category: 'public.app-category.education',
     hardenedRuntime: true,
     notarize: {
