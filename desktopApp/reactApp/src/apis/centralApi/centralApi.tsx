@@ -93,7 +93,6 @@ import { leaderAddVaultUser } from './leaderAddVaultUser'
 import { leaderRemoveMember } from './leaderRemoveMember'
 import { leaderSetMemberInactive } from './leaderSetMemberInactive'
 import {
-  decideMcpWrite,
   getMcpSettings,
   revokeMcpConnection,
   setMcpEnabled,
@@ -116,8 +115,6 @@ export const useCentralApi = () => {
       setMcpResultsEnabled(centralApiApolloClient, enabled),
     revokeMcpConnection: (connectionId: string) =>
       revokeMcpConnection(centralApiApolloClient, connectionId),
-    decideMcpWrite: (requestId: string, approved: boolean) =>
-      decideMcpWrite(centralApiApolloClient, requestId, approved),
     getConsortiumList: () => getConsortiumList(centralApiApolloClient),
     getComputationList: () => getComputationList(centralApiApolloClient),
     getConsortiumDetails: (input: QueryGetConsortiumDetailsArgs) =>

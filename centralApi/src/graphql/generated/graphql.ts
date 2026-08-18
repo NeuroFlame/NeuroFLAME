@@ -122,18 +122,6 @@ export type McpConnection = {
   lastUsedAt: Scalars['String']['output'];
 };
 
-export type McpPendingWrite = {
-  __typename?: 'McpPendingWrite';
-  clientName: Scalars['String']['output'];
-  createdAt: Scalars['String']['output'];
-  expiresAt: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  operationHash: Scalars['String']['output'];
-  preview: Array<McpWritePreviewField>;
-  summary: Scalars['String']['output'];
-  toolName: Scalars['String']['output'];
-};
-
 export type McpResultRequest = {
   __typename?: 'McpResultRequest';
   callbackToken: Scalars['String']['output'];
@@ -152,15 +140,7 @@ export type McpSettings = {
   connections: Array<McpConnection>;
   enabled: Scalars['Boolean']['output'];
   endpoint: Scalars['String']['output'];
-  pendingWrites: Array<McpPendingWrite>;
   resultsEnabled: Scalars['Boolean']['output'];
-};
-
-export type McpWritePreviewField = {
-  __typename?: 'McpWritePreviewField';
-  fullValue?: Maybe<Scalars['String']['output']>;
-  label: Scalars['String']['output'];
-  value: Scalars['String']['output'];
 };
 
 export type Mutation = {
@@ -184,7 +164,6 @@ export type Mutation = {
   consortiumLeave: Scalars['Boolean']['output'];
   consortiumSetMemberActive: Scalars['Boolean']['output'];
   consortiumSetMemberReady: Scalars['Boolean']['output'];
-  decideMcpWrite: Scalars['Boolean']['output'];
   leaderAddHostedVault: Scalars['Boolean']['output'];
   leaderAddVaultUser: Scalars['Boolean']['output'];
   leaderRemoveHostedVault: Scalars['Boolean']['output'];
@@ -332,12 +311,6 @@ export type MutationConsortiumSetMemberActiveArgs = {
 export type MutationConsortiumSetMemberReadyArgs = {
   consortiumId: Scalars['String']['input'];
   ready: Scalars['Boolean']['input'];
-};
-
-
-export type MutationDecideMcpWriteArgs = {
-  approved: Scalars['Boolean']['input'];
-  requestId: Scalars['String']['input'];
 };
 
 

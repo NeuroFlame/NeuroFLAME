@@ -1,16 +1,11 @@
 import McpAuthorizationCode from '../database/models/McpAuthorizationCode.js'
 import McpGrant from '../database/models/McpGrant.js'
-import McpWriteRequest from '../database/models/McpWriteRequest.js'
 import User from '../database/models/User.js'
 import { MCP_PUBLIC_URL } from '../config.js'
 import {
   cancelPendingResultsForFamily,
   cancelPendingResultsForUser,
 } from './resultRelay.js'
-import {
-  cancelPendingWritesForFamily,
-  cancelPendingWritesForUser,
-} from './writeConfirmation.js'
 import {
   closeMcpSessionsForFamily,
   closeMcpSessionsForUser,
@@ -25,16 +20,6 @@ export interface McpSettingsView {
     clientName: string
     createdAt: string
     lastUsedAt: string
-  }>
-  pendingWrites: Array<{
-    id: string
-    clientName: string
-    toolName: string
-    summary: string
-    operationHash: string
-    preview: Array<{ label: string; value: string; fullValue?: string }>
-    createdAt: string
-    expiresAt: string
   }>
 }
 
@@ -52,15 +37,6 @@ export async function getMcpSettings(userId: string): Promise<McpSettingsView> {
     .sort({ lastUsedAt: -1 })
     .lean()
 
-  const pendingWrites = await McpWriteRequest.find({
-    userId,
-    status: 'pending',
-    expiresAt: { $gt: new Date() },
-  })
-    .select('requestId clientName toolName summary operationHash preview createdAt expiresAt')
-    .sort({ createdAt: 1 })
-    .lean()
-
   return {
     enabled: user.mcpEnabled ?? false,
     resultsEnabled: (user.mcpEnabled && user.mcpResultsEnabled) ?? false,
@@ -70,16 +46,6 @@ export async function getMcpSettings(userId: string): Promise<McpSettingsView> {
       clientName: grant.clientName,
       createdAt: grant.createdAt.toISOString(),
       lastUsedAt: grant.lastUsedAt.toISOString(),
-    })),
-    pendingWrites: pendingWrites.map((request) => ({
-      id: request.requestId,
-      clientName: request.clientName,
-      toolName: request.toolName,
-      summary: request.summary,
-      operationHash: request.operationHash,
-      preview: request.preview || [],
-      createdAt: request.createdAt.toISOString(),
-      expiresAt: request.expiresAt.toISOString(),
     })),
   }
 }
@@ -100,7 +66,6 @@ export async function setMcpEnabled(
   if (!enabled) {
     cancelPendingResultsForUser(userId)
     await Promise.all([
-      cancelPendingWritesForUser(userId),
       closeMcpSessionsForUser(userId),
       McpGrant.updateMany(
         { userId, revokedAt: { $exists: false } },
@@ -143,42 +108,7 @@ export async function revokeMcpConnection(
   )
   if (result.modifiedCount === 1) {
     cancelPendingResultsForFamily(connectionId)
-    await Promise.all([
-      cancelPendingWritesForFamily(connectionId),
-      closeMcpSessionsForFamily(connectionId),
-    ])
+    await closeMcpSessionsForFamily(connectionId)
   }
-  return result.modifiedCount === 1
-}
-
-export async function decideMcpWrite(
-  userId: string,
-  requestId: string,
-  approved: boolean,
-): Promise<boolean> {
-  const user = await User.findById(userId)
-    .select('mcpEnabled mcpAuthorizationEpoch')
-    .lean()
-  if (!user?.mcpEnabled) return false
-  const request = await McpWriteRequest.findOne({
-    requestId,
-    userId,
-    status: 'pending',
-    expiresAt: { $gt: new Date() },
-  }).lean()
-  if (!request || request.authorizationEpoch !== (user.mcpAuthorizationEpoch ?? 0)) return false
-  if (approved && !(await McpGrant.exists({
-    userId,
-    familyId: request.familyId,
-    authorizationEpoch: request.authorizationEpoch,
-    revokedAt: { $exists: false },
-    refreshExpiresAt: { $gt: new Date() },
-    familyExpiresAt: { $gt: new Date() },
-    scopes: 'neuroflame:write',
-  }))) return false
-  const result = await McpWriteRequest.updateOne(
-    { _id: request._id, status: 'pending' },
-    { $set: { status: approved ? 'approved' : 'denied', decidedAt: new Date() } },
-  )
   return result.modifiedCount === 1
 }

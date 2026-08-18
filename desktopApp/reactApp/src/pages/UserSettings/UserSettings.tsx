@@ -34,8 +34,6 @@ export default function UserSettings() {
 
   useEffect(() => {
     load()
-    const timer = window.setInterval(() => { load() }, 2_000)
-    return () => window.clearInterval(timer)
   }, [])
 
   const update = async (action: () => Promise<McpSettings>) => {
@@ -63,8 +61,9 @@ export default function UserSettings() {
 
       <Typography variant='h5' mt={3}>Agent access (MCP)</Typography>
       <Typography color='text.secondary' mt={1}>
-        MCP lets an authenticated agent view NeuroFLAME metadata and request confirmed
-        management actions. It never exposes participant datasets, dataset mount paths,
+        MCP lets an authenticated agent view NeuroFLAME metadata and request management
+        actions that you confirm in the connected agent application. It never exposes
+        participant datasets, dataset mount paths,
         local computation parameters, run kits, local logs, or raw computation errors.
       </Typography>
 
@@ -104,89 +103,6 @@ export default function UserSettings() {
         )}
         label='Allow agents to serialize my deidentified Results-page derivatives'
       />
-
-      <Divider sx={{ my: 3 }} />
-      <Typography variant='h6'>Pending agent actions</Typography>
-      <Typography variant='body2' color='text.secondary' mt={1}>
-        Agent-requested changes run only after you approve the exact operation here.
-        Requests expire after two minutes.
-      </Typography>
-      {settings.pendingWrites.length === 0 ? (
-        <Typography color='text.secondary' mt={1}>No actions are awaiting approval.</Typography>
-      ) : (
-        <List>
-          {settings.pendingWrites.map((request) => (
-            <ListItem
-              key={request.id}
-              alignItems='flex-start'
-              secondaryAction={(
-                <Box display='flex' gap={1}>
-                  <Button
-                    color='error'
-                    disabled={busy}
-                    onClick={() => update(async () => {
-                      await api.decideMcpWrite(request.id, false)
-                      return api.getMcpSettings()
-                    })}
-                  >
-                    Deny
-                  </Button>
-                  <Button
-                    variant='contained'
-                    disabled={busy}
-                    onClick={() => update(async () => {
-                      await api.decideMcpWrite(request.id, true)
-                      return api.getMcpSettings()
-                    })}
-                  >
-                    Approve
-                  </Button>
-                </Box>
-              )}
-            >
-              <ListItemText
-                sx={{ pr: 22 }}
-                primary={request.summary}
-                secondaryTypographyProps={{ component: 'div' }}
-                secondary={(
-                  <Box>
-                    <Typography variant='body2'>Requested by {request.clientName}</Typography>
-                    <Typography variant='caption' sx={{ overflowWrap: 'anywhere' }}>
-                      Exact operation fingerprint: {request.operationHash}
-                    </Typography>
-                    {request.preview.map((field) => (
-                      <Box key={field.label} mt={1}>
-                        <Typography variant='caption' fontWeight='bold'>{field.label}</Typography>
-                        <Typography
-                          component='pre'
-                          variant='body2'
-                          sx={{ m: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
-                        >
-                          {field.value}
-                        </Typography>
-                        {field.fullValue && (
-                          <Box component='details' mt={0.5}>
-                            <Typography component='summary' variant='caption'>
-                              Show the complete value before approving
-                            </Typography>
-                            <Typography
-                              component='pre'
-                              variant='body2'
-                              sx={{ maxHeight: 320, overflow: 'auto', whiteSpace: 'pre-wrap' }}
-                            >
-                              {field.fullValue}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-              />
-            </ListItem>
-          ))}
-        </List>
-      )}
 
       <Divider sx={{ my: 3 }} />
       <Typography variant='h6'>Connection endpoint</Typography>

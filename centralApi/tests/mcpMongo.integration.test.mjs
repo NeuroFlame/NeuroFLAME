@@ -15,12 +15,10 @@ const integrationUri = process.env.MCP_MONGO_INTEGRATION_URI
 const { NeuroflameOAuthProvider } = await import('../dist/mcp/oauthProvider.js')
 const { setMcpEnabled, setMcpResultsEnabled } = await import('../dist/mcp/settings.js')
 const { requestDesktopResult } = await import('../dist/mcp/resultRelay.js')
-const { requestWriteApproval } = await import('../dist/mcp/writeConfirmation.js')
 const { buildInviteWriteApproval } = await import('../dist/mcp/inviteApproval.js')
 const { default: Consortium } = await import('../dist/database/models/Consortium.js')
 const { default: Invite } = await import('../dist/database/models/Invite.js')
 const { default: McpGrant } = await import('../dist/database/models/McpGrant.js')
-const { default: McpWriteRequest } = await import('../dist/database/models/McpWriteRequest.js')
 const { default: Run } = await import('../dist/database/models/Run.js')
 const { default: User } = await import('../dist/database/models/User.js')
 
@@ -36,14 +34,6 @@ const client = {
 }
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
-
-const waitFor = async (predicate) => {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    if (await predicate()) return
-    await delay(20)
-  }
-  throw new Error('Timed out waiting for integration-test state')
-}
 
 const createGrant = async ({ user, refreshToken, scopes }) => {
   const now = Date.now()
@@ -140,7 +130,7 @@ describe('MCP Mongo authorization invariants', { skip: !integrationUri }, () => 
     assert.equal(current?.mcpResultsEnabled, false)
   })
 
-  it('persists distinguishable invitation approvals without raw invite tokens', async () => {
+  it('builds distinguishable invitation approvals without raw invite tokens', async () => {
     const leader = await User.create({
       username: `leader-${randomUUID()}@example.test`,
       hash: 'unused',
@@ -167,35 +157,13 @@ describe('MCP Mongo authorization invariants', { skip: !integrationUri }, () => 
     const approvals = await Promise.all(tokens.map((token) =>
       buildInviteWriteApproval(member._id.toString(), token)))
     assert.notDeepEqual(approvals[0], approvals[1])
-
-    const familyId = await createGrant({
-      user: member,
-      refreshToken: `invite-refresh-${randomUUID()}`,
-      scopes: ['neuroflame:read', 'neuroflame:write'],
-    })
-    for (const [index, token] of tokens.entries()) {
-      const controller = new AbortController()
-      controller.abort()
-      assert.equal(await requestWriteApproval({
-        userId: member._id.toString(),
-        familyId,
-        clientName: client.client_name,
-        authorizationEpoch: 0,
-        toolName: 'join_consortium_by_invite',
-        args: { inviteToken: token },
-        ...approvals[index],
-        signal: controller.signal,
-      }), false)
-    }
-    const persisted = JSON.stringify(await McpWriteRequest.find({ familyId }).lean())
     const displayed = JSON.stringify(approvals)
     for (const token of tokens) {
-      assert.doesNotMatch(persisted, new RegExp(token))
       assert.doesNotMatch(displayed, new RegExp(token))
     }
   })
 
-  it('cancels pending writes and results when refresh removes their scope', async () => {
+  it('cancels pending results when refresh removes their scope', async () => {
     const user = await User.create({
       username: `scope-${randomUUID()}@example.test`,
       hash: 'unused',
@@ -204,30 +172,6 @@ describe('MCP Mongo authorization invariants', { skip: !integrationUri }, () => 
       mcpResultsEnabled: true,
       mcpAuthorizationEpoch: 0,
     })
-    const writeRefresh = `write-${randomUUID()}`
-    const writeFamily = await createGrant({
-      user,
-      refreshToken: writeRefresh,
-      scopes: ['neuroflame:read', 'neuroflame:write'],
-    })
-    const writeApproval = requestWriteApproval({
-      userId: user._id.toString(),
-      familyId: writeFamily,
-      clientName: client.client_name,
-      authorizationEpoch: 0,
-      toolName: 'start_run',
-      args: { consortiumId: 'consortium' },
-      summary: 'Start run?',
-      preview: [{ label: 'consortiumId', value: 'consortium' }],
-    })
-    await waitFor(() => McpWriteRequest.exists({ familyId: writeFamily, status: 'pending' }))
-    await new NeuroflameOAuthProvider().exchangeRefreshToken(
-      client,
-      writeRefresh,
-      ['neuroflame:read'],
-    )
-    assert.equal(await writeApproval, false)
-
     const resultRefresh = `result-${randomUUID()}`
     const resultFamily = await createGrant({
       user,

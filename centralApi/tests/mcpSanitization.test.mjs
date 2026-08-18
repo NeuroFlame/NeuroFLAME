@@ -13,10 +13,14 @@ process.env.CONSORTIUM_INVITE_URL ||= 'http://localhost/invite'
 const {
   callResolver,
   currentResolverContext,
+  resultToolError,
   safeHostedVault,
   safeMember,
   safeRunDetails,
 } = await import('../dist/mcp/server.js')
+const {
+  DesktopResultUnavailableError,
+} = await import('../dist/mcp/resultRelay.js')
 const { default: McpGrant } = await import('../dist/database/models/McpGrant.js')
 const { default: Invite } = await import('../dist/database/models/Invite.js')
 const { default: User } = await import('../dist/database/models/User.js')
@@ -28,6 +32,7 @@ const {
 } = await import('../dist/mcp/authorizationRateLimit.js')
 const {
   authorizeWrite,
+  buildWriteConfirmationMessage,
   buildWritePreview,
   writeOperationHash,
 } = await import('../dist/mcp/writeConfirmation.js')
@@ -109,33 +114,68 @@ describe('MCP metadata allowlists', () => {
   })
 })
 
-describe('MCP write confirmation', () => {
-  it('does not treat an MCP client acceptance as authorization', async () => {
-    const client = {
-      sendRequest: async () => ({ action: 'accept', content: { acknowledged: true } }),
-    }
-    assert.equal(await authorizeWrite(client, 'Confirm?', async () => false), false)
-    assert.equal(await authorizeWrite(client, 'Confirm?', async () => true), true)
+describe('MCP derivative result errors', () => {
+  it('tells the user when the signed-in desktop service does not respond', () => {
+    const result = resultToolError(new DesktopResultUnavailableError())
+    assert.equal(result.isError, true)
+    assert.match(result.content[0].text, /Open the app and sign in to the same account/)
   })
 
-  it('can use in-app approval when the client cannot handle elicitation', async () => {
+  it('does not expose unexpected relay errors', () => {
+    const result = resultToolError(new Error('/private/patient/results/diagnostic.log'))
+    assert.doesNotMatch(result.content[0].text, /private|patient|diagnostic/i)
+    assert.match(result.content[0].text, /connection permissions/)
+  })
+})
+
+describe('MCP write confirmation', () => {
+  it('requires the MCP host to explicitly accept and confirm the operation', async () => {
+    assert.equal(await authorizeWrite({
+      sendRequest: async () => ({ action: 'accept', content: { confirm: true } }),
+    }, 'Confirm?'), true)
+    assert.equal(await authorizeWrite({
+      sendRequest: async () => ({ action: 'accept', content: { confirm: false } }),
+    }, 'Confirm?'), false)
+    assert.equal(await authorizeWrite({
+      sendRequest: async () => ({ action: 'decline' }),
+    }, 'Confirm?'), false)
+  })
+
+  it('fails closed when the MCP host cannot handle elicitation', async () => {
     assert.equal(await authorizeWrite({
       sendRequest: () => { throw new Error('Unsupported') },
-    }, 'Confirm?', async () => true), true)
+    }, 'Confirm?'), false)
   })
 
   it('cancels approval when the MCP request is aborted', async () => {
-    let checkedInApp = false
+    let requested = false
     const controller = new AbortController()
     controller.abort()
     assert.equal(await authorizeWrite({
       signal: controller.signal,
-      sendRequest: async () => ({ action: 'accept' }),
-    }, 'Confirm?', async () => {
-      checkedInApp = true
-      return true
-    }), false)
-    assert.equal(checkedInApp, false)
+      sendRequest: async () => {
+        requested = true
+        return { action: 'accept', content: { confirm: true } }
+      },
+    }, 'Confirm?'), false)
+    assert.equal(requested, false)
+  })
+
+  it('propagates cancellation to an in-flight MCP host approval', async () => {
+    const controller = new AbortController()
+    let receivedSignal
+    const approval = authorizeWrite({
+      signal: controller.signal,
+      sendRequest: async (_request, _schema, options) => {
+        receivedSignal = options.signal
+        return await new Promise((_resolve, reject) => {
+          options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true })
+        })
+      },
+    }, 'Confirm?')
+    controller.abort()
+    assert.equal(await approval, false)
+    assert.equal(receivedSignal, controller.signal)
   })
 
   it('binds approval to a canonical exact operation payload', () => {
@@ -170,7 +210,22 @@ describe('MCP write confirmation', () => {
     const second = buildWritePreview('set_study_parameters', { parameters: `b${'x'.repeat(2500)}` })
     assert.notEqual(first[0].value, second[0].value)
     assert.match(first[0].value, /full-value SHA-256/)
-    assert.equal(first[0].fullValue, `a${'x'.repeat(2500)}`)
+  })
+
+  it('sends a bounded exact-operation preview without excluded secrets', () => {
+    const message = buildWriteConfirmationMessage({
+      toolName: 'join_consortium_by_invite',
+      args: { inviteToken: 'raw-secret-token' },
+      summary: 'Join Consortium One?',
+      preview: [
+        { label: 'consortiumTitle', value: 'Consortium One' },
+        { label: 'account', value: 'member@example.test' },
+      ],
+    })
+    assert.match(message, /Join Consortium One/)
+    assert.match(message, /Exact operation fingerprint: [a-f0-9]{64}/)
+    assert.match(message, /member@example\.test/)
+    assert.doesNotMatch(message, /raw-secret-token/)
   })
 
   it('shows a distinguishable invitation target without retaining its token', async () => {

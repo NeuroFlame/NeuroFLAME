@@ -25,6 +25,15 @@ export interface RelayResult {
   blocks: Array<RelayTextBlock | RelayImageBlock>
 }
 
+export class DesktopResultUnavailableError extends Error {
+  constructor() {
+    super(
+      'The NeuroFLAME desktop app is not responding. Open the app and sign in to the same account, then try again.',
+    )
+    this.name = 'DesktopResultUnavailableError'
+  }
+}
+
 interface PendingRelay {
   userId: string
   familyId: string
@@ -321,7 +330,7 @@ export async function requestDesktopResult({
   const resultPromise = new Promise<RelayResult>((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(requestId)
-      reject(new Error('The desktop derivative result service is unavailable'))
+      reject(new DesktopResultUnavailableError())
     }, RELAY_TIMEOUT_MS)
     pending.set(requestId, {
       userId,

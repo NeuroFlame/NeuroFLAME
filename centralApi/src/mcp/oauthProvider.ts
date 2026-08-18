@@ -24,20 +24,25 @@ import {
 } from './authorizationRateLimit.js'
 import { cancelPendingResultsForFamily } from './resultRelay.js'
 import { closeMcpSessionsForFamily } from './sessionRegistry.js'
-import { cancelPendingWritesForFamily } from './writeConfirmation.js'
 
 const ACCESS_TOKEN_LIFETIME_SECONDS = 15 * 60
 const REFRESH_TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000
 const MAX_REFRESH_ROTATIONS = 10_000
 const AUTHORIZATION_CODE_LIFETIME_MS = 5 * 60 * 1000
 const AUTHORIZATION_REQUEST_ATTEMPTS = 5
-const AUTHORIZATION_CSP = [
-  "default-src 'none'",
-  "style-src 'unsafe-inline'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'none'",
-].join('; ')
+export function authorizationCspForRedirect(redirectUri: string): string {
+  const redirect = new URL(redirectUri)
+  if (!['http:', 'https:'].includes(redirect.protocol)) {
+    throw new Error('OAuth redirect URI must use HTTP(S)')
+  }
+  return [
+    "default-src 'none'",
+    "style-src 'unsafe-inline'",
+    `form-action 'self' ${redirect.origin}`,
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+  ].join('; ')
+}
 const ALLOWED_SCOPES = new Set([
   'neuroflame:read',
   'neuroflame:write',
@@ -51,10 +56,7 @@ const randomToken = (): string => randomBytes(32).toString('base64url')
 
 const invalidateFamilyRuntime = async (familyId: string): Promise<void> => {
   cancelPendingResultsForFamily(familyId)
-  await Promise.all([
-    cancelPendingWritesForFamily(familyId),
-    closeMcpSessionsForFamily(familyId),
-  ])
+  await closeMcpSessionsForFamily(familyId)
 }
 
 const escapeHtml = (value: string): string => value
@@ -154,7 +156,7 @@ export class NeuroflameOAuthProvider implements OAuthServerProvider {
     res.set({
       'Cache-Control': 'no-store',
       Pragma: 'no-cache',
-      'Content-Security-Policy': AUTHORIZATION_CSP,
+      'Content-Security-Policy': authorizationCspForRedirect(params.redirectUri),
       'Referrer-Policy': 'no-referrer',
       'X-Content-Type-Options': 'nosniff',
     })
@@ -359,9 +361,6 @@ export class NeuroflameOAuthProvider implements OAuthServerProvider {
     const removedScopes = grant.scopes.filter((scope) => !nextScopes.includes(scope))
     if (removedScopes.includes('neuroflame:results')) {
       cancelPendingResultsForFamily(grant.familyId)
-    }
-    if (removedScopes.includes('neuroflame:write')) {
-      await cancelPendingWritesForFamily(grant.familyId)
     }
     if (removedScopes.length > 0) await closeMcpSessionsForFamily(grant.familyId)
     return {

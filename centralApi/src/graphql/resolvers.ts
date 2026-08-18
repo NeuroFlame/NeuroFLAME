@@ -35,7 +35,6 @@ import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
 import { COMPUTATION_API_VERSION } from '../versions.js'
 import {
-  decideMcpWrite,
   getMcpSettings,
   revokeMcpConnection,
   setMcpEnabled,
@@ -3084,14 +3083,6 @@ export default {
     ) => {
       if (!context.userId) throw new Error('User is not authenticated')
       return revokeMcpConnection(context.userId, connectionId)
-    },
-    decideMcpWrite: async (
-      _: unknown,
-      { requestId, approved }: { requestId: string; approved: boolean },
-      context: Context,
-    ) => {
-      if (!context.userId) throw new Error('User is not authenticated')
-      return decideMcpWrite(context.userId, requestId, approved)
     },
   },
 

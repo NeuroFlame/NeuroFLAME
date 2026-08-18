@@ -5,8 +5,8 @@
 ### Minor Changes
 
 - add per-user MCP access and connection controls
-- require MCP writes to be approved in the authenticated NeuroFLAME settings UI
-  and disconnect participant result relays on logout
+- require MCP writes to be confirmed through the trusted agent application's
+  MCP elicitation UI and disconnect participant result relays on logout
 
 ### Patch Changes
 

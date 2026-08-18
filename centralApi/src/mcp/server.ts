@@ -18,12 +18,15 @@ import { logger } from '../logger.js'
 import { APPLICATION_API_VERSION } from '../versions.js'
 import { oauthMetadata, oauthProvider } from './oauthRouter.js'
 import { buildInviteWriteApproval } from './inviteApproval.js'
-import { requestDesktopResult } from './resultRelay.js'
+import {
+  DesktopResultUnavailableError,
+  requestDesktopResult,
+} from './resultRelay.js'
 import { mcpSessionRegistry } from './sessionRegistry.js'
 import {
   authorizeWrite,
+  buildWriteConfirmationMessage,
   buildWritePreview,
-  requestWriteApproval,
 } from './writeConfirmation.js'
 
 export type Context = {
@@ -154,13 +157,20 @@ const jsonResult = (value: unknown) => ({
   content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }],
 })
 
-const toolError = () => ({
+const toolError = (
+  message = 'NeuroFLAME could not complete this request. Review the operation and connection permissions.',
+) => ({
   isError: true,
   content: [{
     type: 'text' as const,
-    text: 'NeuroFLAME could not complete this request. Review the operation in the NeuroFLAME app.',
+    text: message,
   }],
 })
+
+export const resultToolError = (error: unknown) =>
+  error instanceof DesktopResultUnavailableError
+    ? toolError(error.message)
+    : toolError()
 
 export async function callResolver(
   group: 'Query' | 'Mutation',
@@ -244,7 +254,7 @@ function createServer(context: Context, scopes: string[]): McpServer {
       }>
     },
   ) => server.registerTool(name, {
-    description: `${description} This tool requires approval in the authenticated NeuroFLAME app.`,
+    description: `${description} This tool requires confirmation in the connected MCP client.`,
     inputSchema,
     annotations: {
       readOnlyHint: false,
@@ -265,26 +275,18 @@ function createServer(context: Context, scopes: string[]): McpServer {
     } catch {
       return toolError()
     }
-    if (!(await authorizeWrite(
-      extra as unknown as ToolExtra,
-      operationSummary,
-      () => requestWriteApproval({
-        userId: context.userId,
-        familyId: context.familyId,
-        clientName: context.clientName,
-        authorizationEpoch: context.authorizationEpoch,
-        toolName: name,
-        args,
-        summary: operationSummary,
-        preview: operationPreview,
-        signal: (extra as unknown as ToolExtra).signal,
-      }),
-    ))) {
+    const confirmationMessage = buildWriteConfirmationMessage({
+      toolName: name,
+      args,
+      summary: operationSummary,
+      preview: operationPreview,
+    })
+    if (!(await authorizeWrite(extra as unknown as ToolExtra, confirmationMessage))) {
       return {
         isError: true,
         content: [{
           type: 'text' as const,
-          text: 'The operation was not approved in NeuroFLAME and no change was made.',
+          text: 'The operation was not approved in the MCP client and no change was made.',
         }],
       }
     }
@@ -447,7 +449,7 @@ function createServer(context: Context, scopes: string[]): McpServer {
         relativePath: args.relativePath,
       })
       return { content: relay.blocks }
-    } catch { return toolError() }
+    } catch (error) { return resultToolError(error) }
   })
   resultTool(
     'get_run_result_report',

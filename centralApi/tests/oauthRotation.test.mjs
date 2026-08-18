@@ -9,10 +9,12 @@ process.env.ACCESS_TOKEN_SECRET ||= 'test'
 process.env.ACCESS_TOKEN_DURATION ||= '1h'
 process.env.CONSORTIUM_INVITE_URL ||= 'http://localhost/invite'
 
-const { NeuroflameOAuthProvider } = await import('../dist/mcp/oauthProvider.js')
+const {
+  authorizationCspForRedirect,
+  NeuroflameOAuthProvider,
+} = await import('../dist/mcp/oauthProvider.js')
 const { default: McpGrant } = await import('../dist/database/models/McpGrant.js')
 const { default: User } = await import('../dist/database/models/User.js')
-const { default: McpWriteRequest } = await import('../dist/database/models/McpWriteRequest.js')
 
 const client = {
   client_id: 'client-id',
@@ -44,6 +46,22 @@ const queryFor = (value) => {
     then: promise.then.bind(promise),
   }
 }
+
+describe('MCP OAuth authorization response', () => {
+  it('allows only NeuroFLAME and the registered callback origin to receive the form', () => {
+    const csp = authorizationCspForRedirect('http://127.0.0.1:64303/callback/random')
+    assert.match(csp, /form-action 'self' http:\/\/127\.0\.0\.1:64303/)
+    assert.doesNotMatch(csp, /callback\/random/)
+    assert.doesNotMatch(csp, /\*/)
+  })
+
+  it('rejects callback schemes that cannot be represented safely in the policy', () => {
+    assert.throws(
+      () => authorizationCspForRedirect('javascript:alert(1)'),
+      /must use HTTP\(S\)/,
+    )
+  })
+})
 
 async function withModelStubs(stubs, run) {
   const originals = []
@@ -80,7 +98,6 @@ describe('MCP refresh-token rotation', () => {
           select: () => queryFor({ mcpEnabled: true, mcpAuthorizationEpoch: 4 }),
         }),
       }],
-      [McpWriteRequest, { updateMany: async () => ({ modifiedCount: 0 }) }],
     ], async () => {
       const provider = new NeuroflameOAuthProvider()
       const results = await Promise.allSettled([
@@ -116,7 +133,6 @@ describe('MCP refresh-token rotation', () => {
           },
         }),
       }],
-      [McpWriteRequest, { updateMany: async () => ({ modifiedCount: 0 }) }],
     ], async () => {
       const provider = new NeuroflameOAuthProvider()
       await assert.rejects(

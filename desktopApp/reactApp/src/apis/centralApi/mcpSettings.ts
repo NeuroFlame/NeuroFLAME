@@ -12,18 +12,6 @@ export interface McpSettings {
   resultsEnabled: boolean
   endpoint: string
   connections: McpConnection[]
-  pendingWrites: McpPendingWrite[]
-}
-
-export interface McpPendingWrite {
-  id: string
-  clientName: string
-  toolName: string
-  summary: string
-  operationHash: string
-  preview: Array<{ label: string; value: string; fullValue?: string }>
-  createdAt: string
-  expiresAt: string
 }
 
 const SETTINGS_FIELDS = gql`
@@ -36,20 +24,6 @@ const SETTINGS_FIELDS = gql`
       clientName
       createdAt
       lastUsedAt
-    }
-    pendingWrites {
-      id
-      clientName
-      toolName
-      summary
-      operationHash
-      preview {
-        label
-        value
-        fullValue
-      }
-      createdAt
-      expiresAt
     }
   }
 `
@@ -114,20 +88,4 @@ export async function revokeMcpConnection(
     variables: { connectionId },
   })
   return data?.revokeMcpConnection ?? false
-}
-
-export async function decideMcpWrite(
-  client: ApolloClient<NormalizedCacheObject>,
-  requestId: string,
-  approved: boolean,
-): Promise<boolean> {
-  const { data } = await client.mutate<{ decideMcpWrite: boolean }>({
-    mutation: gql`
-      mutation DecideMcpWrite($requestId: String!, $approved: Boolean!) {
-        decideMcpWrite(requestId: $requestId, approved: $approved)
-      }
-    `,
-    variables: { requestId, approved },
-  })
-  return data?.decideMcpWrite ?? false
 }

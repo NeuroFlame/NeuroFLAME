@@ -1,15 +1,8 @@
-import { createHash, randomUUID } from 'crypto'
+import { createHash } from 'crypto'
 import { ElicitResultSchema } from '@modelcontextprotocol/sdk/types.js'
-import McpGrant from '../database/models/McpGrant.js'
-import McpWriteRequest from '../database/models/McpWriteRequest.js'
-import User from '../database/models/User.js'
 
 type ToolExtra = { sendRequest: Function; signal?: AbortSignal }
 
-const WRITE_CONFIRMATION_LIFETIME_MS = 2 * 60 * 1000
-const MAX_PENDING_WRITES_PER_USER = 10
-const POLL_INTERVAL_MS = 500
-const CLIENT_NOTICE_WAIT_MS = 1_000
 const MAX_PREVIEW_VALUE_CHARACTERS = 2_000
 const EXCLUDED_PREVIEW_KEYS = /(?:password|secret|token)$/i
 
@@ -34,10 +27,9 @@ export function writeOperationHash(toolName: string, args: unknown): string {
 export interface WritePreviewField {
   label: string
   value: string
-  fullValue?: string
 }
 
-const previewValue = (value: unknown): Pick<WritePreviewField, 'value' | 'fullValue'> => {
+const previewValue = (value: unknown): Pick<WritePreviewField, 'value'> => {
   const serialized = typeof value === 'string'
     ? value
     : JSON.stringify(stableValue(value), null, 2)
@@ -46,7 +38,6 @@ const previewValue = (value: unknown): Pick<WritePreviewField, 'value' | 'fullVa
   return {
     value: `${serialized.slice(0, MAX_PREVIEW_VALUE_CHARACTERS)}\n` +
       `[truncated preview: ${serialized.length} characters; full-value SHA-256: ${digest}]`,
-    fullValue: serialized,
   }
 }
 
@@ -65,164 +56,60 @@ export function buildWritePreview(
     .map(([label, value]) => ({ label, ...previewValue(value) }))
 }
 
-const delay = (milliseconds: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds))
-
-export async function authorizeWrite(
-  extra: ToolExtra,
-  summary: string,
-  awaitInAppApproval: () => Promise<boolean>,
-): Promise<boolean> {
-  const notice = Promise.resolve()
-    .then(() => extra.sendRequest({
-      method: 'elicitation/create',
-      params: {
-        mode: 'form',
-        message: `${summary} Open NeuroFLAME User Settings to approve this operation. ` +
-          'This client response does not authorize the change.',
-        requestedSchema: {
-          type: 'object',
-          properties: {
-            acknowledged: {
-              type: 'boolean',
-              title: 'Open NeuroFLAME to approve',
-              default: false,
-            },
-          },
-        },
-      },
-    }, ElicitResultSchema))
-    .catch(() => undefined)
-  await Promise.race([notice, delay(CLIENT_NOTICE_WAIT_MS)])
-  if (extra.signal?.aborted) return false
-  const approved = await awaitInAppApproval()
-  return approved && !extra.signal?.aborted
-}
-
-export async function requestWriteApproval({
-  userId,
-  familyId,
-  clientName,
-  authorizationEpoch,
+export function buildWriteConfirmationMessage({
   toolName,
   args,
   summary,
   preview,
-  signal,
 }: {
-  userId: string
-  familyId: string
-  clientName: string
-  authorizationEpoch: number
   toolName: string
   args: unknown
   summary: string
   preview: WritePreviewField[]
-  signal?: AbortSignal
-}): Promise<boolean> {
-  const now = new Date()
-  const [user, grant, pendingCount] = await Promise.all([
-    User.findById(userId).select('mcpEnabled mcpAuthorizationEpoch').lean(),
-    McpGrant.exists({
-      userId,
-      familyId,
-      authorizationEpoch,
-      revokedAt: { $exists: false },
-      refreshExpiresAt: { $gt: now },
-      familyExpiresAt: { $gt: now },
-      scopes: 'neuroflame:write',
-    }),
-    McpWriteRequest.countDocuments({
-      userId,
-      status: { $in: ['pending', 'approved'] },
-      expiresAt: { $gt: now },
-    }),
-  ])
-  if (
-    !user?.mcpEnabled ||
-    (user.mcpAuthorizationEpoch ?? 0) !== authorizationEpoch ||
-    !grant ||
-    pendingCount >= MAX_PENDING_WRITES_PER_USER
-  ) return false
-
-  const requestId = randomUUID()
-  const operationHash = writeOperationHash(toolName, args)
-  const expiresAt = new Date(Date.now() + WRITE_CONFIRMATION_LIFETIME_MS)
-  await McpWriteRequest.create({
-    requestId,
-    userId,
-    familyId,
-    clientName,
-    authorizationEpoch,
-    toolName,
-    operationHash,
+}): string {
+  const values = preview.length > 0
+    ? preview.map(({ label, value }) => `${label}:\n${value}`).join('\n\n')
+    : '(No non-secret argument values are available for display.)'
+  return [
+    'NeuroFLAME write confirmation',
     summary,
-    preview,
-    status: 'pending',
-    expiresAt,
-  })
+    `Tool: ${toolName}`,
+    `Exact operation fingerprint: ${writeOperationHash(toolName, args)}`,
+    'Review these values:',
+    values,
+    'Approve only if this is the operation you asked the agent to perform.',
+  ].join('\n\n')
+}
 
-  while (Date.now() < expiresAt.getTime()) {
-    if (signal?.aborted) {
-      await McpWriteRequest.updateOne(
-        { requestId, status: { $in: ['pending', 'approved'] } },
-        { $set: { status: 'denied', decidedAt: new Date() } },
-      )
-      return false
-    }
-    const request = await McpWriteRequest.findOne({ requestId }).lean()
-    if (!request || request.status === 'denied') return false
-    if (request.status === 'approved') {
-      const [currentUser, currentGrant] = await Promise.all([
-        User.findById(userId).select('mcpEnabled mcpAuthorizationEpoch').lean(),
-        McpGrant.exists({
-          userId,
-          familyId,
-          authorizationEpoch,
-          revokedAt: { $exists: false },
-          refreshExpiresAt: { $gt: new Date() },
-          familyExpiresAt: { $gt: new Date() },
-          scopes: 'neuroflame:write',
-        }),
-      ])
-      if (
-        !currentUser?.mcpEnabled ||
-        (currentUser.mcpAuthorizationEpoch ?? 0) !== authorizationEpoch ||
-        !currentGrant
-      ) return false
-      const consumed = await McpWriteRequest.findOneAndUpdate(
-        {
-          requestId,
-          userId,
-          familyId,
-          authorizationEpoch,
-          operationHash,
-          status: 'approved',
-          expiresAt: { $gt: new Date() },
+export async function authorizeWrite(
+  extra: ToolExtra,
+  message: string,
+): Promise<boolean> {
+  if (extra.signal?.aborted) return false
+  try {
+    const result = await extra.sendRequest({
+      method: 'elicitation/create',
+      params: {
+        mode: 'form',
+        message,
+        requestedSchema: {
+          type: 'object',
+          properties: {
+            confirm: {
+              type: 'boolean',
+              title: 'Approve this exact NeuroFLAME operation',
+              description: 'Select true only after reviewing the operation above.',
+              default: false,
+            },
+          },
+          required: ['confirm'],
         },
-        { $set: { status: 'consumed' } },
-      )
-      return Boolean(consumed)
-    }
-    await delay(POLL_INTERVAL_MS)
+      },
+    }, ElicitResultSchema, { signal: extra.signal })
+    return !extra.signal?.aborted &&
+      result.action === 'accept' &&
+      result.content?.confirm === true
+  } catch {
+    return false
   }
-  await McpWriteRequest.updateOne(
-    { requestId, status: 'pending' },
-    { $set: { status: 'denied', decidedAt: new Date() } },
-  )
-  return false
-}
-
-export async function cancelPendingWritesForUser(userId: string): Promise<void> {
-  await McpWriteRequest.updateMany(
-    { userId, status: { $in: ['pending', 'approved'] } },
-    { $set: { status: 'denied', decidedAt: new Date() } },
-  )
-}
-
-export async function cancelPendingWritesForFamily(familyId: string): Promise<void> {
-  await McpWriteRequest.updateMany(
-    { familyId, status: { $in: ['pending', 'approved'] } },
-    { $set: { status: 'denied', decidedAt: new Date() } },
-  )
 }

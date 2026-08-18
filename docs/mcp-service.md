@@ -50,18 +50,17 @@ Open **User Settings → Agent access (MCP)** in the desktop application.
 2. Give the displayed endpoint to an MCP client that supports remote Streamable
    HTTP servers and OAuth.
 3. Complete the browser authorization prompt using the NeuroFLAME account.
-4. Keep the NeuroFLAME User Settings page open when requesting a write. Every
-   mutation creates a two-minute request containing a structured preview of
-   every central value being changed and an exact-operation fingerprint. Long
-   previews are explicitly truncated with their length and SHA-256 digest, with
-   the complete value available to expand before approval. Invitation approvals
-   identify the consortium and intended account, while raw invite tokens are
-   never displayed or persisted in the approval request. Approve or deny it in
-   NeuroFLAME; an MCP client's own elicitation response cannot authorize the
-   change.
+4. Use an MCP client that supports form-mode elicitation for management actions.
+   Every mutation asks the client application to display a structured preview
+   and exact-operation fingerprint. Long values are explicitly truncated with
+   their length and SHA-256 digest. Invitation approvals identify the consortium
+   and intended account while excluding the raw invite token. Approve or decline
+   the operation in the trusted MCP client; unsupported or incomplete
+   confirmations fail closed.
 
-The settings page lists connected clients. A user can revoke one connection or
-disable MCP to revoke all connections. OAuth uses authorization code flow with
+The settings page lists connected clients. It does not receive or store pending
+write approvals. A user can revoke one connection or disable MCP to revoke all
+connections. OAuth uses authorization code flow with
 PKCE (`S256`), dynamically registered clients, audience-bound opaque bearer
 tokens, rotating refresh tokens, and the scopes `neuroflame:read` and
 `neuroflame:write`. Derivative result tools additionally require

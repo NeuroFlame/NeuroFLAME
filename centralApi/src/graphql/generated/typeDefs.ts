@@ -225,29 +225,11 @@ type McpConnection {
   lastUsedAt: String!
 }
 
-type McpPendingWrite {
-  id: String!
-  clientName: String!
-  toolName: String!
-  summary: String!
-  operationHash: String!
-  preview: [McpWritePreviewField!]!
-  createdAt: String!
-  expiresAt: String!
-}
-
-type McpWritePreviewField {
-  label: String!
-  value: String!
-  fullValue: String
-}
-
 type McpSettings {
   enabled: Boolean!
   resultsEnabled: Boolean!
   endpoint: String!
   connections: [McpConnection!]!
-  pendingWrites: [McpPendingWrite!]!
 }
 
 type McpResultRequest {
@@ -396,7 +378,6 @@ type Mutation {
   setMcpEnabled(enabled: Boolean!): McpSettings!
   setMcpResultsEnabled(enabled: Boolean!): McpSettings!
   revokeMcpConnection(connectionId: String!): Boolean!
-  decideMcpWrite(requestId: String!, approved: Boolean!): Boolean!
 }
 
 type Subscription {
