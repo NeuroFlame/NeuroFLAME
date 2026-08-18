@@ -206,6 +206,7 @@ function VaultUserProvisioner({
           fullWidth
           size="small"
           label="Vault User Email"
+          placeholder="Vault User Email"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           disabled={creatingVaultUser}
@@ -214,6 +215,7 @@ function VaultUserProvisioner({
           fullWidth
           size="small"
           label="Password"
+          placeholder="Password"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}

@@ -8,6 +8,11 @@ const USER_2 = {
   password: 'password2',
 }
 
+const USER_3 = {
+  username: 'user3@email.com',
+  password: 'password3',
+}
+
 const USER_4 = {
   username: 'user4@email.com',
   password: 'password4',
@@ -19,6 +24,7 @@ const COMPUTATION_TIMEOUT = 100_000
 export {
   USER_1,
   USER_2,
+  USER_3,
   USER_4,
   EXIST_TIMEOUT,
   COMPUTATION_TIMEOUT,
