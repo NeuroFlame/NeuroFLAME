@@ -26,7 +26,7 @@ export default function ChangeUserPassword() {
       setSuccess(null)
       await adminChangeUserPassword({
         username: username.trim().toLowerCase(),
-        password: newPassword.trim(),
+        password: newPassword,
       })
       setSuccess(`Password for ${username} was successfully updated.`)
     } catch (err) {

@@ -15,7 +15,7 @@ export function useCreateUser() {
       // request to the central api
       await userCreate({
         username: username.trim().toLowerCase(),
-        password: password.trim(),
+        password,
       })
       setSuccess(true)
     } catch (err) {

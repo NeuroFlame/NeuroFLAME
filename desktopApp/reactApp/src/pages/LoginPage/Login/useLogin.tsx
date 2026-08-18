@@ -24,7 +24,7 @@ export function useLogin() {
       // request to the central api
       const userData = await login({
         username: username.trim().toLowerCase(),
-        password: password.trim(),
+        password,
       })
       await setUserData(userData, { keepLoggedIn })
       await connectAsUser()

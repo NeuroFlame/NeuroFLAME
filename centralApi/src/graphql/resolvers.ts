@@ -66,6 +66,13 @@ const resend = new Resend(RESEND_API_KEY)
 const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const normalizeUsername = (username: string): string => username.trim().toLowerCase()
+const validatePassword = (password: string): string => {
+  if (!password || /\s/.test(password)) {
+    throw new Error('Password cannot contain spaces')
+  }
+  return password
+}
 
 const mapAllowedComputations = (
   computations: any[] | undefined,
@@ -1200,13 +1207,13 @@ export default {
     ): Promise<LoginOutput> => {
       // get the user from the database
       const user = await User
-        .findOne({ username })
+        .findOne({ username: normalizeUsername(username) })
         .collation({ locale: 'en', strength: 2 })
       if (!user) {
         throw new Error('User not found')
       }
       // compare the password
-      if (!(await compare(password.trim(), user.hash))) {
+      if (!(await compare(validatePassword(password), user.hash))) {
         throw new Error('Invalid username or password')
       }
 
@@ -1233,7 +1240,7 @@ export default {
       { username }: { username: string },
     ): Promise<boolean> => {
       const user = await User
-        .findOne({ username })
+        .findOne({ username: normalizeUsername(username) })
         .collation({ locale: 'en', strength: 2 })
       if (!user) {
         return true
@@ -1285,7 +1292,7 @@ export default {
           throw new Error('Invalid or expired token')
         }
 
-        const hashedPassword = await hashPassword(newPassword.trim())
+        const hashedPassword = await hashPassword(validatePassword(newPassword))
         user.hash = hashedPassword
         user.resetToken = undefined
         user.resetTokenExpiry = undefined
@@ -2097,7 +2104,7 @@ export default {
         throw new Error('User not found')
       }
 
-      if (user.username !== invite.email) {
+      if (normalizeUsername(user.username) !== normalizeUsername(String(invite.email))) {
         throw new Error('Invalid invite link')
       }
 
@@ -2266,8 +2273,10 @@ export default {
         throw new Error('User not authenticated')
       }
 
+      const normalizedEmail = normalizeUsername(email)
+
       // Provided email is not valid
-      if (!EMAIL_REGEX.test(email)) {
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
         throw new Error('Invalid email')
       }
 
@@ -2286,7 +2295,7 @@ export default {
       }
 
       const isAlreadyMember = (consortium.members as any).some(
-        (member) => member.username === email,
+        (member) => normalizeUsername(member.username) === normalizedEmail,
       )
 
       // User is already a member of the consortium
@@ -2295,10 +2304,13 @@ export default {
       }
 
       // Set current time on createdAt if invite already exists
-      const invite = await Invite.findOne({ email, consortium: consortiumId })
+      const invite = await Invite
+        .findOne({ email: normalizedEmail, consortium: consortiumId })
+        .collation({ locale: 'en', strength: 2 })
       const token = randomBytes(32).toString('hex')
 
       if (invite) {
+        invite.email = normalizedEmail
         invite.token = token
         invite.createdAt = new Date()
         await invite.save()
@@ -2306,7 +2318,7 @@ export default {
         await Invite.create({
           leader: context.userId,
           consortium: consortiumId,
-          email,
+          email: normalizedEmail,
           token,
           createdAt: Date.now(),
         })
@@ -2317,7 +2329,7 @@ export default {
 
       try {
         await sendInviteEmail({
-          email,
+          email: normalizedEmail,
           leaderName,
           consortiumTitle,
           token,
@@ -2334,20 +2346,21 @@ export default {
       { username, password }: { username: string; password: string },
     ): Promise<LoginOutput> => {
       try {
-        if (!EMAIL_REGEX.test(username)) {
+        const normalizedUsername = normalizeUsername(username)
+        if (!EMAIL_REGEX.test(normalizedUsername)) {
           throw new Error('Username should be email')
         }
 
         const existingUser = await User
-          .findOne({ username })
+          .findOne({ username: normalizedUsername })
           .collation({ locale: 'en', strength: 2 })
         if (existingUser) {
           throw new Error('User already exists')
         }
 
-        const hashedPassword = await hashPassword(password.trim())
+        const hashedPassword = await hashPassword(validatePassword(password))
         const user = await User.create({
-          username: username.trim().toLowerCase(),
+          username: normalizedUsername,
           hash: hashedPassword,
         })
 
@@ -2381,7 +2394,7 @@ export default {
       }
 
       try {
-        const hashedPassword = await hashPassword(password.trim())
+        const hashedPassword = await hashPassword(validatePassword(password))
         await User.updateOne({ _id: userId }, { hash: hashedPassword })
         return true
       } catch (error) {
@@ -2404,9 +2417,9 @@ export default {
       }
 
       try {
-        const hashedPassword = await hashPassword(password.trim())
+        const hashedPassword = await hashPassword(validatePassword(password))
         await User
-          .updateOne({ username }, { hash: hashedPassword })
+          .updateOne({ username: normalizeUsername(username) }, { hash: hashedPassword })
           .collation({ locale: 'en', strength: 2 })
         return true
       } catch (error) {
@@ -2427,7 +2440,7 @@ export default {
         throw new Error('Unauthorized')
       }
 
-      const normalizedUsername = username.trim().toLowerCase()
+      const normalizedUsername = normalizeUsername(username)
       if (!EMAIL_REGEX.test(normalizedUsername)) {
         throw new Error('Username should be email')
       }
@@ -2439,7 +2452,7 @@ export default {
         throw new Error('User already exists')
       }
 
-      const hashedPassword = await hashPassword(password.trim())
+      const hashedPassword = await hashPassword(validatePassword(password))
       const user = await User.create({
         username: normalizedUsername,
         hash: hashedPassword,
@@ -2480,7 +2493,7 @@ export default {
       }
 
       const targetUser = await User
-        .findOne({ username })
+        .findOne({ username: normalizeUsername(username) })
         .collation({ locale: 'en', strength: 2 })
         .select('roles')
         .exec()

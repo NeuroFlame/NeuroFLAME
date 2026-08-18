@@ -1317,7 +1317,7 @@ export default function VaultStatus() {
         setCreateVaultUserError(null)
         const vaultUser = await adminCreateVaultUser({
           username: username.trim().toLowerCase(),
-          password: password.trim(),
+          password,
         })
         setCreatedVaultUser(vaultUser)
         await loadVaults()
