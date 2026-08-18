@@ -32,18 +32,18 @@ const isSharedErrorEnvelope = (value: unknown): value is SharedErrorEnvelope => 
   if (candidate.schema_version !== 1) return false
   if (candidate.origin !== 'central' && candidate.origin !== 'site') return false
   if (
-    candidate.code !== 'central_computation_failed'
-    && candidate.code !== 'participant_computation_failed'
+    candidate.code !== 'central_computation_failed' &&
+    candidate.code !== 'participant_computation_failed'
   ) return false
   if (
-    candidate.stage !== 'startup'
-    && candidate.stage !== 'execution'
-    && candidate.stage !== 'aggregation'
-    && candidate.stage !== 'transfer'
+    candidate.stage !== 'startup' &&
+    candidate.stage !== 'execution' &&
+    candidate.stage !== 'aggregation' &&
+    candidate.stage !== 'transfer'
   ) return false
   return (
-    (candidate.origin === 'central' && candidate.code === 'central_computation_failed')
-    || (candidate.origin === 'site' && candidate.code === 'participant_computation_failed')
+    (candidate.origin === 'central' && candidate.code === 'central_computation_failed') ||
+    (candidate.origin === 'site' && candidate.code === 'participant_computation_failed')
   )
 }
 

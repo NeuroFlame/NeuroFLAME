@@ -315,6 +315,7 @@ const getLocalDockerImageId = async (
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const validateImageCompatibility = async (imageName: string): Promise<void> => {
   const image = await docker.getImage(imageName).inspect()
   const labels = image.Config?.Labels ?? {}

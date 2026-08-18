@@ -85,7 +85,7 @@ function MarkdownDescription({ value }: { value: string }) {
   return (
     <Box sx={{ mt: 1 }}>
       <Box
-        className="markdown-wrapper"
+        className='markdown-wrapper'
         sx={{
           color: 'text.secondary',
           fontSize: '0.9rem',
@@ -141,8 +141,8 @@ function MarkdownDescription({ value }: { value: string }) {
       </Box>
       {shouldCollapse && (
         <Button
-          variant="text"
-          size="small"
+          variant='text'
+          size='small'
           onClick={() => setExpanded((current) => !current)}
           sx={{ mt: 0.5, px: 0 }}
         >
@@ -187,16 +187,16 @@ function VaultUserProvisioner({
   }
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+    <Paper variant='outlined' sx={{ p: 2, mb: 2 }}>
+      <Typography variant='subtitle1' sx={{ mb: 1 }}>
         Create Vault User
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
         Creates a vault service account and returns the token for VAULT_ACCESS_TOKEN.
       </Typography>
 
       {createError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity='error' sx={{ mb: 2 }}>
           {createError}
         </Alert>
       )}
@@ -204,25 +204,25 @@ function VaultUserProvisioner({
       <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(240px, 1fr) minmax(200px, 320px) auto' }}>
         <TextField
           fullWidth
-          size="small"
-          label="Vault User Email"
-          placeholder="Vault User Email"
+          size='small'
+          label='Vault User Email'
+          placeholder='Vault User Email'
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           disabled={creatingVaultUser}
         />
         <TextField
           fullWidth
-          size="small"
-          label="Password"
-          placeholder="Password"
-          type="password"
+          size='small'
+          label='Password'
+          placeholder='Password'
+          type='password'
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           disabled={creatingVaultUser}
         />
         <Button
-          variant="contained"
+          variant='contained'
           disabled={creatingVaultUser || username.trim().length === 0 || password.length === 0}
           onClick={handleCreateVaultUser}
         >
@@ -232,19 +232,19 @@ function VaultUserProvisioner({
 
       {createdVaultUser && (
         <Box sx={{ mt: 2 }}>
-          <Alert severity="success" sx={{ mb: 1.5 }}>
+          <Alert severity='success' sx={{ mb: 1.5 }}>
             Vault user {createdVaultUser.username} created. Use this token as VAULT_ACCESS_TOKEN.
           </Alert>
           <TextField
             fullWidth
             multiline
             minRows={3}
-            label="VAULT_ACCESS_TOKEN"
+            label='VAULT_ACCESS_TOKEN'
             value={createdVaultUser.accessToken}
             InputProps={{ readOnly: true }}
           />
           <Button
-            variant="outlined"
+            variant='outlined'
             startIcon={<ContentCopyIcon />}
             onClick={handleCopyToken}
             sx={{ mt: 1 }}
@@ -341,7 +341,7 @@ function HostedVaultCard({
   }
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Paper variant='outlined' sx={{ p: 2 }}>
       <Box
         sx={{
           alignItems: 'flex-start',
@@ -352,10 +352,10 @@ function HostedVaultCard({
         }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
+          <Typography variant='subtitle2' sx={{ overflowWrap: 'anywhere' }}>
             {hostedVault.name}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant='caption' color='text.secondary'>
             Dataset: {hostedVault.datasetKey}
           </Typography>
         </Box>
@@ -369,9 +369,9 @@ function HostedVaultCard({
         >
           <Chip
             label={hostedVault.active ? 'Active' : 'Inactive'}
-            size="small"
+            size='small'
             color={hostedVault.active ? 'success' : 'default'}
-            variant="outlined"
+            variant='outlined'
           />
           {!editingDetails && (
             <>
@@ -401,8 +401,8 @@ function HostedVaultCard({
         <Box sx={{ display: 'grid', gap: 1.25, mb: 2 }}>
           <TextField
             fullWidth
-            size="small"
-            label="Vault Name"
+            size='small'
+            label='Vault Name'
             value={editName}
             onChange={(event) => setEditName(event.target.value)}
             disabled={isSaving}
@@ -411,24 +411,24 @@ function HostedVaultCard({
             fullWidth
             multiline
             minRows={8}
-            label="Description Markdown"
+            label='Description Markdown'
             value={editDescription}
             onChange={(event) => setEditDescription(event.target.value)}
             disabled={isSaving}
-            helperText="Stored as markdown exactly as entered."
+            helperText='Stored as markdown exactly as entered.'
           />
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
-              variant="contained"
-              size="small"
+              variant='contained'
+              size='small'
               disabled={isSaving || editName.trim().length === 0 || !hasUnsavedDetails}
               onClick={handleSaveDetails}
             >
               {isSaving ? 'Saving...' : 'Save Details'}
             </Button>
             <Button
-              variant="text"
-              size="small"
+              variant='text'
+              size='small'
               disabled={isSaving}
               onClick={handleCancelDetailsEdit}
             >
@@ -458,8 +458,8 @@ function HostedVaultCard({
             )}
             label={(
               <Box>
-                <Typography variant="body2">{computation.title}</Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant='body2'>{computation.title}</Typography>
+                <Typography variant='caption' color='text.secondary'>
                   {computation.imageName}
                 </Typography>
               </Box>
@@ -470,27 +470,26 @@ function HostedVaultCard({
       </Box>
 
       {saveError && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert severity='error' sx={{ mt: 2 }}>
           {saveError}
         </Alert>
       )}
 
       <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
         <Button
-          variant="contained"
+          variant='contained'
           disabled={isSaving || !hasUnsavedChanges}
           onClick={() => onSaveAllowedComputations(hostedVault.id, selectedComputationIds)}
         >
           {isSaving ? 'Saving...' : 'Save Allowed Computations'}
         </Button>
         <Button
-          variant="text"
+          variant='text'
           disabled={isSaving || !hasUnsavedChanges}
           onClick={() =>
             setSelectedComputationIds(
               hostedVault.allowedComputations.map((computation) => computation.id),
-            )
-          }
+            )}
         >
           Reset
         </Button>
@@ -640,7 +639,7 @@ function VaultServerRow({
         }}
       >
         <TableCell>
-          <IconButton size="small" onClick={() => setExpanded((value) => !value)}>
+          <IconButton size='small' onClick={() => setExpanded((value) => !value)}>
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </TableCell>
@@ -651,11 +650,11 @@ function VaultServerRow({
             ) : (
               <ErrorIcon color='error' fontSize='small' />
             )}
-            <Typography fontWeight="medium">
+            <Typography fontWeight='medium'>
               {server.name}
             </Typography>
           </Box>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant='caption' color='text.secondary'>
             {server.username}
           </Typography>
         </TableCell>
@@ -672,14 +671,14 @@ function VaultServerRow({
           {status ? formatLastSeen(status.lastHeartbeat) : 'Never'}
         </TableCell>
         <TableCell>
-          <Chip label={`${server.vaults.length} vaults`} size="small" color={server.vaults.length > 0 ? 'primary' : 'default'} variant="outlined" />
+          <Chip label={`${server.vaults.length} vaults`} size='small' color={server.vaults.length > 0 ? 'primary' : 'default'} variant='outlined' />
         </TableCell>
         <TableCell>
           {hasRunningComputations ? (
             <Chip
               label={`${status!.runningComputations.length} running`}
-              size="small"
-              color="primary"
+              size='small'
+              color='primary'
             />
           ) : (
             <Typography color='text.secondary'>None</Typography>
@@ -688,7 +687,7 @@ function VaultServerRow({
       </TableRow>
       <TableRow>
         <TableCell colSpan={8} sx={{ py: 0 }}>
-          <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <Collapse in={expanded} timeout='auto' unmountOnExit>
             <Box sx={{ margin: 2, display: 'grid', gap: 2 }}>
               <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
@@ -913,27 +912,27 @@ function VaultServerRow({
                     mb: 1,
                   }}
                 >
-                  <Typography variant="subtitle2">
+                  <Typography variant='subtitle2'>
                     Dataset Inventory
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Chip
                       label={`${availableDatasets.length} available`}
-                      size="small"
+                      size='small'
                       color={availableDatasets.length > 0 ? 'success' : 'default'}
-                      variant="outlined"
+                      variant='outlined'
                     />
                     <Chip
                       label={`${server.vaults.length}/${availableDatasets.length} hosted`}
-                      size="small"
+                      size='small'
                       color={server.vaults.length > 0 ? 'primary' : 'default'}
-                      variant="outlined"
+                      variant='outlined'
                     />
                   </Box>
                 </Box>
 
                 {availableDatasets.length > 0 ? (
-                  <Table size="small">
+                  <Table size='small'>
                     <TableHead>
                       <TableRow>
                         <TableCell>Dataset Key</TableCell>
@@ -947,7 +946,7 @@ function VaultServerRow({
                           <TableCell>{dataset.label || dataset.key}</TableCell>
                           <TableCell>
                             <Typography
-                              variant="body2"
+                              variant='body2'
                               sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
                             >
                               {dataset.path}
@@ -955,7 +954,7 @@ function VaultServerRow({
                           </TableCell>
                           <TableCell>
                             {server.vaults.find((hostedVault) => hostedVault.datasetKey === dataset.key)?.name || (
-                              <Typography color="text.secondary">Unassigned</Typography>
+                              <Typography color='text.secondary'>Unassigned</Typography>
                             )}
                           </TableCell>
                         </TableRow>
@@ -963,14 +962,14 @@ function VaultServerRow({
                     </TableBody>
                   </Table>
                 ) : (
-                  <Alert severity="warning">
+                  <Alert severity='warning'>
                     This server has not reported any dataset directories yet.
                   </Alert>
                 )}
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant='subtitle2' gutterBottom>
                   Hosted Vaults
                 </Typography>
                 {server.vaults.length > 0 ? (
@@ -989,27 +988,33 @@ function VaultServerRow({
                     ))}
                   </Box>
                 ) : (
-                  <Typography color="text.secondary">
+                  <Typography color='text.secondary'>
                     No hosted vaults created for this server yet.
                   </Typography>
                 )}
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant='subtitle2' gutterBottom>
                   Create Hosted Vault
                 </Typography>
                 {saveError && creatingServerId === server.id && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
+                  <Alert severity='error' sx={{ mb: 2 }}>
                     {saveError}
                   </Alert>
                 )}
                 {unassignedDatasets.length > 0 ? (
-                  <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'minmax(220px, 280px) minmax(220px, 1fr) auto' }}>
-                    <FormControl fullWidth size="small">
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: 1.5,
+                      gridTemplateColumns: 'minmax(220px, 280px) minmax(220px, 1fr) auto',
+                    }}
+                  >
+                    <FormControl fullWidth size='small'>
                       <InputLabel id={`dataset-select-${server.id}`}>Dataset</InputLabel>
                       <Select
-                        label="Dataset"
+                        label='Dataset'
                         labelId={`dataset-select-${server.id}`}
                         value={newVaultDatasetKey}
                         onChange={(event: SelectChangeEvent<string>) => setNewVaultDatasetKey(event.target.value)}
@@ -1023,13 +1028,13 @@ function VaultServerRow({
                     </FormControl>
                     <TextField
                       fullWidth
-                      size="small"
-                      label="Vault Name"
+                      size='small'
+                      label='Vault Name'
                       value={newVaultName}
                       onChange={(event) => setNewVaultName(event.target.value)}
                     />
                     <Button
-                      variant="contained"
+                      variant='contained'
                       disabled={isCreating || newVaultDatasetKey.length === 0}
                       onClick={handleCreateVault}
                       sx={{ alignSelf: 'start' }}
@@ -1040,27 +1045,27 @@ function VaultServerRow({
                       fullWidth
                       multiline
                       minRows={8}
-                      label="Description Markdown"
-                      placeholder="Paste markdown here. Tables need real line breaks."
+                      label='Description Markdown'
+                      placeholder='Paste markdown here. Tables need real line breaks.'
                       value={newVaultDescription}
                       onChange={(event) => setNewVaultDescription(event.target.value)}
                       sx={{ gridColumn: '1 / -1' }}
-                      helperText="Stored as markdown exactly as entered."
+                      helperText='Stored as markdown exactly as entered.'
                     />
                   </Box>
                 ) : (
-                  <Typography color="text.secondary">
+                  <Typography color='text.secondary'>
                     Every reported dataset on this server already has a hosted vault.
                   </Typography>
                 )}
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant='subtitle2' gutterBottom>
                   Running Computations
                 </Typography>
                 {hasRunningComputations ? (
-                  <Table size="small">
+                  <Table size='small'>
                     <TableHead>
                       <TableRow>
                         <TableCell>Consortium</TableCell>
@@ -1076,7 +1081,7 @@ function VaultServerRow({
                           </TableCell>
                           <TableCell>
                             <Typography
-                              variant="body2"
+                              variant='body2'
                               sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
                             >
                               {computation.runId.substring(0, 8)}...
@@ -1088,7 +1093,7 @@ function VaultServerRow({
                     </TableBody>
                   </Table>
                 ) : (
-                  <Typography color="text.secondary">No active computations</Typography>
+                  <Typography color='text.secondary'>No active computations</Typography>
                 )}
               </Box>
             </Box>
@@ -1406,7 +1411,7 @@ export default function VaultStatus() {
       </Box>
 
       {vaultServers.length === 0 ? (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+        <Typography color='text.secondary' sx={{ textAlign: 'center', py: 4 }}>
           No vault servers found
         </Typography>
       ) : (

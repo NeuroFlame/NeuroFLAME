@@ -300,7 +300,7 @@ export function RunDetails() {
                   {localComputationError &&
                   !runDetails.runErrors.some((runError) =>
                     runError.user.id === userId &&
-                    runError.message === SHARED_SITE_FAILURE_MESSAGE
+                    runError.message === SHARED_SITE_FAILURE_MESSAGE,
                   ) && (
                     <RunErrorCard
                       source='Local computation'

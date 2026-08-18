@@ -72,7 +72,7 @@ export default function MembersListDisplay({
             isReady={isReady}
             isVaultUser={isVaultUser}
             index={index}
-            direction="column"
+            direction='column'
           />
         </Box>
       ))}
