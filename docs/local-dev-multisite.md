@@ -66,6 +66,7 @@ Log in as `user3@email.com` / `password3`, then repeat steps 1–3 using `.../te
 > - Each site's data directory must be a **distinct absolute path** — do not use `~`
 > - The data directory setting persists across restarts; you only need to set it once per consortium per machine
 > - Log in to all windows **before** starting a run — each window's edge client subscribes to run events on login
+> - Checking the **Keep me logged in** at login is recommended during development, as it reduces the need to relogin across iterations.
 
 ## Step 4: Start the Run
 
