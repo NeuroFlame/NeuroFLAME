@@ -87,15 +87,7 @@ cd centralFederatedClient && npm run compile && cd ..
 ```
 
 ### **6. Start the Services**
-The easiest way to start all backend services at once is the provided control script, which opens each in a separate terminal tab:
-
-```bash
-./dev-ctl.sh restart
-```
-
-Run `./dev-ctl.sh status` to see what is currently running. Use `./dev-ctl.sh stop` to kill services without restarting.
-
-**Manual alternative** (if you prefer to manage terminals yourself):
+Open a terminal for each service and run:
 
 ```bash
 cd centralApi && node dev-start.js
