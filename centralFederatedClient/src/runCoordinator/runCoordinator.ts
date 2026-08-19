@@ -44,7 +44,23 @@ export async function subscribeToCentralApi({
   })
 
   logger.info(`Subscribing to central API at ${wsUrl}`)
-  subscribe(client, RUN_START_SUBSCRIPTION, runStartHandler)
+
+  // graphql-ws treats close code 1006 (ECONNREFUSED / abnormal closure) as fatal
+  // and won't invoke shouldRetry for it. Reconnect manually on retriable errors so
+  // that transient network failures (centralApi not yet ready, restart) don't kill CFC.
+  const handler = {
+    ...runStartHandler,
+    error: (err: any) => {
+      runStartHandler.error(err)
+      const code = (err as any)?.code
+      if (typeof code !== 'number' || code < 4400 || code >= 4500) {
+        logger.info('Reconnecting to central API in 3s...')
+        setTimeout(() => subscribeToCentralApi({ wsUrl, accessToken }), 3000)
+      }
+    },
+  }
+
+  subscribe(client, RUN_START_SUBSCRIPTION, handler)
 }
 
 function subscribe(
