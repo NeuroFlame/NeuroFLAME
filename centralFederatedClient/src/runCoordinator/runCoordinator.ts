@@ -38,6 +38,7 @@ export async function subscribeToCentralApi({
     retryAttempts: Infinity,
     shouldRetry: (err) => {
       const code = (err as any)?.code
+      // 4400-4499 are application-level auth rejections; retrying cannot fix them
       return typeof code !== 'number' || code < 4400 || code >= 4500
     },
   })
