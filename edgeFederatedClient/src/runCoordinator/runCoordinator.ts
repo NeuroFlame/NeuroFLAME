@@ -37,6 +37,11 @@ export async function subscribeToCentralApi({
     connectionParams: {
       accessToken,
     },
+    retryAttempts: Infinity,
+    shouldRetry: (err) => {
+      const code = (err as any)?.code
+      return typeof code !== 'number' || code < 4400 || code >= 4500
+    },
   })
 
   subscribe(client, RUN_START_SUBSCRIPTION, runStartHandler)
