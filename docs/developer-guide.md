@@ -90,12 +90,10 @@ cd centralFederatedClient && npm run compile && cd ..
 The easiest way to start all backend services at once is the provided control script, which opens each in a separate terminal tab:
 
 ```bash
-./dev-ctl.sh -f
+./dev-ctl.sh restart
 ```
 
-> **Note:** On macOS this opens Terminal.app tabs via osascript. iTerm2 users will see Terminal.app windows open instead — you can close them and run the commands manually in iTerm2 if preferred.
-
-Run `./dev-ctl.sh` (no flags) to list what is currently running. Use `-k` to kill running services without restarting.
+Run `./dev-ctl.sh status` to see what is currently running. Use `./dev-ctl.sh stop` to kill services without restarting.
 
 **Manual alternative** (if you prefer to manage terminals yourself):
 
