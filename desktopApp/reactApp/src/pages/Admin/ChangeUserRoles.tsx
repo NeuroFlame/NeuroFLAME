@@ -37,7 +37,10 @@ export default function ChangeUserRoles() {
       setLoading(true)
       setError(null)
       setSuccess(null)
-      await adminChangeUserRoles({ username, roles })
+      await adminChangeUserRoles({
+        username: username.trim().toLowerCase(),
+        roles,
+      })
       setSuccess(`Roles for ${username} were successfully updated.`)
     } catch (err) {
       setError(
