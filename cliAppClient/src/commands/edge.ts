@@ -20,6 +20,8 @@ import {
   EDGE_GET_LOCAL_PARAMS_QUERY,
   EDGE_SET_LOCAL_PARAMS_MUTATION,
   EDGE_CONNECT_AS_USER_MUTATION,
+  EDGE_GET_CONTAINER_SERVICE_QUERY,
+  EDGE_SET_CONTAINER_SERVICE_MUTATION,
 } from '../graphql/operations.js'
 
 export async function edgeCommand(
@@ -43,10 +45,15 @@ export async function edgeCommand(
       return downloadResults(args)
     case 'open-results':
       return openResults(args)
+    case 'get-container-service':
+      return getContainerService(args)
+    case 'set-container-service':
+      return setContainerService(args)
     default:
       usageError(
         'neuroflame edge <connect|get-mount-dir|set-mount-dir|get-local-params|' +
-          'set-local-params|list-results|download-results|open-results> ...',
+          'set-local-params|list-results|download-results|open-results|' +
+          'get-container-service|set-container-service> ...',
       )
   }
 }
@@ -205,7 +212,7 @@ interface RunResultFile {
   isDirectory: boolean
 }
 
-async function fetchOrThrow(url: string): Promise<Response> {
+async function fetchOrThrow(url: string, notFoundHint?: string): Promise<Response> {
   let response: Response
   try {
     response = await fetch(url)
@@ -222,24 +229,44 @@ async function fetchOrThrow(url: string): Promise<Response> {
   }
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`)
+    const hint = response.status === 404 && notFoundHint ? ` ${notFoundHint}` : ''
+    throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}${hint}`)
   }
   return response
 }
 
+// A results 404 is common enough to be worth a specific, actionable
+// message: either the participantId is wrong (this edge client never ran
+// that participant — check with the other site's edge client, or omit it
+// for your own results), or the run's status says Complete/In Progress but
+// the underlying computation actually failed server-side (`run show
+// <runId>` on centralApi can say Complete even when the job itself errored
+// — check that edge client's own logs, or the coordinator container's, for
+// the real outcome).
+function resultsNotFoundHint(consortiumId: string, runId: string, participantId: string): string {
+  return (
+    `No results at that path for participant ${participantId}. Confirm this edge ` +
+    'client actually ran that participant for this run, and that the ' +
+    `underlying computation really succeeded (\`neuroflame run show ${runId}\` ` +
+    'reporting Complete only means the container process exited cleanly, ' +
+    'not that the computation itself produced valid output).'
+  )
+}
+
 async function listResults(args: string[]): Promise<void> {
   const flags = parseFlags(args)
-  const [consortiumId, runId, participantId] = positionals(args)
+  const [consortiumId, runId, explicitParticipantId] = positionals(args)
   if (!consortiumId || !runId) {
     usageError(
       'neuroflame edge list-results <consortiumId> <runId> [participantId] [--url <edgeUrl>] [--json]',
     )
   }
-  await requireSession()
+  const session = await requireSession()
+  const participantId = explicitParticipantId || session.userId
 
   const resultsBase = await resolveEdgeRunResultsUrl(await resolveEdgeUrl(flags.url))
   const url = [resultsBase, consortiumId, runId, participantId].filter(Boolean).join('/')
-  const response = await fetchOrThrow(url)
+  const response = await fetchOrThrow(url, resultsNotFoundHint(consortiumId, runId, participantId))
   const files = (await response.json()) as RunResultFile[]
 
   if (args.includes('--json')) {
@@ -248,8 +275,8 @@ async function listResults(args: string[]): Promise<void> {
   }
   if (files.length === 0) {
     console.log(
-      'No result files yet. If the run just completed, try again in a moment — ' +
-        'or pass a participantId if results are scoped per-participant.',
+      `No result files yet for participant ${participantId}. If the run just ` +
+        'completed, try again in a moment.',
     )
     return
   }
@@ -257,24 +284,24 @@ async function listResults(args: string[]): Promise<void> {
     console.log(`${f.isDirectory ? 'd' : '-'}  ${formatBytes(f.size).padStart(8)}  ${f.name}`)
   }
   console.log(
-    `\nDownload all of it: neuroflame edge download-results ${consortiumId} ${runId}` +
-      (participantId ? ` ${participantId}` : ''),
+    `\nDownload all of it: neuroflame edge download-results ${consortiumId} ${runId} ${participantId}`,
   )
 }
 
 async function downloadResults(args: string[]): Promise<void> {
   const flags = parseFlags(args)
-  const [consortiumId, runId, participantId] = positionals(args)
+  const [consortiumId, runId, explicitParticipantId] = positionals(args)
   if (!consortiumId || !runId) {
     usageError(
       'neuroflame edge download-results <consortiumId> <runId> [participantId] [--out <file>] [--url <edgeUrl>]',
     )
   }
-  await requireSession()
+  const session = await requireSession()
+  const participantId = explicitParticipantId || session.userId
 
   const resultsBase = await resolveEdgeRunResultsUrl(await resolveEdgeUrl(flags.url))
   const url = [resultsBase, 'zip', consortiumId, runId, participantId].filter(Boolean).join('/')
-  const response = await fetchOrThrow(url)
+  const response = await fetchOrThrow(url, resultsNotFoundHint(consortiumId, runId, participantId))
   const buffer = Buffer.from(await response.arrayBuffer())
   const outPath = flags.out || `${runId}-results.zip`
   await fs.writeFile(outPath, buffer)
@@ -297,17 +324,18 @@ function openUrlInBrowser(url: string): Promise<void> {
 
 async function openResults(args: string[]): Promise<void> {
   const flags = parseFlags(args)
-  const [consortiumId, runId, participantId] = positionals(args)
+  const [consortiumId, runId, explicitParticipantId] = positionals(args)
   if (!consortiumId || !runId) {
     usageError(
       'neuroflame edge open-results <consortiumId> <runId> [participantId] [--url <edgeUrl>]',
     )
   }
-  await requireSession()
+  const session = await requireSession()
+  const participantId = explicitParticipantId || session.userId
 
   const resultsBase = await resolveEdgeRunResultsUrl(await resolveEdgeUrl(flags.url))
   const base = [resultsBase, consortiumId, runId, participantId].filter(Boolean).join('/')
-  const response = await fetchOrThrow(base)
+  const response = await fetchOrThrow(base, resultsNotFoundHint(consortiumId, runId, participantId))
   const files = (await response.json()) as RunResultFile[]
 
   // Computation output isn't standardized beyond "some files" — index.html
@@ -318,11 +346,10 @@ async function openResults(args: string[]): Promise<void> {
   // exactly like this rather than read as raw file content.
   const indexFile = files.find((f) => f.name.toLowerCase() === 'index.html')
   if (!indexFile) {
-    console.log('No index.html report found in this run\'s results. Files present:')
+    console.log(`No index.html report found for participant ${participantId}. Files present:`)
     for (const f of files) console.log(`  ${f.name}`)
     console.log(
-      `\nDownload and inspect them directly: neuroflame edge download-results ${consortiumId} ${runId}` +
-        (participantId ? ` ${participantId}` : ''),
+      `\nDownload and inspect them directly: neuroflame edge download-results ${consortiumId} ${runId} ${participantId}`,
     )
     return
   }
@@ -337,4 +364,51 @@ async function openResults(args: string[]): Promise<void> {
         `Open this URL yourself: ${target}`,
     )
   }
+}
+
+// ---------------------------------------------------------------------------
+// Container service (docker|singularity) — which runtime this edge client
+// launches computation containers with. Mutates the edge client process's
+// in-memory config directly, so it takes effect immediately for the next
+// run started on it, but does NOT survive that process restarting (see the
+// comment on EDGE_SET_CONTAINER_SERVICE_MUTATION in operations.ts).
+
+async function getContainerService(args: string[]): Promise<void> {
+  const flags = parseFlags(args)
+  const session = await requireSession()
+  const edgeUrl = await resolveEdgeUrl(flags.url)
+  const data = await gqlRequest<{ getContainerService: string }>(
+    edgeUrl,
+    EDGE_GET_CONTAINER_SERVICE_QUERY,
+    {},
+    session.accessToken,
+  )
+  printJsonOrHuman(
+    args.includes('--json'),
+    { containerService: data.getContainerService },
+    data.getContainerService,
+  )
+}
+
+async function setContainerService(args: string[]): Promise<void> {
+  const flags = parseFlags(args)
+  const [containerService] = positionals(args)
+  if (containerService !== 'docker' && containerService !== 'singularity') {
+    usageError(
+      'neuroflame edge set-container-service <docker|singularity> [--url <edgeUrl>]',
+    )
+  }
+  const session = await requireSession()
+  const edgeUrl = await resolveEdgeUrl(flags.url)
+  await gqlRequest<{ setContainerService: boolean }>(
+    edgeUrl,
+    EDGE_SET_CONTAINER_SERVICE_MUTATION,
+    { containerService },
+    session.accessToken,
+  )
+  console.log(`Container service set to: ${containerService}`)
+  console.log(
+    'Takes effect immediately for the next run on this edge client, but ' +
+      'reverts to that client\'s own config file if it restarts.',
+  )
 }

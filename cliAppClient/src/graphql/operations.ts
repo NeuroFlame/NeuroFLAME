@@ -697,3 +697,20 @@ export const EDGE_CONNECT_AS_USER_MUTATION = `
     connectAsUser
   }
 `
+
+// Which container runtime (docker|singularity) this edge client uses to
+// execute runs. Mutates that process's in-memory config directly (see
+// edgeFederatedClient's resolvers.ts) — takes effect immediately for the
+// next run, but does NOT survive that edge client process restarting; it
+// reverts to whatever's in the config file it was launched with.
+export const EDGE_GET_CONTAINER_SERVICE_QUERY = `
+  query {
+    getContainerService
+  }
+`
+
+export const EDGE_SET_CONTAINER_SERVICE_MUTATION = `
+  mutation setContainerService($containerService: String!) {
+    setContainerService(containerService: $containerService)
+  }
+`

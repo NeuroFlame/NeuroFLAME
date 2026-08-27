@@ -206,6 +206,8 @@ neuroflame edge set-local-params <consortiumId> <mountDir> <paramsJson|@file>
 neuroflame edge list-results <consortiumId> <runId> [participantId] [--json]
 neuroflame edge download-results <consortiumId> <runId> [participantId] [--out <file>]
 neuroflame edge open-results <consortiumId> <runId> [participantId]
+neuroflame edge get-container-service [--json]
+neuroflame edge set-container-service <docker|singularity>
 
 neuroflame admin create-vault-user <username> <password>
 neuroflame admin set-roles <username> <role...>
@@ -243,8 +245,13 @@ discover) — this is just telling your own machine which folder to mount in
 when it runs a computation for a consortium you're a member of.
 
 Run it on whichever machine is actually doing the computation — the same
-machine the "Data Directory" GUI panel would run on (your workstation, or a
-cluster node running the edge client headless):
+machine the "Data Directory" GUI panel would run on. That machine doesn't
+have to be running the desktop app at all: `edgeFederatedClient` (the
+`edge-federated-client` npm package) now runs standalone as a plain
+`neuroflame-edge` process, no Electron/GUI anywhere — see [its
+README](../edgeFederatedClient/README.md) for a full headless HPC/cluster
+setup. Every `edge` command here works identically against either one,
+since both expose the same local API.
 
 ```bash
 neuroflame edge set-mount-dir <consortiumId> /path/to/local/dataset
@@ -281,14 +288,41 @@ neuroflame edge set-local-params <consortiumId> /path/to/local/dataset '{"key":"
 neuroflame edge get-local-params <consortiumId> /path/to/local/dataset
 ```
 
+### Docker vs. Singularity
+
+Which container runtime an edge client uses to actually execute runs is
+also settable from here:
+
+```bash
+neuroflame edge get-container-service
+neuroflame edge set-container-service singularity   # or docker
+```
+
+This didn't exist as an API at all until now — `edgeFederatedClient` only
+ever read `containerService` once, from whatever config it was launched
+with (`edgeClientConfig.containerService` in the desktop app's config, or
+`VAULT_CONTAINER_SERVICE` for `vaultFederatedClient`). `set-container-service`
+adds a `setContainerService` mutation to `edgeFederatedClient`'s own
+GraphQL schema (see its `resolvers.ts`) that mutates that process's
+in-memory config directly — `runStart.ts` already reads `containerService`
+fresh from `getConfig()` on every run rather than caching it at startup, so
+this takes effect immediately for the next run, no restart needed.
+
+**It does not persist across that edge client process restarting**,
+though — a full relaunch reverts to whatever's in the config file it was
+actually started with. For a change that survives restarts, still edit
+that file directly (`edgeClientConfig.containerService` in the desktop
+app's config, or `VAULT_CONTAINER_SERVICE` in `vaultFederatedClient`'s
+`.env`/systemd unit). Requires Singularity or Apptainer to actually be
+installed on that machine either way — `which singularity apptainer`.
+
 ## Run results — and knowing they're there
 
 A run's output files live on the local filesystem of whichever edge client
-executed it (`<pathBaseDirectory>/<consortiumId>/<runId>/results`, or
-`.../<participantId>/results` when scoped per-participant), and are served
-over a small REST API the edge client also exposes — a different mechanism
-than the mount-dir/local-params commands above (those are GraphQL on the
-edge client; this is plain HTTP, matching how
+executed it — `<pathBaseDirectory>/<consortiumId>/<runId>/<participantId>/results`
+— and are served over a small REST API the edge client also exposes, a
+different mechanism than the mount-dir/local-params commands above (those
+are GraphQL on the edge client; this is plain HTTP, matching how
 `edgeFederatedClient/src/api/routes/runResultsRoutes.ts` actually serves
 them, with no auth of its own):
 
@@ -297,6 +331,14 @@ neuroflame edge list-results <consortiumId> <runId> [participantId] [--json]
 neuroflame edge download-results <consortiumId> <runId> [participantId] [--out <file>]
 neuroflame edge open-results <consortiumId> <runId> [participantId]
 ```
+
+`participantId` defaults to the logged-in user's own id (their
+`participantId`, for a non-vault member, is their `userId`) if omitted —
+"show me my results" is the overwhelmingly common case. Pass it explicitly
+to check a different participant's (e.g. a leader checking a member's
+site). As soon as more than one site is involved in a run, results are
+*always* scoped this way — there's no merged/flat path to fall back to,
+which is why the default matters.
 
 `list-results` is an `ls` — it tells you what's there, nothing more.
 `download-results` fetches everything as one `.zip` (the same one the
@@ -327,6 +369,18 @@ prints a one-line hint the moment it's in a terminal state — `run list`,
 actual error messages directly, so `run show`'s own output skips the
 redundant hint there — only `Complete` gets one from `show`). These hints
 never appear in `--json` output, so `--json | jq` pipelines stay clean.
+
+**`Complete` on `centralApi` means the container process exited cleanly —
+not that the computation inside it actually succeeded.** We hit this for
+real: a multi-participant run reported `Complete`, `open-results` 404'd,
+and the coordinator container's own logs showed the underlying job had
+actually failed (`Job status: FINISHED:EXECUTION_EXCEPTION`, from one
+participant submitting a malformed result) — the edge client still reports
+completion based on the process exiting 0, regardless of what happened
+inside NVFlare. If results are missing for a run that says `Complete`,
+check that job's actual outcome directly (`docker logs` on the coordinator
+container, or the edge client's own log) rather than trusting the status
+alone.
 
 ## Guided setup: the wizard
 
@@ -557,4 +611,3 @@ restart) the run after both clients are connected:
 ```bash
 neuroflame run start 66289c79aecab67040a22001 --wait
 ```
-`
