@@ -41,7 +41,10 @@ export function terminalStatusHint(
   runId: string,
 ): string | null {
   if (status === 'Complete') {
-    return `    → results: neuroflame edge open-results ${consortiumId} ${runId}`
+    return (
+      `    → results: neuroflame edge open-results ${consortiumId} ${runId}\n` +
+      `    → if that looks wrong: neuroflame edge get-run-error ${consortiumId} ${runId}`
+    )
   }
   if (status === 'Error') {
     return `    → details: neuroflame run show ${runId}`

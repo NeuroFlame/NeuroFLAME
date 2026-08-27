@@ -82,6 +82,7 @@ Usage:
   neuroflame edge list-results <consortiumId> <runId> [participantId] [--url <edgeUrl>] [--json]
   neuroflame edge download-results <consortiumId> <runId> [participantId] [--out <file>] [--url <edgeUrl>]
   neuroflame edge open-results <consortiumId> <runId> [participantId] [--url <edgeUrl>]
+  neuroflame edge get-run-error <consortiumId> <runId> [participantId] [--url <edgeUrl>] [--json]
   neuroflame edge get-container-service [--url <edgeUrl>] [--json]
   neuroflame edge set-container-service <docker|singularity> [--url <edgeUrl>]
 

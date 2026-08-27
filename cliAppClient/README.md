@@ -206,6 +206,7 @@ neuroflame edge set-local-params <consortiumId> <mountDir> <paramsJson|@file>
 neuroflame edge list-results <consortiumId> <runId> [participantId] [--json]
 neuroflame edge download-results <consortiumId> <runId> [participantId] [--out <file>]
 neuroflame edge open-results <consortiumId> <runId> [participantId]
+neuroflame edge get-run-error <consortiumId> <runId> [participantId] [--json]
 neuroflame edge get-container-service [--json]
 neuroflame edge set-container-service <docker|singularity>
 
@@ -330,6 +331,7 @@ them, with no auth of its own):
 neuroflame edge list-results <consortiumId> <runId> [participantId] [--json]
 neuroflame edge download-results <consortiumId> <runId> [participantId] [--out <file>]
 neuroflame edge open-results <consortiumId> <runId> [participantId]
+neuroflame edge get-run-error <consortiumId> <runId> [participantId] [--json]
 ```
 
 `participantId` defaults to the logged-in user's own id (their
@@ -363,6 +365,7 @@ prints a one-line hint the moment it's in a terminal state — `run list`,
 ```
 6a908418df160ff1880e4f00  Complete  Single Round Ridge Regression Consortium  (updated ...)
     → results: neuroflame edge open-results 66289c79aecab67040a22001 6a908418df160ff1880e4f00
+    → if that looks wrong: neuroflame edge get-run-error 66289c79aecab67040a22001 6a908418df160ff1880e4f00
 ```
 
 `Error` gets the equivalent pointer at `run show <runId>` (which prints the
@@ -381,6 +384,23 @@ inside NVFlare. If results are missing for a run that says `Complete`,
 check that job's actual outcome directly (`docker logs` on the coordinator
 container, or the edge client's own log) rather than trusting the status
 alone.
+
+`get-run-error` is the direct, structured answer to that gotcha: when the
+edge client itself notices a local computation failure, it writes a
+`.neuroflame_error.json` marker next to that participant's results
+(`origin`, `stage`, `scope`, `errorType`, `message` — see
+`getRunError`/`runResultsFilesController.ts`), and this command reads it
+back:
+
+```bash
+neuroflame edge get-run-error <consortiumId> <runId> [participantId] [--json]
+```
+
+A 404 (no marker file) just means the edge client didn't record a local
+failure for that participant — not proof the computation succeeded, only
+that nothing tripped this particular detector. Still check `open-results`
+and the container logs directly if something looks off despite a clean
+`get-run-error`.
 
 ## Guided setup: the wizard
 

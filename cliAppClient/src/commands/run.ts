@@ -153,6 +153,7 @@ async function show(args: string[]): Promise<void> {
     }
   } else if (r.status === 'Complete') {
     console.log(`\nresults: neuroflame edge open-results ${r.consortium.id} ${r.runId}`)
+    console.log(`if that looks wrong: neuroflame edge get-run-error ${r.consortium.id} ${r.runId}`)
   }
 }
 

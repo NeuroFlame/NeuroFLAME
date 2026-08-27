@@ -45,6 +45,8 @@ export async function edgeCommand(
       return downloadResults(args)
     case 'open-results':
       return openResults(args)
+    case 'get-run-error':
+      return getRunError(args)
     case 'get-container-service':
       return getContainerService(args)
     case 'set-container-service':
@@ -52,7 +54,7 @@ export async function edgeCommand(
     default:
       usageError(
         'neuroflame edge <connect|get-mount-dir|set-mount-dir|get-local-params|' +
-          'set-local-params|list-results|download-results|open-results|' +
+          'set-local-params|list-results|download-results|open-results|get-run-error|' +
           'get-container-service|set-container-service> ...',
       )
   }
@@ -364,6 +366,80 @@ async function openResults(args: string[]): Promise<void> {
         `Open this URL yourself: ${target}`,
     )
   }
+}
+
+// A structured record of a computation-level failure the edge client
+// detected locally (container crash, non-zero exit, etc.) and wrote to
+// <results>/.neuroflame_error.json — see edgeFederatedClient's
+// getRunError/runResultsFilesController.ts. This is the direct answer to
+// the "Complete but actually failed" gotcha above: centralApi's run status
+// only reflects the container's exit code, not whether the computation
+// itself produced valid output, and this marker is where the edge client
+// records the difference when it notices one.
+interface RunErrorInfo {
+  origin?: string
+  stage?: string
+  scope?: string
+  errorType?: string
+  message: string
+}
+
+async function getRunError(args: string[]): Promise<void> {
+  const flags = parseFlags(args)
+  const [consortiumId, runId, explicitParticipantId] = positionals(args)
+  if (!consortiumId || !runId) {
+    usageError(
+      'neuroflame edge get-run-error <consortiumId> <runId> [participantId] [--url <edgeUrl>] [--json]',
+    )
+  }
+  const session = await requireSession()
+  const participantId = explicitParticipantId || session.userId
+
+  const resultsBase = await resolveEdgeRunResultsUrl(await resolveEdgeUrl(flags.url))
+  const url = [resultsBase, 'error', consortiumId, runId, participantId].join('/')
+
+  let response: Response
+  try {
+    response = await fetch(url)
+  } catch (error) {
+    throw new Error(
+      `Could not reach ${url} (${describeNetworkError(error)}). ` +
+        'Is the edge client running there, and pointed at correctly ' +
+        '(NEUROFLAME_EDGE_URL or --url)?',
+    )
+  }
+
+  // 404 here means "no error marker" — a good outcome, not a failure to
+  // report, so it gets its own message rather than fetchOrThrow's generic
+  // "not found" treatment.
+  if (response.status === 404) {
+    printJsonOrHuman(
+      args.includes('--json'),
+      { consortiumId, runId, participantId, error: null },
+      `No local computation error recorded for participant ${participantId}. ` +
+        `If \`neuroflame run show ${runId}\` reports Complete, the computation ` +
+        'most likely succeeded; if it reports a failure, that edge client\'s ' +
+        'own logs are the next place to look.',
+    )
+    return
+  }
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`)
+  }
+
+  const info = (await response.json()) as RunErrorInfo
+  if (args.includes('--json')) {
+    console.log(JSON.stringify(info, null, 2))
+    return
+  }
+  console.log(`Local computation error for participant ${participantId}:`)
+  if (info.origin) console.log(`  Origin:  ${info.origin}`)
+  if (info.stage) console.log(`  Stage:   ${info.stage}`)
+  if (info.scope) console.log(`  Scope:   ${info.scope}`)
+  if (info.errorType) console.log(`  Type:    ${info.errorType}`)
+  console.log(`  Message: ${info.message}`)
 }
 
 // ---------------------------------------------------------------------------
