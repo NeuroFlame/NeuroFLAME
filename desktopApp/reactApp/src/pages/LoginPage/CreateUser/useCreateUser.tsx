@@ -13,10 +13,15 @@ export function useCreateUser() {
       setLoading(true)
       setError(null)
       // request to the central api
-      await userCreate({ username, password })
+      await userCreate({
+        username: username.trim().toLowerCase(),
+        password,
+      })
       setSuccess(true)
     } catch (err) {
-      setError('Create user failed, please try again.')
+      const errorMessage =
+        err instanceof Error ? err.message : 'Create user failed, please try again.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

@@ -14,6 +14,23 @@ interface FileInfo {
   url: string;
 }
 
+interface TerminalErrorMarker {
+  schema_version?: unknown;
+  origin?: unknown;
+  stage?: unknown;
+  scope?: unknown;
+  error_type?: unknown;
+  message?: unknown;
+}
+
+const MAX_ERROR_FIELD_LENGTH = 2000
+
+const cleanErrorField = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined
+  const cleaned = value.trim().slice(0, MAX_ERROR_FIELD_LENGTH)
+  return cleaned || undefined
+}
+
 const resolveResultsDirectory = (
   filesDirectory: string,
   consortiumId: string,
@@ -101,6 +118,48 @@ export const listRunFiles = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error(`Error in listRunFiles: ${(error as Error).message}`)
     res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+export const getRunError = async (req: Request, res: Response) => {
+  try {
+    const { pathBaseDirectory: filesDirectory } = await getConfig()
+    const { consortiumId, runId, participantId: routeParticipantId } = req.params
+    const participantId = (
+      routeParticipantId ??
+      (req as any).user?.participantId ??
+      (req as any).user?.userId
+    ) as string | undefined
+    const resultsDirectory = resolveResultsDirectory(
+      filesDirectory,
+      consortiumId,
+      runId,
+      participantId,
+    )
+    const markerPath = path.join(resultsDirectory, '.neuroflame_error.json')
+
+    if (!fs.existsSync(markerPath)) {
+      return res.status(404).json({ error: 'No local computation error found' })
+    }
+
+    const marker = JSON.parse(
+      fs.readFileSync(markerPath, 'utf8'),
+    ) as TerminalErrorMarker
+    const message = cleanErrorField(marker.message)
+    if (!message) {
+      return res.status(422).json({ error: 'Invalid local computation error' })
+    }
+
+    return res.json({
+      origin: cleanErrorField(marker.origin),
+      stage: cleanErrorField(marker.stage),
+      scope: cleanErrorField(marker.scope),
+      errorType: cleanErrorField(marker.error_type),
+      message,
+    })
+  } catch (error) {
+    logger.error(`Error in getRunError: ${(error as Error).message}`)
+    return res.status(500).json({ error: 'Internal Server Error' })
   }
 }
 

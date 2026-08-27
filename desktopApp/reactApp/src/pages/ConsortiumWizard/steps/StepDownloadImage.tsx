@@ -2,7 +2,11 @@ import { Box } from '@mui/material'
 import Computation from '../../ConsortiumDetails/Computation/Computation'
 import { useConsortiumDetailsContext } from '../../ConsortiumDetails/ConsortiumDetailsContext'
 
-export default function StepDownloadImage({ onImageDownloaded }: { onImageDownloaded?: () => void }) {
+export default function StepDownloadImage({
+  onImageDownloaded,
+}: {
+  onImageDownloaded?: (downloaded: boolean) => void;
+}) {
   const { data: consortiumDetails } = useConsortiumDetailsContext()
   const selectedComputation = consortiumDetails?.studyConfiguration?.computation
 
@@ -10,7 +14,7 @@ export default function StepDownloadImage({ onImageDownloaded }: { onImageDownlo
     <Box style={{ maxWidth: '400px', border: '1px solid #eee', marginBottom: '1rem' }}>
       <Computation
         computation={selectedComputation}
-        showDownloadInstructions={true}
+        showDownloadInstructions
         onImageDownloaded={onImageDownloaded}
       />
     </Box>

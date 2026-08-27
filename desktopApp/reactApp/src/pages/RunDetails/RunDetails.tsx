@@ -17,6 +17,83 @@ import ReactMarkdown from 'react-markdown'
 import { useCallback, useState } from 'react'
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { useUserState } from '../../contexts/UserStateContext'
+import { SHARED_SITE_FAILURE_MESSAGE } from '../../apis/edgeApi/getLocalComputationError'
+
+function RunErrorCard({
+  source,
+  timestamp,
+  message,
+}: {
+  source: string;
+  timestamp?: string;
+  message: string;
+}) {
+  const [summary, ...detailLines] = message.split('\n')
+  const details = detailLines.join('\n').trim()
+
+  return (
+    <Box
+      borderLeft={4}
+      borderColor='error.main'
+      borderRadius={1}
+      bgcolor='#fff7f7'
+      padding={2}
+      marginTop={1.5}
+      minWidth={0}
+    >
+      <Box display='flex' flexWrap='wrap' gap={1} marginBottom={1}>
+        {timestamp && (
+          <Typography variant='caption' color='text.secondary'>
+            {new Date(+timestamp).toLocaleString()}
+          </Typography>
+        )}
+        <Typography variant='caption' fontWeight={700} color='error.dark'>
+          {source}
+        </Typography>
+      </Box>
+      <Typography
+        variant='body2'
+        color='error.dark'
+        sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
+      >
+        {summary}
+      </Typography>
+      {details && (
+        <Box
+          component='pre'
+          aria-label='Computation error details'
+          sx={{
+            backgroundColor: 'grey.100',
+            borderRadius: 1,
+            color: 'text.primary',
+            fontFamily: 'monospace',
+            fontSize: '0.75rem',
+            lineHeight: 1.5,
+            marginBottom: 0,
+            marginTop: 1.5,
+            maxHeight: 360,
+            overflow: 'auto',
+            padding: 1.5,
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {details}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+const localErrorMessage = (error: {
+  scope?: string | null;
+  errorType?: string | null;
+  message: string;
+}) => [
+  error.scope ? `[${error.scope}]` : '',
+  error.errorType ? `${error.errorType}:` : '',
+  error.message,
+].filter(Boolean).join(' ')
 
 function RunDeleteModal({
   open,
@@ -72,7 +149,7 @@ function RunDeleteModal({
 
 export function RunDetails() {
   const navigate = useNavigate()
-  const { runDetails, loading, error } = useRunDetails()
+  const { runDetails, loading, error, localComputationError } = useRunDetails()
   const { runDelete } = useCentralApi()
   const { userId } = useUserState()
 
@@ -200,18 +277,36 @@ export function RunDetails() {
               />
             </Grid>
             {/* Errors */}
-            {runDetails.runErrors.length > 0 && (
+            {(runDetails.runErrors.length > 0 || localComputationError) && (
               <Grid size={{ sm: 12 }}>
                 <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
                   <Typography variant='h6' gutterBottom>
                     Errors
                   </Typography>
                   {runDetails.runErrors.map((error, index) => (
-                    <Typography key={index} variant='body2' color='error'>
-                      {new Date(+error.timestamp).toLocaleString()}{' '}
-                      {error.user.username} - {error.message}
-                    </Typography>
+                    <RunErrorCard
+                      key={`${error.timestamp}-${index}`}
+                      timestamp={error.timestamp}
+                      source={error.vault?.name ?? error.user.username}
+                      message={
+                        localComputationError &&
+                        error.user.id === userId &&
+                        error.message === SHARED_SITE_FAILURE_MESSAGE
+                          ? localErrorMessage(localComputationError)
+                          : error.message
+                      }
+                    />
                   ))}
+                  {localComputationError &&
+                  !runDetails.runErrors.some((runError) =>
+                    runError.user.id === userId &&
+                    runError.message === SHARED_SITE_FAILURE_MESSAGE
+                  ) && (
+                    <RunErrorCard
+                      source='Local computation'
+                      message={localErrorMessage(localComputationError)}
+                    />
+                  )}
                 </Box>
               </Grid>
             )}

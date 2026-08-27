@@ -19,6 +19,7 @@ import resolvers from './graphql/resolvers.js'
 import { httpServerContext, wsServerContext } from './serverContexts.js'
 import { validateAccessToken } from './authentication/authentication.js'
 import { APOLLO_PORT, DATABASE_URI, LOG_PATH } from './config.js'
+import { APPLICATION_API_VERSION } from './versions.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -90,6 +91,10 @@ export async function start({
 
   app.use(cors())
   app.use(bodyParser.json())
+  app.get('/version', (_req, res) => {
+    res.set('Cache-Control', 'no-store')
+    res.status(200).json({ version: APPLICATION_API_VERSION })
+  })
   app.use('/invite-assets', express.static(inviteSiteDir))
   app.use(
     '/graphql',

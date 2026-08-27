@@ -46,7 +46,6 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
       setError(null)
       const res = await getHostedVaultList({})
       setVaultUserList(res)
-      setSelectedVaultId((prev) => prev ?? (res.length > 0 ? res[0].id : null))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch vault users'
       setError(errorMessage)
@@ -92,8 +91,10 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
   )
 
   const selectedVault = useMemo(
-    () => vaultUserList.find((v) => v.id === selectedVaultId) ?? compatibleVaults[0]?.vaultUser ?? null,
-    [selectedVaultId, vaultUserList, compatibleVaults],
+    () => compatibleVaults.find(({ vaultUser }) =>
+      vaultUser.id === selectedVaultId,
+    )?.vaultUser ?? compatibleVaults[0]?.vaultUser ?? null,
+    [selectedVaultId, compatibleVaults],
   )
 
   if (loading) {

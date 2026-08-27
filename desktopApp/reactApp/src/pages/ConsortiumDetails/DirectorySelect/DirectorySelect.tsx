@@ -6,7 +6,13 @@ import { useCentralApi } from '../../../apis/centralApi/centralApi'
 import { useParams } from 'react-router-dom'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
 
-export default function DirectorySelect({ showReadyToggle = true, onDirectorySet }: { showReadyToggle?: boolean; onDirectorySet?: (isSet: boolean) => void }) {
+export default function DirectorySelect({
+  showReadyToggle = true,
+  onDirectorySet,
+}: {
+  showReadyToggle?: boolean;
+  onDirectorySet?: (isSet: boolean) => void;
+}) {
   const {
     editableValue,
     originalValue,
@@ -43,6 +49,7 @@ export default function DirectorySelect({ showReadyToggle = true, onDirectorySet
   return (
     <DirectorySelectDisplay
       directory={editableValue}
+      hasSavedDirectory={!!originalValue}
       isEditing={isEditing}
       isDifferent={isDifferent}
       onDirectoryChange={changeValue}

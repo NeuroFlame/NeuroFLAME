@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import {
   generateTokens,
   compare,
@@ -5,7 +6,7 @@ import {
 } from '../authentication/authentication.js'
 import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
-import Run, { IRun } from '../database/models/Run.js'
+import Run, { IRun, IResolvedComputationImage } from '../database/models/Run.js'
 import User from '../database/models/User.js'
 import VaultServer from '../database/models/VaultServer.js'
 import HostedVault from '../database/models/HostedVault.js'
@@ -32,6 +33,8 @@ import {
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
 import { randomBytes } from 'crypto'
+import { COMPUTATION_API_VERSION } from '../versions.js'
+import { disclosedRunErrorMessage } from './runErrorDisclosure.js'
 
 interface Context {
   userId: string
@@ -60,8 +63,16 @@ const toObjectIdString = (value: unknown): string | null => {
 }
 
 const resend = new Resend(RESEND_API_KEY)
+const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
 const INVITE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const normalizeUsername = (username: string): string => username.trim().toLowerCase()
+const validatePassword = (password: string): string => {
+  if (!password || /\s/.test(password)) {
+    throw new Error('Password cannot contain spaces')
+  }
+  return password
+}
 
 const mapAllowedComputations = (
   computations: any[] | undefined,
@@ -140,10 +151,10 @@ const mapDatasetMappings = (
 const mapAvailableDatasets = (
   datasets:
     | Array<{
-        key?: string | null
-        path?: string | null
-        label?: string | null
-      }>
+      key?: string | null
+      path?: string | null
+      label?: string | null
+    }>
     | undefined,
 ): Array<{
   key: string
@@ -175,11 +186,11 @@ const mapAvailableDatasets = (
 const mapVault = (
   vault:
     | {
-        name?: string | null
-        description?: string | null
-        allowedComputations?: any[]
-        datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
-      }
+      name?: string | null
+      description?: string | null
+      allowedComputations?: any[]
+      datasetMappings?: Array<{ computationId: unknown; datasetKey?: string | null }>
+    }
     | null
     | undefined,
 ) => (
@@ -198,22 +209,22 @@ const mapVault = (
 const mapVaultStatus = (
   vaultStatus:
     | {
-        status: string
-        version: string
-        uptime: number
-        websocketConnected: boolean
-        lastHeartbeat: Date
-        runningComputations: Array<{
-          runId: string
-          consortiumId: string
-          startedAt: Date
-        }>
-        availableDatasets?: Array<{
-          key?: string | null
-          path?: string | null
-          label?: string | null
-        }>
-      }
+      status: string
+      version: string
+      uptime: number
+      websocketConnected: boolean
+      lastHeartbeat: Date
+      runningComputations: Array<{
+        runId: string
+        consortiumId: string
+        startedAt: Date
+      }>
+      availableDatasets?: Array<{
+        key?: string | null
+        path?: string | null
+        label?: string | null
+      }>
+    }
     | null
     | undefined,
   consortiumMap?: Map<string, string>,
@@ -242,14 +253,14 @@ const mapVaultStatus = (
 const mapHostedVault = (
   vault:
     | {
-        _id?: unknown
-        server?: unknown
-        name?: string | null
-        description?: string | null
-        datasetKey?: string | null
-        allowedComputations?: any[]
-        active?: boolean | null
-      }
+      _id?: unknown
+      server?: unknown
+      name?: string | null
+      description?: string | null
+      datasetKey?: string | null
+      allowedComputations?: any[]
+      active?: boolean | null
+    }
     | null
     | undefined,
 ) => (
@@ -281,11 +292,11 @@ const mapVaultServerRecord = ({
   hostedVaults: any[]
   server:
     | {
-        _id?: unknown
-        user?: unknown
-        name?: string | null
-        description?: string | null
-      }
+      _id?: unknown
+      user?: unknown
+      name?: string | null
+      description?: string | null
+    }
     | null
     | undefined
   status?: {
@@ -307,9 +318,9 @@ const mapVaultServerRecord = ({
   } | null
   user:
     | {
-        _id?: unknown
-        username?: string | null
-      }
+      _id?: unknown
+      username?: string | null
+    }
     | null
     | undefined
   consortiumMap?: Map<string, string>
@@ -405,12 +416,16 @@ const sendInviteEmail = async ({
   const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
       Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
 
-  await resend.emails.send({
-    to: email,
-    from: 'no-reply@coinstac.org',
+  const { error } = await resend.emails.send({
+    from: RESEND_FROM,
+    to: [email],
     subject: `Invitation to join ${consortiumTitle}`,
     html,
   })
+
+  if (error) {
+    throw new Error(`Failed to send invite email: ${error.message}`)
+  }
 }
 
 export default {
@@ -485,6 +500,7 @@ export default {
           vault: mapVault(member.vault),
         })),
         isPrivate: consortium.isPrivate ?? false,
+        createdAt: new mongoose.Types.ObjectId(consortium._id.toString()).getTimestamp().getTime().toString(),
       }))
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
@@ -869,6 +885,13 @@ export default {
             select: 'id username', // Populate the user field in runErrors with id, username
             model: User,
           })
+          .populate({
+            path: 'runErrors.vault',
+            populate: {
+              path: 'allowedComputations',
+              select: 'title imageName',
+            },
+          })
           .populate(
             'studyConfiguration.computation',
             'title imageName imageDownloadUrl notes owner hasLocalParameters',
@@ -920,8 +943,10 @@ export default {
             leader: consortium.leader ? transformUser(consortium.leader) : null,
             activeMembers: (consortium.activeMembers || []).map(transformUser),
             readyMembers: (consortium.readyMembers || []).map(transformUser),
-            activeVaultMembers: (consortium.activeVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
-            readyVaultMembers: (consortium.readyVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            activeVaultMembers: (consortium.activeVaultMembers || [])
+              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+            readyVaultMembers: (consortium.readyVaultMembers || [])
+              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
           },
           status: run.status,
           lastUpdated: run.lastUpdated,
@@ -950,6 +975,7 @@ export default {
               id: error.user._id.toString(),
               username: error.user.username,
             },
+            vault: mapHostedVault(error.vault),
             timestamp: error.timestamp,
             message: error.message,
           })),
@@ -1178,15 +1204,16 @@ export default {
         username: string
         password: string
       },
-      context,
     ): Promise<LoginOutput> => {
       // get the user from the database
-      const user = await User.findOne({ username })
+      const user = await User
+        .findOne({ username: normalizeUsername(username) })
+        .collation({ locale: 'en', strength: 2 })
       if (!user) {
         throw new Error('User not found')
       }
       // compare the password
-      if (!(await compare(password, user.hash))) {
+      if (!(await compare(validatePassword(password), user.hash))) {
         throw new Error('Invalid username or password')
       }
 
@@ -1195,6 +1222,7 @@ export default {
         {
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         },
         { shouldExpire: false },
       )
@@ -1211,9 +1239,11 @@ export default {
       _: unknown,
       { username }: { username: string },
     ): Promise<boolean> => {
-      const user = await User.findOne({ username })
+      const user = await User
+        .findOne({ username: normalizeUsername(username) })
+        .collation({ locale: 'en', strength: 2 })
       if (!user) {
-        throw new Error('User not found')
+        return true
       }
 
       const resetToken = randomBytes(32).toString('hex')
@@ -1223,8 +1253,8 @@ export default {
 
       const email = user.username
       const msg = {
-        to: email,
-        from: 'no-reply@coinstac.org',
+        from: RESEND_FROM,
+        to: [email],
         subject: 'Password Reset Request',
         html: `We received your password reset request. <br/>
             Please use this token for password reset. <br/>
@@ -1233,7 +1263,10 @@ export default {
       }
 
       try {
-        await resend.emails.send(msg)
+        const { error } = await resend.emails.send(msg)
+        if (error) {
+          throw new Error(error.message)
+        }
       } catch (error: any) {
         throw new Error(`Failed to send email: ${error.message}`)
       }
@@ -1259,7 +1292,7 @@ export default {
           throw new Error('Invalid or expired token')
         }
 
-        const hashedPassword = await hashPassword(newPassword)
+        const hashedPassword = await hashPassword(validatePassword(newPassword))
         user.hash = hashedPassword
         user.resetToken = undefined
         user.resetTokenExpiry = undefined
@@ -1268,6 +1301,7 @@ export default {
         const tokens = generateTokens({
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         })
         const { accessToken } = tokens as { accessToken: string }
 
@@ -1307,6 +1341,15 @@ export default {
 
       if (!consortium.studyConfiguration?.computation) {
         throw new Error('A computation must be selected before starting a run.')
+      }
+
+      const activeParticipantCount =
+        (consortium.activeMembers?.length ?? 0) +
+        (consortium.activeVaultMembers?.length ?? 0)
+      if (activeParticipantCount === 0) {
+        throw new Error(
+          'At least one active participant is required before starting a run.',
+        )
       }
 
       const computationParameters = ensureValidComputationParameters(
@@ -1356,6 +1399,7 @@ export default {
         activeParticipants,
         consortiumId: consortium._id.toString(),
         computationParameters,
+        requiredComputationApiVersion: COMPUTATION_API_VERSION,
       })
 
       pubsub.publish('RUN_EVENT', {
@@ -1378,7 +1422,10 @@ export default {
     },
     reportRunReady: async (
       _: unknown,
-      { runId }: { runId: string },
+      {
+        runId,
+        resolvedImage,
+      }: { runId: string; resolvedImage: IResolvedComputationImage },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunReady', runId)
@@ -1395,11 +1442,35 @@ export default {
 
       // get the run's details from the database
       const run = await Run.findById(runId)
+      if (!run) {
+        throw new Error('Run not found')
+      }
+      if (resolvedImage.sourceImage !== run.studyConfiguration.computation.imageName) {
+        throw new Error('Resolved computation image does not match the configured image')
+      }
+      if (
+        resolvedImage.metadata.computationApiVersion !== COMPUTATION_API_VERSION
+      ) {
+        throw new Error('Resolved computation image uses an incompatible computation API')
+      }
+      if (
+        !/^sha256:[0-9a-f]{64}$/.test(resolvedImage.digest) ||
+        !(
+          resolvedImage.reference === resolvedImage.digest ||
+          resolvedImage.reference.endsWith(`@${resolvedImage.digest}`)
+        )
+      ) {
+        throw new Error('Resolved computation image digest is invalid')
+      }
       await Run.updateOne(
         { _id: runId },
-        { status: 'In Progress', lastUpdated: Date.now() },
+        {
+          status: 'In Progress',
+          resolvedComputationImage: resolvedImage,
+          lastUpdated: Date.now(),
+        },
       )
-      const imageName = run.studyConfiguration.computation.imageName
+      const imageName = resolvedImage.reference
       const computationId = run.studyConfiguration.computation._id.toString()
       const consortiumId = run.consortium._id
 
@@ -1413,6 +1484,7 @@ export default {
           targetUserId: memberId.toString(),
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         })
       })
@@ -1439,6 +1511,7 @@ export default {
           targetUserId: serverUserId.toString(),
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         })
       })
@@ -1463,7 +1536,17 @@ export default {
     },
     reportRunError: async (
       _: unknown,
-      { runId, errorMessage }: { runId: string; errorMessage: string },
+      {
+        runId,
+        vaultId,
+        errorMessage,
+        redactErrorDetails = true,
+      }: {
+        runId: string
+        vaultId?: string
+        errorMessage: string
+        redactErrorDetails?: boolean
+      },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunError', { runId })
@@ -1482,38 +1565,66 @@ export default {
       const isUserMember = run.members.some((memberId) =>
         memberId.equals(context.userId),
       )
-      let isHostedVaultServerMember = false
-      if (!isUserCentral && !isUserMember && (run.vaultMembers?.length ?? 0) > 0) {
+      let reportingVault: { _id: unknown } | null = null
+      const runContainsVault = Boolean(
+        vaultId &&
+        mongoose.isValidObjectId(vaultId) &&
+        run.vaultMembers.some((memberId) => memberId.equals(vaultId)),
+      )
+      if (!isUserCentral && runContainsVault) {
         const viewerServer = await VaultServer.findOne({ user: context.userId })
           .select('_id')
           .lean()
         if (viewerServer?._id) {
-          const hostedVaultCount = await HostedVault.countDocuments({
-            _id: { $in: run.vaultMembers ?? [] },
+          reportingVault = await HostedVault.findOne({
+            _id: vaultId,
             server: viewerServer._id,
           })
-          isHostedVaultServerMember = hostedVaultCount > 0
+            .select('_id')
+            .lean()
         }
       }
+      const isHostedVaultServerMember = reportingVault !== null
 
       if (!isUserCentral && !isUserMember && !isHostedVaultServerMember) {
         throw new Error('User not authorized')
       }
+      if (vaultId && !isHostedVaultServerMember) {
+        throw new Error('Hosted vault is not authorized for this run')
+      }
 
-      // Append the error to the runErrors array and update the run's status and lastUpdated fields
+      const reporter = isUserCentral
+        ? 'central'
+        : isHostedVaultServerMember
+          ? 'hostedVault'
+          : 'participant'
+
+      const runError: Record<string, unknown> = {
+        user: context.userId,
+        message: disclosedRunErrorMessage({
+          errorMessage,
+          reporter,
+          requestedRedaction: redactErrorDetails,
+        }),
+        timestamp: Date.now().toString(),
+      }
+      if (reportingVault?._id) {
+        runError.vault = reportingVault._id
+      }
+
+      const runUpdate: Record<string, unknown> = {
+        status: 'Error',
+        lastUpdated: Date.now().toString(),
+        $push: {
+          runErrors: runError,
+        },
+      }
+
+      // Ordinary participants are always redacted. Only an authorized hosted
+      // vault server may apply its operator-controlled disclosure decision.
       await Run.updateOne(
         { _id: runId },
-        {
-          status: 'Error',
-          lastUpdated: Date.now().toString(), // Store as a string
-          $push: {
-            runErrors: {
-              user: context.userId, // Reference to the user who reported the error
-              message: errorMessage,
-              timestamp: Date.now().toString(), // Store as a string
-            },
-          },
-        },
+        runUpdate,
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -1993,7 +2104,7 @@ export default {
         throw new Error('User not found')
       }
 
-      if (user.username !== invite.email) {
+      if (normalizeUsername(user.username) !== normalizeUsername(String(invite.email))) {
         throw new Error('Invalid invite link')
       }
 
@@ -2162,8 +2273,10 @@ export default {
         throw new Error('User not authenticated')
       }
 
+      const normalizedEmail = normalizeUsername(email)
+
       // Provided email is not valid
-      if (!EMAIL_REGEX.test(email)) {
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
         throw new Error('Invalid email')
       }
 
@@ -2182,7 +2295,7 @@ export default {
       }
 
       const isAlreadyMember = (consortium.members as any).some(
-        (member) => member.username === email,
+        (member) => normalizeUsername(member.username) === normalizedEmail,
       )
 
       // User is already a member of the consortium
@@ -2191,10 +2304,13 @@ export default {
       }
 
       // Set current time on createdAt if invite already exists
-      const invite = await Invite.findOne({ email, consortium: consortiumId })
+      const invite = await Invite
+        .findOne({ email: normalizedEmail, consortium: consortiumId })
+        .collation({ locale: 'en', strength: 2 })
       const token = randomBytes(32).toString('hex')
 
       if (invite) {
+        invite.email = normalizedEmail
         invite.token = token
         invite.createdAt = new Date()
         await invite.save()
@@ -2202,7 +2318,7 @@ export default {
         await Invite.create({
           leader: context.userId,
           consortium: consortiumId,
-          email,
+          email: normalizedEmail,
           token,
           createdAt: Date.now(),
         })
@@ -2213,7 +2329,7 @@ export default {
 
       try {
         await sendInviteEmail({
-          email,
+          email: normalizedEmail,
           leaderName,
           consortiumTitle,
           token,
@@ -2230,24 +2346,28 @@ export default {
       { username, password }: { username: string; password: string },
     ): Promise<LoginOutput> => {
       try {
-        if (!EMAIL_REGEX.test(username)) {
+        const normalizedUsername = normalizeUsername(username)
+        if (!EMAIL_REGEX.test(normalizedUsername)) {
           throw new Error('Username should be email')
         }
 
-        const existingUser = await User.findOne({ username })
+        const existingUser = await User
+          .findOne({ username: normalizedUsername })
+          .collation({ locale: 'en', strength: 2 })
         if (existingUser) {
           throw new Error('User already exists')
         }
 
-        const hashedPassword = await hashPassword(password)
+        const hashedPassword = await hashPassword(validatePassword(password))
         const user = await User.create({
-          username,
+          username: normalizedUsername,
           hash: hashedPassword,
         })
 
         const tokens = generateTokens({
           userId: user._id,
           roles: user.roles,
+          tokenVersion: user.tokenVersion,
         })
         const { accessToken } = tokens as { accessToken: string }
 
@@ -2274,7 +2394,7 @@ export default {
       }
 
       try {
-        const hashedPassword = await hashPassword(password)
+        const hashedPassword = await hashPassword(validatePassword(password))
         await User.updateOne({ _id: userId }, { hash: hashedPassword })
         return true
       } catch (error) {
@@ -2297,8 +2417,10 @@ export default {
       }
 
       try {
-        const hashedPassword = await hashPassword(password)
-        await User.updateOne({ username }, { hash: hashedPassword })
+        const hashedPassword = await hashPassword(validatePassword(password))
+        await User
+          .updateOne({ username: normalizeUsername(username) }, { hash: hashedPassword })
+          .collation({ locale: 'en', strength: 2 })
         return true
       } catch (error) {
         logger.error('Error changing password:', error)
@@ -2318,27 +2440,33 @@ export default {
         throw new Error('Unauthorized')
       }
 
-      const normalizedUsername = username.trim()
+      const normalizedUsername = normalizeUsername(username)
       if (!EMAIL_REGEX.test(normalizedUsername)) {
         throw new Error('Username should be email')
       }
 
-      const existingUser = await User.findOne({ username: normalizedUsername })
+      const existingUser = await User
+        .findOne({ username: normalizedUsername })
+        .collation({ locale: 'en', strength: 2 })
       if (existingUser) {
         throw new Error('User already exists')
       }
 
-      const hashedPassword = await hashPassword(password)
+      const hashedPassword = await hashPassword(validatePassword(password))
       const user = await User.create({
         username: normalizedUsername,
         hash: hashedPassword,
         roles: ['vault'],
       })
 
-      const tokens = generateTokens({
-        userId: user._id,
-        roles: user.roles,
-      })
+      const tokens = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+          tokenVersion: user.tokenVersion,
+        },
+        { shouldExpire: false },
+      )
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -2357,20 +2485,31 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      const callingUser = await User.findById(context.userId)
-      const isAdmin = callingUser.roles.includes('admin')
+      const callingUser = await User.findById(context.userId).exec()
+      const isAdmin = callingUser?.roles.includes('admin') === true
 
       if (!isAdmin) {
         throw new Error('Unauthorized')
       }
 
-      try {
-        await User.updateOne({ username }, { roles })
-        return true
-      } catch (error) {
-        logger.error('Error changing roles:', error)
-        throw new Error('Failed to change roles')
+      const targetUser = await User
+        .findOne({ username: normalizeUsername(username) })
+        .collation({ locale: 'en', strength: 2 })
+        .select('roles')
+        .exec()
+      if (!targetUser) {
+        throw new Error('User not found')
       }
+
+      if (targetUser.roles.includes('vault') || roles.includes('vault')) {
+        throw new Error(
+          'Vault roles must be managed through the dedicated vault account workflow',
+        )
+      }
+
+      targetUser.roles = roles
+      await targetUser.save()
+      return true
     },
     adminSetVaultAllowedComputations: async (
       _: unknown,
@@ -2635,6 +2774,255 @@ export default {
       hostedVault.name = normalizedName
       hostedVault.description = normalizedDescription
       await hostedVault.save()
+
+      return true
+    },
+    adminDeleteHostedVault: async (
+      _: unknown,
+      { vaultId }: { vaultId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(vaultId)) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const hostedVault = await HostedVault.findById(vaultId).select('_id').exec()
+      if (!hostedVault) {
+        throw new Error('Hosted vault not found')
+      }
+
+      const [consortiumReference, runReference] = await Promise.all([
+        Consortium.exists({
+          $or: [
+            { vaultMembers: hostedVault._id },
+            { activeVaultMembers: hostedVault._id },
+            { readyVaultMembers: hostedVault._id },
+          ],
+        }),
+        Run.exists({ vaultMembers: hostedVault._id }),
+      ])
+
+      if (consortiumReference) {
+        throw new Error(
+          'Cannot delete a hosted vault while it belongs to a consortium',
+        )
+      }
+
+      if (runReference) {
+        throw new Error(
+          'Cannot delete a hosted vault referenced by run history',
+        )
+      }
+
+      const result = await HostedVault.deleteOne({ _id: hostedVault._id }).exec()
+      if (result.deletedCount !== 1) {
+        throw new Error('Hosted vault not found')
+      }
+
+      return true
+    },
+    adminUpdateVaultServer: async (
+      _: unknown,
+      {
+        serverId,
+        name,
+        description,
+      }: { serverId: string; name: string; description: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const normalizedName = name.trim()
+      if (normalizedName.length === 0) {
+        throw new Error('Vault server name is required')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      server.name = normalizedName
+      server.description = description.trim()
+      await server.save()
+
+      return true
+    },
+    adminRotateVaultToken: async (
+      _: unknown,
+      { serverId }: { serverId: string },
+      context: Context,
+    ): Promise<string> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const server = await VaultServer.findById(serverId).select('user').lean().exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const user = await User.findOneAndUpdate(
+        { _id: server.user, roles: 'vault' },
+        { $inc: { tokenVersion: 1 } },
+        { new: true },
+      ).select('_id roles tokenVersion').exec()
+      if (!user) {
+        throw new Error('Vault service account not found')
+      }
+
+      const { accessToken } = generateTokens(
+        {
+          userId: user._id,
+          roles: user.roles,
+          tokenVersion: user.tokenVersion,
+        },
+        { shouldExpire: false },
+      )
+
+      return accessToken
+    },
+    adminDeleteVaultServer: async (
+      _: unknown,
+      { serverId }: { serverId: string },
+      context: Context,
+    ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
+      if (!mongoose.isValidObjectId(serverId)) {
+        throw new Error('Vault server not found')
+      }
+
+      const server = await VaultServer.findById(serverId).exec()
+      if (!server) {
+        throw new Error('Vault server not found')
+      }
+
+      const user = await User.findById(server.user).select('_id roles').exec()
+      if (user && user.roles.some((role) => role !== 'vault')) {
+        throw new Error('Cannot delete a vault server that uses a shared user account')
+      }
+
+      const hostedVaults = await HostedVault.find({ server: server._id })
+        .select('_id')
+        .lean()
+        .exec()
+      const hostedVaultIds = hostedVaults.map((vault) => vault._id)
+
+      const [consortia, runReference] = await Promise.all([
+        Consortium.find({
+          $or: [
+            { leader: server.user },
+            { members: server.user },
+            { activeMembers: server.user },
+            { readyMembers: server.user },
+            { vaultMembers: { $in: hostedVaultIds } },
+            { activeVaultMembers: { $in: hostedVaultIds } },
+            { readyVaultMembers: { $in: hostedVaultIds } },
+          ],
+        }).select('_id leader').lean().exec(),
+        Run.exists({
+          $or: [
+            { consortiumLeader: server.user },
+            { members: server.user },
+            { 'runErrors.user': server.user },
+            { vaultMembers: { $in: hostedVaultIds } },
+          ],
+        }),
+      ])
+
+      if ((server.status?.runningComputations.length ?? 0) > 0) {
+        throw new Error('Cannot delete a vault server with running computations')
+      }
+
+      if (runReference) {
+        throw new Error(
+          'Cannot delete a vault server referenced by run history',
+        )
+      }
+
+      if (consortia.some((consortium) => consortium.leader.toString() === server.user.toString())) {
+        throw new Error('Cannot delete a vault server whose service account leads a consortium')
+      }
+
+      if (consortia.length > 0) {
+        await Consortium.updateMany(
+          { _id: { $in: consortia.map((consortium) => consortium._id) } },
+          {
+            $pull: {
+              members: server.user,
+              activeMembers: server.user,
+              readyMembers: server.user,
+              vaultMembers: { $in: hostedVaultIds },
+              activeVaultMembers: { $in: hostedVaultIds },
+              readyVaultMembers: { $in: hostedVaultIds },
+            },
+          },
+        ).exec()
+
+        consortia.forEach((consortium) => {
+          pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
+            consortiumId: consortium._id.toString(),
+          })
+        })
+      }
+
+      await Invite.deleteMany({ leader: server.user }).exec()
+
+      // Delete the account first so its existing token cannot recreate the server.
+      if (user) {
+        const userResult = await User.deleteOne({ _id: user._id }).exec()
+        if (userResult.deletedCount !== 1) {
+          throw new Error('Vault service account could not be deleted')
+        }
+      }
+
+      if (hostedVaultIds.length > 0) {
+        const hostedVaultResult = await HostedVault.deleteMany({
+          _id: { $in: hostedVaultIds },
+          server: server._id,
+        }).exec()
+        if (hostedVaultResult.deletedCount !== hostedVaultIds.length) {
+          throw new Error('Hosted vaults could not be deleted')
+        }
+      }
+
+      const serverResult = await VaultServer.deleteOne({ _id: server._id }).exec()
+      if (serverResult.deletedCount !== 1) {
+        throw new Error('Vault server could not be deleted')
+      }
 
       return true
     },
@@ -3062,6 +3450,7 @@ export default {
           vaultId,
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
         } = payload
         // create a token
@@ -3078,6 +3467,7 @@ export default {
           vaultId: vaultId ?? null,
           computationId,
           imageName,
+          resolvedImage,
           consortiumId,
           downloadUrl: `${CLIENT_FILE_SERVER_URL}/download/${consortiumId}/${runId}/${participantId}`,
           downloadToken: accessToken,

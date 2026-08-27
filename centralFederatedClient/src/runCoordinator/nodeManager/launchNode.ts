@@ -1,6 +1,40 @@
 import Docker from 'dockerode'
+import { promises as fs } from 'fs'
+import * as path from 'path'
 import { logger } from '../../logger.js'
+import { extractSharedError } from './sharedError.js'
 const docker = new Docker()
+
+const MAX_FAILURE_LOG_BYTES = 1024 * 1024
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/
+const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/
+
+export interface ComputationImageMetadata {
+  title: string
+  computationVersion: string
+  revision: string
+  source: string
+  computationApiVersion: string
+  boilerplateVersion: string
+  nvflareVersion: string
+}
+
+export interface ResolvedComputationImage {
+  sourceImage: string
+  reference: string
+  digest: string
+  metadata: ComputationImageMetadata
+}
+
+const REQUIRED_IMAGE_LABELS = {
+  title: 'org.opencontainers.image.title',
+  computationVersion: 'org.opencontainers.image.version',
+  revision: 'org.opencontainers.image.revision',
+  source: 'org.opencontainers.image.source',
+  computationApiVersion: 'org.neuroflame.computation-api.version',
+  boilerplateVersion: 'org.neuroflame.boilerplate.version',
+  nvflareVersion: 'org.neuroflame.nvflare.version',
+} as const
 
 interface LaunchNodeArgs {
   containerService: string
@@ -8,14 +42,16 @@ interface LaunchNodeArgs {
   directoriesToMount: Array<{
     hostDirectory: string
     containerDirectory: string
+    readOnly?: boolean
   }>
   portBindings: Array<{
     hostPort: number
     containerPort: number
   }>
   commandsToRun: string[]
-  onContainerExitSuccess?: (containerId: string) => void
-  onContainerExitError?: (containerId: string, error: string) => void
+  failureLogPath?: string
+  onContainerExitSuccess?: (containerId: string) => void | Promise<unknown>
+  onContainerExitError?: (containerId: string, error: string) => void | Promise<unknown>
 }
 
 interface ExposedPorts {
@@ -32,6 +68,7 @@ export async function launchNode({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: LaunchNodeArgs) {
@@ -45,6 +82,7 @@ export async function launchNode({
     directoriesToMount,
     portBindings,
     commandsToRun,
+    failureLogPath,
     onContainerExitSuccess,
     onContainerExitError,
   })
@@ -55,6 +93,7 @@ const launchDockerNode = async ({
   directoriesToMount,
   portBindings,
   commandsToRun,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: Omit<LaunchNodeArgs, 'containerService'>) => {
@@ -63,7 +102,8 @@ const launchDockerNode = async ({
   )
 
   const binds = directoriesToMount.map(
-    (mount) => `${mount.hostDirectory}:${mount.containerDirectory}`,
+    (mount) =>
+      `${mount.hostDirectory}:${mount.containerDirectory}:${mount.readOnly ? 'ro' : 'rw'}`,
   )
   const exposedPorts: ExposedPorts = {}
   const portBindingsFormatted: PortBindings = {}
@@ -75,16 +115,20 @@ const launchDockerNode = async ({
   })
 
   try {
-    await isDockerRunning()
-    await doesImageExist(imageName)
+    const resolvedImageName = await ensureDockerImageReady(imageName)
+    if (failureLogPath) {
+      await fs.rm(failureLogPath, { force: true })
+    }
 
     // Create the container
     const container = await docker.createContainer({
-      Image: imageName,
+      Image: resolvedImageName,
       Cmd: commandsToRun,
       ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: binds,
+        CapDrop: ['ALL'],
+        SecurityOpt: ['no-new-privileges:true'],
         PortBindings: portBindingsFormatted,
         NetworkMode: process.env.CI === 'true' ? 'ci-network' : 'bridge',
         ExtraHosts: process.env.CI === 'true'
@@ -100,6 +144,7 @@ const launchDockerNode = async ({
     // Add event handlers for the container
     attachDockerEventHandlers({
       containerId: container.id,
+      failureLogPath,
       onContainerExitSuccess,
       onContainerExitError,
     })
@@ -116,34 +161,133 @@ const launchDockerNode = async ({
 
 const attachDockerEventHandlers = async ({
   containerId,
+  failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
 }: {
   containerId: string
-  onContainerExitSuccess?: (containerId: string) => void
-  onContainerExitError?: (containerId: string, error: string) => void
+  failureLogPath?: string
+  onContainerExitSuccess?: (containerId: string) => void | Promise<unknown>
+  onContainerExitError?: (containerId: string, error: string) => void | Promise<unknown>
 }) => {
   const container = docker.getContainer(containerId)
 
   try {
-    const { StatusCode } = await container.wait()
-    if (StatusCode !== 0) {
+    let statusCode: number
+    try {
+      const waitResult = await container.wait()
+      statusCode = waitResult.StatusCode
+    } catch (waitError) {
+      logger.error(`Error waiting for container ${containerId}`, {
+        error: waitError,
+      })
+      await captureFailedContainerLogs(container, failureLogPath)
+      if (onContainerExitError) {
+        await onContainerExitError(
+          containerId,
+          'Central computation container could not be monitored',
+        )
+      }
+      return
+    }
+
+    if (statusCode !== 0) {
       logger.error(
-        `Container ${containerId} exited with error code ${StatusCode}`,
+        `Container ${containerId} exited with error code ${statusCode}`,
       )
-      const logs = await container.logs({ stdout: true, stderr: true })
-      logger.error(`Logs from container ${containerId}: ${logs}`)
-      onContainerExitError &&
-        onContainerExitError(containerId, `Exit Code: ${StatusCode}`)
+      const localLogs = await captureFailedContainerLogs(container, failureLogPath)
+      const sharedError = extractSharedError(
+        localLogs,
+        `Computation container exited with code ${statusCode}`,
+      )
+      if (onContainerExitError) {
+        await onContainerExitError(containerId, sharedError)
+      }
     } else {
       logger.info(`Container ${containerId} exited successfully.`)
-      onContainerExitSuccess && onContainerExitSuccess(containerId)
+      if (onContainerExitSuccess) {
+        await onContainerExitSuccess(containerId)
+      }
     }
-  } catch (error) {
-    logger.error(`Error waiting for container ${containerId}`, { error })
-    onContainerExitError &&
-      onContainerExitError(containerId, (error as Error).message)
+  } catch (handlerError) {
+    logger.error(`Failed to handle exit for container ${containerId}`, {
+      error: handlerError,
+    })
+  } finally {
+    try {
+      await container.remove()
+      logger.info(`Removed completed container ${containerId}`)
+    } catch (removeError) {
+      logger.warn(`Failed to remove completed container ${containerId}`, {
+        error: removeError,
+      })
+    }
   }
+}
+
+const captureFailedContainerLogs = async (
+  container: ReturnType<typeof docker.getContainer>,
+  failureLogPath?: string,
+): Promise<string> => {
+  try {
+    const rawLogs = await container.logs({
+      stdout: true,
+      stderr: true,
+      timestamps: true,
+      tail: 10000,
+    })
+    const decodedLogs = decodeDockerLogs(rawLogs)
+    if (!failureLogPath) {
+      return decodedLogs
+    }
+    const logBuffer = Buffer.from(decodedLogs, 'utf8')
+    const wasTruncated = logBuffer.length > MAX_FAILURE_LOG_BYTES
+    const retainedLogs = wasTruncated
+      ? logBuffer.subarray(logBuffer.length - MAX_FAILURE_LOG_BYTES)
+      : logBuffer
+    const prefix = wasTruncated
+      ? `[truncated to last ${MAX_FAILURE_LOG_BYTES} bytes]\n`
+      : ''
+
+    await fs.mkdir(path.dirname(failureLogPath), {
+      recursive: true,
+      mode: 0o700,
+    })
+    await fs.writeFile(
+      failureLogPath,
+      Buffer.concat([Buffer.from(prefix, 'utf8'), retainedLogs]),
+      { mode: 0o600 },
+    )
+    await fs.chmod(failureLogPath, 0o600)
+    logger.info(`Saved failed-container logs to ${failureLogPath}`)
+    return decodedLogs
+  } catch (logError) {
+    logger.warn(`Could not save failed-container logs for ${container.id}`, {
+      error: logError,
+    })
+    return ''
+  }
+}
+
+const decodeDockerLogs = (rawLogs: Buffer): string => {
+  const chunks: Buffer[] = []
+  let offset = 0
+
+  while (offset + 8 <= rawLogs.length) {
+    const streamType = rawLogs[offset]
+    const payloadLength = rawLogs.readUInt32BE(offset + 4)
+    const payloadStart = offset + 8
+    const payloadEnd = payloadStart + payloadLength
+    if (![0, 1, 2].includes(streamType) || payloadEnd > rawLogs.length) {
+      return rawLogs.toString('utf8')
+    }
+    chunks.push(rawLogs.subarray(payloadStart, payloadEnd))
+    offset = payloadEnd
+  }
+
+  return offset === rawLogs.length && chunks.length > 0
+    ? Buffer.concat(chunks).toString('utf8')
+    : rawLogs.toString('utf8')
 }
 
 const isDockerRunning = async () => {
@@ -156,21 +300,207 @@ const isDockerRunning = async () => {
   }
 }
 
-const doesImageExist = async (imageName: string) => {
+const getLocalDockerImageId = async (
+  imageName: string,
+): Promise<string | undefined> => {
   try {
-    const images = await docker.listImages({
-      filters: { reference: [imageName] },
-    })
-    if (images.length === 0) {
+    const image = await docker.getImage(imageName).inspect()
+    return image.Id
+  } catch (error) {
+    if ((error as { statusCode?: number }).statusCode === 404) {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
+const validateImageCompatibility = async (imageName: string): Promise<void> => {
+  const image = await docker.getImage(imageName).inspect()
+  const labels = image.Config?.Labels ?? {}
+  for (const [label, expected] of Object.entries(REQUIRED_IMAGE_LABELS)) {
+    const actual = labels[label]
+    if (actual !== expected) {
       throw new Error(
-        `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
+        `Image "${imageName}" is incompatible: label "${label}" must be "${expected}"`,
       )
     }
-  } catch (error) {
+  }
+}
+
+const shouldPullBeforeRun = (imageName: string): boolean => {
+  if (imageName.includes('@sha256:')) {
+    return false
+  }
+
+  const imageWithoutRegistryPort = imageName.includes('/')
+    ? imageName.substring(imageName.lastIndexOf('/') + 1)
+    : imageName
+
+  return !imageWithoutRegistryPort.includes(':') || imageName.endsWith(':latest')
+}
+
+const readComputationImageMetadata = (
+  labels: Record<string, string> | undefined,
+): ComputationImageMetadata => {
+  const metadata = Object.fromEntries(
+    Object.entries(REQUIRED_IMAGE_LABELS).map(([field, label]) => {
+      const value = labels?.[label]?.trim()
+      if (!value) {
+        throw new Error(`Computation image is missing required label "${label}"`)
+      }
+      return [field, value]
+    }),
+  ) as unknown as ComputationImageMetadata
+
+  for (const field of [
+    'computationVersion',
+    'computationApiVersion',
+    'boilerplateVersion',
+    'nvflareVersion',
+  ] as const) {
+    if (!SEMVER_PATTERN.test(metadata[field])) {
+      throw new Error(`Computation image label ${field} is not semantic versioning`)
+    }
+  }
+  if (!/^[0-9a-f]{7,64}$/.test(metadata.revision)) {
+    throw new Error('Computation image revision label is not a Git revision')
+  }
+  return metadata
+}
+
+export const resolveDockerComputationImage = async (
+  imageName: string,
+  requiredComputationApiVersion: string,
+  mode: 'local' | 'registry' = 'registry',
+): Promise<ResolvedComputationImage> => {
+  await isDockerRunning()
+  if (mode === 'local') {
+    const inspection = await docker.getImage(imageName).inspect()
+    const metadata = readComputationImageMetadata(inspection.Config?.Labels)
+    validateComputationImageMetadata(metadata, requiredComputationApiVersion)
+    if (!DIGEST_PATTERN.test(inspection.Id)) {
+      throw new Error(`Docker returned an invalid local image ID: ${inspection.Id}`)
+    }
+    logger.info(`Using local computation image ${imageName} as ${inspection.Id}`)
+    return {
+      sourceImage: imageName,
+      reference: inspection.Id,
+      digest: inspection.Id,
+      metadata,
+    }
+  }
+
+  if (imageName.includes('@sha256:')) {
+    try {
+      await pullDockerImage(imageName)
+    } catch (error) {
+      if (!await getLocalDockerImageId(imageName)) {
+        throw error
+      }
+      logger.warn(`Registry unavailable; using cached immutable image ${imageName}`, {
+        error,
+      })
+    }
+  } else {
+    await pullDockerImage(imageName)
+  }
+
+  const inspection = await docker.getImage(imageName).inspect()
+  const metadata = readComputationImageMetadata(inspection.Config?.Labels)
+  validateComputationImageMetadata(metadata, requiredComputationApiVersion)
+
+  const suppliedDigest = imageName.match(/@(sha256:[0-9a-f]{64})$/)?.[1]
+  const sourceRepository = imageName
+    .replace(/@sha256:[0-9a-f]{64}$/, '')
+    .replace(/:[^/:]+$/, '')
+  const repositoryDigest = suppliedDigest
+    ? imageName
+    : inspection.RepoDigests?.find(
+      (value) =>
+        value.startsWith(`${sourceRepository}@`) && value.includes('@sha256:'),
+    )
+  if (!repositoryDigest) {
+    throw new Error(`Unable to resolve a registry digest for image "${imageName}"`)
+  }
+  const digest = repositoryDigest.slice(repositoryDigest.lastIndexOf('@') + 1)
+  if (!DIGEST_PATTERN.test(digest)) {
+    throw new Error(`Docker returned an invalid image digest: ${digest}`)
+  }
+
+  return {
+    sourceImage: imageName,
+    reference: repositoryDigest,
+    digest,
+    metadata,
+  }
+}
+
+const validateComputationImageMetadata = (
+  metadata: ComputationImageMetadata,
+  requiredComputationApiVersion: string,
+): void => {
+  if (metadata.computationApiVersion !== requiredComputationApiVersion) {
     throw new Error(
-      `Failed to check existence of image "${imageName}": ${
-        (error as Error).message
-      }`,
+      `Computation API ${metadata.computationApiVersion} is incompatible with required version ${requiredComputationApiVersion}`,
     )
   }
+  if (metadata.nvflareVersion !== '2.8.0') {
+    throw new Error(
+      `NVFlare ${metadata.nvflareVersion} is incompatible with required version 2.8.0`,
+    )
+  }
+  if (metadata.boilerplateVersion !== '0.1.0') {
+    throw new Error(
+      `Boilerplate ${metadata.boilerplateVersion} is incompatible with required version 0.1.0`,
+    )
+  }
+}
+
+const pullDockerImage = async (imageName: string): Promise<void> => {
+  logger.info(`Pulling Docker image before run: ${imageName}`)
+
+  await new Promise<void>((resolve, reject) => {
+    docker.pull(imageName, (error: Error | null, stream: NodeJS.ReadableStream | undefined) => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      if (!stream) {
+        reject(new Error(`Docker did not return a pull stream for ${imageName}`))
+        return
+      }
+
+      docker.modem.followProgress(stream, (progressError) => {
+        if (progressError) {
+          reject(progressError)
+          return
+        }
+
+        resolve()
+      })
+    })
+  })
+
+  logger.info(`Docker image pull completed: ${imageName}`)
+}
+
+export const ensureDockerImageReady = async (
+  imageName: string,
+): Promise<string> => {
+  await isDockerRunning()
+
+  if (shouldPullBeforeRun(imageName)) {
+    await pullDockerImage(imageName)
+  }
+
+  const localImageId = await getLocalDockerImageId(imageName)
+  if (!localImageId) {
+    throw new Error(
+      `Image "${imageName}" does not exist. Please pull the image or verify its name.`,
+    )
+  }
+
+  return imageName
 }

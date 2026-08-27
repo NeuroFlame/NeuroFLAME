@@ -21,8 +21,8 @@ interface ReportRunErrorResponse {
 
 // GraphQL mutation
 const REPORT_RUN_ERROR_MUTATION = `
-  mutation reportRunError($runId: String!, $errorMessage: String!) {
-    reportRunError(runId: $runId, errorMessage: $errorMessage)
+  mutation reportRunError($runId: String!, $errorMessage: String!, $redactErrorDetails: Boolean!) {
+    reportRunError(runId: $runId, errorMessage: $errorMessage, redactErrorDetails: $redactErrorDetails)
   }
 `
 
@@ -56,7 +56,7 @@ export default async function reportRunError({
       },
       body: JSON.stringify({
         query: REPORT_RUN_ERROR_MUTATION,
-        variables: { runId, errorMessage },
+        variables: { runId, errorMessage, redactErrorDetails: true },
       }),
     })
     logger.info(`[reportRunError] Received response status: ${response.status} ${response.statusText}`)

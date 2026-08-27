@@ -28,6 +28,7 @@ export const RunListItem: React.FC<RunListItemProps> = ({ run, isStarred, onTogg
 
   return (
     <Card
+      data-testid='run-list-item'
       sx={{
         display: 'flex',
         marginBottom: 2,

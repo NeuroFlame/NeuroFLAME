@@ -14,6 +14,7 @@ import WarningIcon from '@mui/icons-material/Warning'
 
 interface DirectorySelectDisplayProps {
   directory: string;
+  hasSavedDirectory: boolean;
   isEditing: boolean;
   isDifferent: boolean; // Positive flag for save
   isActive: boolean;
@@ -29,6 +30,7 @@ interface DirectorySelectDisplayProps {
 
 export function DirectorySelectDisplay({
   directory,
+  hasSavedDirectory,
   isEditing,
   isDifferent,
   isActive,
@@ -157,7 +159,7 @@ export function DirectorySelectDisplay({
             </Button>
           )}
           {/* Ready toggle — right-justified, only when directory is set */}
-          {showReadyToggle && !!directory && (
+          {showReadyToggle && hasSavedDirectory && (
             <FormControlLabel
               label='Ready'
               labelPlacement='start'

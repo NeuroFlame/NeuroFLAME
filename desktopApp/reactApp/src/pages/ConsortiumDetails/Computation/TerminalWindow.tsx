@@ -3,7 +3,6 @@ import { electronApi } from '../../../apis/electronApi/electronApi'
 import ScrollToBottom from 'react-scroll-to-bottom'
 import { Box, Button, Typography, CircularProgress } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import ArrowDown from '../../../assets/arrow-down.png'
 
 const ScrollToBottomWrapper = forwardRef<
   HTMLDivElement,
@@ -17,7 +16,11 @@ const MATCHERS = [
   /docker\.io\/coinstacteam\/nfc-single-round-ridge-regression-freesurfer:latest/i,
 ]
 
-const TerminalWindow: React.FC<{ command: string; showInstructions?: boolean; onImageExists?: () => void }> = ({ command, showInstructions, onImageExists }) => {
+const TerminalWindow: React.FC<{
+  command: string;
+  showInstructions?: boolean;
+  onImageExists?: (exists: boolean) => void;
+}> = ({ command, showInstructions, onImageExists }) => {
   const [output, setOutput] = useState<string[]>([])
   const [isTerminalReady, setTerminalReady] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
@@ -29,8 +32,16 @@ const TerminalWindow: React.FC<{ command: string; showInstructions?: boolean; on
   const imageExistsRef = useRef(false)
   useEffect(() => {
     imageExistsRef.current = imageExists
-    if (imageExists) onImageExists?.()
-  }, [imageExists])
+    onImageExists?.(imageExists)
+  }, [imageExists, onImageExists])
+
+  useEffect(() => {
+    imageExistsRef.current = false
+    setImageExists(false)
+    setOutput([])
+    setShowTerminal(false)
+    setPullError(null)
+  }, [command])
 
   const {
     spawnTerminal,
@@ -114,7 +125,7 @@ const TerminalWindow: React.FC<{ command: string; showInstructions?: boolean; on
         removeTerminalOutputListener()
       }
     }
-  }, [isSingularity]) // run when singularity status changes
+  }, [isSingularity, command]) // rerun when the selected image changes
 
   // Set up Singularity pull output listener when Singularity mode is active
   useEffect(() => {
@@ -172,14 +183,11 @@ const TerminalWindow: React.FC<{ command: string; showInstructions?: boolean; on
     <>
       {showInstructions && !imageExists && !showTerminal && !isPulling && (
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end', mb: 1 }}>
-          {/* <img
-            src={ArrowDown}
-            alt='arrow pointing at button'
-            style={{ width: '70px', rotate: '-90deg', flexShrink: 0, transform: 'scaleY(-1)' }}
-          /> */}
           <Box>
             <Typography variant='body2' fontWeight='bold' color='error'>
-              {isSingularity ? 'Click "Run Singularity Pull" below to download the computation image.' : 'Click "Run Docker Pull" below to download the computation image.'}
+              {isSingularity
+                ? 'Click "Run Singularity Pull" below to download the computation image.'
+                : 'Click "Run Docker Pull" below to download the computation image.'}
             </Typography>
             {!isSingularity && (
               <Typography variant='body2' color='text.secondary'>

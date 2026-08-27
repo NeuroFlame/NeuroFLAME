@@ -15,6 +15,7 @@
   "scripts": {
     "compile": "tsc && chmod +x dist/cli.js",
     "build": "tsc && chmod +x dist/cli.js",
+    "test": "npm run compile && node --test tests/*.test.mjs",
     "start": "npm run compile && node ./dist/cli.js start"
   },
   "author": "",

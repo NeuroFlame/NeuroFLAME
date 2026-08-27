@@ -13,6 +13,7 @@ import ApolloClientsProvider from './contexts/ApolloClientsProvider'
 import { HashRouter as Router } from 'react-router-dom'
 import { UserStateProvider } from './contexts/UserStateContext'
 import interceptExternalLinks from './utils/interceptExternalLinks'
+import CompatibilityScreen from './CompatibilityScreen'
 
 const startApp = async () => {
   console.log('Starting app...')
@@ -21,7 +22,7 @@ const startApp = async () => {
 
   // Attempt to get the configuration
   const config = await electronApi.getConfig()
-  console.log('Config loaded:', config)
+  const compatibility = await electronApi.getCompatibilityStatus()
 
   // Check if the root element exists
   const rootElement = document.getElementById('root')
@@ -35,6 +36,11 @@ const startApp = async () => {
   }
 
   const root = ReactDOM.createRoot(rootElement)
+
+  if (compatibility.status !== 'compatible') {
+    root.render(<CompatibilityScreen compatibility={compatibility} />)
+    return
+  }
 
   // Render the app, even if config is null (if config is essential, consider a loading screen)
   root.render(

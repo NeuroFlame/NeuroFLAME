@@ -3,6 +3,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { parseVaultErrorDisclosure } from './errorDisclosure.js'
 
 const REQUIRED_ENV = [
   'VAULT_HTTP_URL',
@@ -15,6 +16,7 @@ const REQUIRED_ENV = [
 const OPTIONAL_ENV = [
   'VAULT_LOG_PATH',
   'VAULT_CONTAINER_SERVICE',
+  'VAULT_ERROR_DISCLOSURE',
 ]
 
 function printHelp(): void {
@@ -81,6 +83,12 @@ function validateEnv(): string[] {
     !['docker', 'singularity'].includes(containerService.trim().toLowerCase())
   ) {
     errors.push('VAULT_CONTAINER_SERVICE must be docker or singularity')
+  }
+
+  try {
+    parseVaultErrorDisclosure(process.env.VAULT_ERROR_DISCLOSURE)
+  } catch (error) {
+    errors.push((error as Error).message)
   }
 
   return errors

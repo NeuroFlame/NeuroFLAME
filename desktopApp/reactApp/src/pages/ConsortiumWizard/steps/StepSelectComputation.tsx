@@ -2,7 +2,11 @@ import { Box } from '@mui/material'
 import Computation from '../../ConsortiumDetails/Computation/Computation'
 import { useConsortiumDetailsContext } from '../../ConsortiumDetails/ConsortiumDetailsContext'
 
-export default function StepSelectComputation({ onImageDownloaded }: { onImageDownloaded?: () => void }) {
+export default function StepSelectComputation({
+  onImageDownloaded,
+}: {
+  onImageDownloaded?: (downloaded: boolean) => void;
+}) {
   const { data: consortiumDetails } = useConsortiumDetailsContext()
   const selectedComputation = consortiumDetails?.studyConfiguration?.computation
 

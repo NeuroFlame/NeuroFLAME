@@ -33,6 +33,27 @@ export type Computation = {
   title: Scalars['String']['output'];
 };
 
+export type ComputationImageMetadata = {
+  __typename?: 'ComputationImageMetadata';
+  boilerplateVersion: Scalars['String']['output'];
+  computationApiVersion: Scalars['String']['output'];
+  computationVersion: Scalars['String']['output'];
+  nvflareVersion: Scalars['String']['output'];
+  revision: Scalars['String']['output'];
+  source: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+};
+
+export type ComputationImageMetadataInput = {
+  boilerplateVersion: Scalars['String']['input'];
+  computationApiVersion: Scalars['String']['input'];
+  computationVersion: Scalars['String']['input'];
+  nvflareVersion: Scalars['String']['input'];
+  revision: Scalars['String']['input'];
+  source: Scalars['String']['input'];
+  title: Scalars['String']['input'];
+};
+
 export type ComputationListItem = {
   __typename?: 'ComputationListItem';
   id: Scalars['String']['output'];
@@ -58,6 +79,7 @@ export type ConsortiumDetails = {
 
 export type ConsortiumListItem = {
   __typename?: 'ConsortiumListItem';
+  createdAt: Scalars['String']['output'];
   description: Scalars['String']['output'];
   id: Scalars['String']['output'];
   isPrivate: Scalars['Boolean']['output'];
@@ -98,10 +120,14 @@ export type Mutation = {
   adminChangeUserRoles: Scalars['Boolean']['output'];
   adminCreateHostedVault: Scalars['String']['output'];
   adminCreateVaultUser: LoginOutput;
+  adminDeleteHostedVault: Scalars['Boolean']['output'];
+  adminDeleteVaultServer: Scalars['Boolean']['output'];
+  adminRotateVaultToken: Scalars['String']['output'];
   adminSetHostedVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultAllowedComputations: Scalars['Boolean']['output'];
   adminSetVaultDatasetMappings: Scalars['Boolean']['output'];
   adminUpdateHostedVault: Scalars['Boolean']['output'];
+  adminUpdateVaultServer: Scalars['Boolean']['output'];
   computationCreate: Scalars['Boolean']['output'];
   computationEdit: Scalars['Boolean']['output'];
   consortiumCreate: Scalars['String']['output'];
@@ -163,6 +189,21 @@ export type MutationAdminCreateVaultUserArgs = {
 };
 
 
+export type MutationAdminDeleteHostedVaultArgs = {
+  vaultId: Scalars['String']['input'];
+};
+
+
+export type MutationAdminDeleteVaultServerArgs = {
+  serverId: Scalars['String']['input'];
+};
+
+
+export type MutationAdminRotateVaultTokenArgs = {
+  serverId: Scalars['String']['input'];
+};
+
+
 export type MutationAdminSetHostedVaultAllowedComputationsArgs = {
   computationIds: Array<Scalars['String']['input']>;
   vaultId: Scalars['String']['input'];
@@ -185,6 +226,13 @@ export type MutationAdminUpdateHostedVaultArgs = {
   description: Scalars['String']['input'];
   name: Scalars['String']['input'];
   vaultId: Scalars['String']['input'];
+};
+
+
+export type MutationAdminUpdateVaultServerArgs = {
+  description: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  serverId: Scalars['String']['input'];
 };
 
 
@@ -311,11 +359,14 @@ export type MutationReportRunCompleteArgs = {
 
 export type MutationReportRunErrorArgs = {
   errorMessage: Scalars['String']['input'];
+  redactErrorDetails?: InputMaybe<Scalars['Boolean']['input']>;
   runId: Scalars['String']['input'];
+  vaultId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type MutationReportRunReadyArgs = {
+  resolvedImage: ResolvedComputationImageInput;
   runId: Scalars['String']['input'];
 };
 
@@ -435,6 +486,21 @@ export type QueryGetRunListArgs = {
   consortiumId?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type ResolvedComputationImage = {
+  __typename?: 'ResolvedComputationImage';
+  digest: Scalars['String']['output'];
+  metadata: ComputationImageMetadata;
+  reference: Scalars['String']['output'];
+  sourceImage: Scalars['String']['output'];
+};
+
+export type ResolvedComputationImageInput = {
+  digest: Scalars['String']['input'];
+  metadata: ComputationImageMetadataInput;
+  reference: Scalars['String']['input'];
+  sourceImage: Scalars['String']['input'];
+};
+
 export type RunDetailConsortium = {
   __typename?: 'RunDetailConsortium';
   activeMembers: Array<PublicUser>;
@@ -464,6 +530,7 @@ export type RunError = {
   message: Scalars['String']['output'];
   timestamp: Scalars['String']['output'];
   user: PublicUser;
+  vault?: Maybe<HostedVault>;
 };
 
 export type RunEventPayload = {
@@ -491,6 +558,7 @@ export type RunStartCentralPayload = {
   computationParameters: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
+  requiredComputationApiVersion: Scalars['String']['output'];
   runId: Scalars['String']['output'];
 };
 
@@ -502,6 +570,7 @@ export type RunStartEdgePayload = {
   downloadUrl: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
   participantId: Scalars['String']['output'];
+  resolvedImage: ResolvedComputationImage;
   runId: Scalars['String']['output'];
   vaultId?: Maybe<Scalars['String']['output']>;
 };

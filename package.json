@@ -15,6 +15,7 @@
     "scripts": {
         "db:start": "docker compose --env-file _devCentralDatabase/.env -f _devCentralDatabase/docker-compose.yaml up -d",
         "lint": "eslint .",
-        "release": "bash ./scripts/release.sh"
+        "release": "bash ./scripts/release.sh",
+        "check-app-api-version": "node ./scripts/check-app-api-compatibility.mjs"
     }
 }

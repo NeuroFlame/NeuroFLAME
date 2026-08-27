@@ -20,7 +20,14 @@ const logOut = async (page: Page) => {
   await page.getByText('Logout', { exact: true }).click({ timeout: EXIST_TIMEOUT })
 }
 
+const register = async ({ username, password }, page: Page) => {
+  await page.getByPlaceholder('Username \(Email\)').fill(username)
+  await page.getByPlaceholder('Password').fill(password)
+  await page.getByRole('button', { name: 'Create User' }).click()
+}
+
 export default {
   logIn,
   logOut,
+  register,
 }

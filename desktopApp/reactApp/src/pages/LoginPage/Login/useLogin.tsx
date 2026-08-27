@@ -22,7 +22,10 @@ export function useLogin() {
       setLoading(true)
       setError(null)
       // request to the central api
-      const userData = await login({ username, password })
+      const userData = await login({
+        username: username.trim().toLowerCase(),
+        password,
+      })
       await setUserData(userData, { keepLoggedIn })
       await connectAsUser()
       navigate('/home')

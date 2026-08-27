@@ -43,6 +43,8 @@ const ConsortiumWizard = () => {
   // Support flag straight from computation
   const supportsLocal =
     !!data?.studyConfiguration?.computation?.hasLocalParameters
+  const selectedComputationImage =
+    data?.studyConfiguration?.computation?.imageName
 
   // Build step lists based on role AND supportsLocal
   const memberSteps: StepsType[] = [
@@ -82,6 +84,10 @@ const ConsortiumWizard = () => {
     const userIsReady = readyMembers.some((user) => user.id === userId)
     setIsReady(userIsReady)
   }, [readyMembers, userId])
+
+  useEffect(() => {
+    setImageDownloaded(false)
+  }, [selectedComputationImage])
 
   const handleNext = () => {
     if (steps.length > 0 && step < steps.length - 1) {
@@ -145,7 +151,14 @@ const ConsortiumWizard = () => {
           {/* Step Routes */}
           <Box style={{ margin: '0 1rem 2rem' }}>
             <Routes>
-              <Route path='step-select-computation' element={<StepSelectComputation onImageDownloaded={() => setImageDownloaded(true)} />} />
+              <Route
+                path='step-select-computation'
+                element={(
+                  <StepSelectComputation
+                    onImageDownloaded={setImageDownloaded}
+                  />
+                )}
+              />
               <Route path='step-add-vault-user' element={<StepAddVaultUser />} />
               <Route path='step-set-parameters' element={<StepSetParameters />} />
               <Route path='step-select-data' element={<StepSelectData onDirectorySet={setDirectorySet} />} />
@@ -153,10 +166,20 @@ const ConsortiumWizard = () => {
               {supportsLocal && (
                 <Route path='step-set-local-parameters' element={<StepSetLocalParameters />} />
               )}
-              <Route path='step-download-image' element={<StepDownloadImage onImageDownloaded={() => setImageDownloaded(true)} />} />
+              <Route
+                path='step-download-image'
+                element={<StepDownloadImage onImageDownloaded={setImageDownloaded} />}
+              />
               <Route path='step-add-notes' element={<StepAddNotes />} />
               <Route path='step-set-ready' element={<StepSetReady />} />
-              <Route path='step-view-requirements' element={<StepViewRequirements onAcknowledged={setRequirementsAcknowledged} />} />
+              <Route
+                path='step-view-requirements'
+                element={(
+                  <StepViewRequirements
+                    onAcknowledged={setRequirementsAcknowledged}
+                  />
+                )}
+              />
             </Routes>
           </Box>
 

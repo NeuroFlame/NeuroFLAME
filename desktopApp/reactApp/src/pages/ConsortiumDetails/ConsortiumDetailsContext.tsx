@@ -180,7 +180,10 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
     setError(null)
 
     try {
-      await consortiumInvite({ consortiumId, email })
+      await consortiumInvite({
+        consortiumId,
+        email: email.trim().toLowerCase(),
+      })
       // You can navigate away here if needed, e.g., to a list page
       // navigate('/consortia');
     } finally {
