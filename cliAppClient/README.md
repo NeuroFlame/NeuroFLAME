@@ -435,7 +435,11 @@ neuroflame edge start --base-dir /scratch/$USER/neuroflame-edge --container-serv
 ```
 
 **Unattended (`sbatch`)** — no terminal to log in on, so pair it with the
-`.env` file from [Login](#login):
+`.env` file from [Login](#login). This version is fully self-contained:
+given a consortium ID and a path to this site's dataset, it logs in,
+starts the edge client, points it at the right data directory, and flips
+the consortium's Ready toggle — everything a human would otherwise do by
+hand:
 
 ```bash
 #!/bin/bash
@@ -443,21 +447,49 @@ neuroflame edge start --base-dir /scratch/$USER/neuroflame-edge --container-serv
 #SBATCH --time=02:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=compute
+#SBATCH --output=neuroflame-edge-%j.log
 
-neuroflame edge start --base-dir /scratch/$USER/neuroflame-edge --container-service singularity
+# --- This site's participation, pre-specified ------------------------
+# Edit these two, or override per-submission instead:
+#   sbatch --export=ALL,CONSORTIUM_ID=...,MOUNT_DIR=... this-script.sh
+: "${CONSORTIUM_ID:?Set CONSORTIUM_ID (edit above, or --export at submit time)}"
+: "${MOUNT_DIR:?Set MOUNT_DIR (edit above, or --export at submit time)}"
+CONTAINER_SERVICE="${CONTAINER_SERVICE:-singularity}"
+EDGE_BASE_DIR="${EDGE_BASE_DIR:-/scratch/$USER/neuroflame-edge}"
+
+# Username/password deliberately aren't parameterized the same way as
+# CONSORTIUM_ID/MOUNT_DIR above — unlike those, they're secrets, and a
+# SLURM job's environment/accounting record isn't necessarily private the
+# way a chmod 600 file is. They live in ~/.config/neuroflame-cli/.env
+# instead (see Login above) — `neuroflame login` below picks them up with
+# no flags needed.
+
+set -euo pipefail
+
+neuroflame login
+neuroflame edge start --base-dir "$EDGE_BASE_DIR" --container-service "$CONTAINER_SERVICE"
+neuroflame edge set-mount-dir "$CONSORTIUM_ID" "$MOUNT_DIR"
+neuroflame consortium set-ready "$CONSORTIUM_ID" true
+
+# edge start backgrounds the actual daemon and returns immediately — with
+# nothing else running, the script (and the job) would end right here.
+# SLURM kills every process in a job's cgroup the moment its batch script
+# exits, detached or not, so without this the daemon would die within
+# seconds of starting. Hold the job open for the rest of its time limit
+# instead, so the daemon actually survives long enough to pick up a run.
+sleep infinity
 ```
 
-Submitted with `sbatch that-script.sh`. `edge start` needs to already be
-logged in — either `~/.config/neuroflame-cli/session.json` already
-exists from a `neuroflame login` run on the login node beforehand (works
-because compute and login nodes almost always share the same home
-directory), or `~/.config/neuroflame-cli/.env` holds
-`NEUROFLAME_USERNAME`/`NEUROFLAME_PASSWORD` so the job logs in fresh
-itself. Either way, [Login](#login)'s fail-fast behavior means a
-misconfigured job errors immediately instead of hanging until its time
-limit runs out. Point `--base-dir` at scratch storage, not the (usually
-small-quota, slower) home directory — that's where run kits and results
-actually live.
+```bash
+sbatch --export=ALL,CONSORTIUM_ID=<id>,MOUNT_DIR=/path/to/dataset neuroflame-edge.slurm
+```
+
+[Login](#login)'s fail-fast behavior means a misconfigured job (missing
+`.env`, no prior session) errors out immediately instead of silently
+hanging until the time limit runs out. Point `EDGE_BASE_DIR`/`MOUNT_DIR`
+at scratch storage, not the (usually small-quota, slower) home
+directory — that's where run kits, results, and the dataset itself
+should actually live.
 
 **The real constraint isn't SLURM, it's *when* the container runs, not
 *whether* it can.** `sbatch`/`salloc` don't guarantee the window you
