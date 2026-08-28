@@ -6,7 +6,7 @@
   "type": "module",
   "bin": {
     "neuroflame": "dist/cli.js",
-    "nfcli": "dist/cli.js"
+    "nf": "dist/cli.js"
   },
   "files": [
     "dist",

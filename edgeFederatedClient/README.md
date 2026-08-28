@@ -13,7 +13,7 @@ Two things can act as that controlling client:
   package directly — it calls `start()` in-process and drives the local
   API from its own UI. This is the only way this package has historically
   been run.
-- **`cliAppClient`** (`neuroflame`/`nfcli`)'s `edge` commands, talking to
+- **`cliAppClient`** (`neuroflame`/`nf`)'s `edge` commands, talking to
   this package's API over HTTP the same way the desktop app's UI does —
   see its README's ["Pointing a consortium at a local dataset
   directory"](../cliAppClient/README.md#pointing-a-consortium-at-a-local-dataset-directory)
@@ -22,7 +22,7 @@ Two things can act as that controlling client:
 This package now also runs **standalone** — as a plain Node process, no
 Electron involved at all — which is what makes a truly headless HPC/cluster
 deployment possible: `neuroflame-edge` on the compute node, driven entirely
-by `neuroflame`/`nfcli` from wherever you're working.
+by `neuroflame`/`nf` from wherever you're working.
 
 ## Install
 

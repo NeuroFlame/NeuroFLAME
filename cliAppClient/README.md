@@ -102,7 +102,7 @@ Installs two equivalent global commands — use whichever you prefer:
 
 ```bash
 neuroflame
-nfcli       # short alias, same binary
+nf          # short alias, same binary
 ```
 
 ## Setup and diagnostics
