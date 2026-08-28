@@ -26,53 +26,58 @@ dataset directory](#pointing-a-consortium-at-a-local-dataset-directory).
 ## Getting Started
 
 This CLI only replaces the control plane (auth, consortia, runs). Actually
-*executing* a computation on this machine takes an edge client too —
-either this CLI driving a standalone `neuroflame-edge` process (steps 2-3
-below), or the desktop app running here instead (it starts one for you on
-login). **Skip steps 2-3** if you're only doing control-plane work from a
-node that isn't running any computations itself (admin tasks, watching
-runs, managing a consortium remotely) — everything past `login` still
-works without an edge client anywhere nearby.
-
-**Running this alongside the desktop app, or a second identity, on the
-*same* machine?** Each edge client needs its own `EDGE_HOSTING_PORT` *and*
-its own `EDGE_BASE_DIR` — never reuse the desktop app's port (`3003` in a
-typical local config) for a standalone one. An edge client only tracks a
-single logged-in identity at a time; two clients sharing a port means the
-second login silently steals the connection from the first, and whichever
-identity got bumped never actually participates in a run — no error
-anywhere, it just quietly never joins. `neuroflame-edge`'s own shipped
-default (`4001`, used below) is a safe choice precisely because nothing
-else defaults to it.
+*executing* a computation on this machine takes an edge client too — either
+this CLI managing one directly (step 4 below), or the desktop app running
+here instead (it starts one for you on login). **Skip step 4** if you're
+only doing control-plane work from a node that isn't running any
+computations itself (admin tasks, watching runs, managing a consortium
+remotely) — everything else still works without an edge client anywhere
+nearby.
 
 ```bash
 # 1. Install both — the CLI, and the edge client it drives
 npm install -g @neuroflame/cli
 npm install -g edge-federated-client
 
-# 2. Start the edge client (skip if not running computations here —
-#    see the note above). Runs in the foreground; use a separate
-#    terminal/session, or see "Running a standalone edge client" below
-#    for systemd.
-EDGE_HTTP_URL=https://your-central-api.example.com/graphql \
-EDGE_WS_URL=wss://your-central-api.example.com/graphql \
-EDGE_BASE_DIR=/path/to/local/work \
-EDGE_HOSTING_PORT=4001 \
-neuroflame-edge start
-
-# 3. In another terminal: point the CLI at your central API, and
-#    (if you started one) the edge client from step 2 — interactive,
-#    checks each URL live before saving
+# 2. Point the CLI at your central API — interactive, checks it live
+#    before saving
 neuroflame configure
 
-# 4. Log in — --connect-edge also brings the edge client online as you,
-#    which is required before it'll actually pick up any runs (see
-#    "edge connect is easy to forget" below); omit it if you skipped 2-3
-neuroflame login --connect-edge
+# 3. Log in
+neuroflame login
+
+# 4. Spawn a local edge client, tracked by this CLI, connected as you,
+#    with a mount-dir check for every consortium you're a member of —
+#    skip if you're not running computations on this machine
+neuroflame edge start
 
 # 5. Try it
 neuroflame consortium list
 ```
+
+`edge start` replaces what used to be a separate `neuroflame-edge start`
+in its own terminal (with `EDGE_HTTP_URL`/`EDGE_BASE_DIR`/etc. set by
+hand) plus a manual `edge connect` — it spawns the daemon itself, tracks
+it by PID so a later `edge start` reconnects instead of double-spawning,
+points this CLI's config at it, and connects as whoever's logged in, all
+in one step. See [Running a standalone edge
+client](#running-a-standalone-edge-client) for the full flag list
+(`--base-dir`/`--port`/`--container-service`), `neuroflame edge stop` to
+tear it down, and the manual env-var form it uses under the hood — still
+the way to go for a genuinely distributed setup (the edge daemon on a
+different machine than wherever you run `neuroflame` from), or under
+systemd for anything long-lived.
+
+**Running this alongside the desktop app, or a second identity, on the
+*same* machine?** Each edge client needs its own port *and* its own base
+dir — never reuse the desktop app's port (`3003` in a typical local
+config). An edge client only tracks a single logged-in identity at a
+time; two clients sharing a port means the second login silently steals
+the connection from the first, and whichever identity got bumped never
+actually participates in a run — no error anywhere, it just quietly never
+joins. `edge start`'s default port (`4001`, `neuroflame-edge`'s own
+shipped default) is a safe choice precisely because nothing else defaults
+to it — pass `--port <n>` for a second one on the same box.
 
 From there:
 
@@ -239,6 +244,8 @@ neuroflame vault list-users [--json]
 neuroflame vault list-servers [--json]
 neuroflame vault list-hosted [serverId] [--json]
 
+neuroflame edge start [--base-dir <path>] [--port <n>] [--container-service docker|singularity]
+neuroflame edge stop
 neuroflame edge connect [--url <edgeUrl>]
 neuroflame edge get-mount-dir <consortiumId> [--json]
 neuroflame edge set-mount-dir <consortiumId> <path>
