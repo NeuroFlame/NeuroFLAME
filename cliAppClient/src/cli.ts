@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { loadDotEnvFile } from './envFile.js'
 import { loginCommand } from './commands/login.js'
 import { logoutCommand } from './commands/logout.js'
 import { whoamiCommand } from './commands/whoami.js'
@@ -121,6 +122,7 @@ vaultFederatedClient, not by a human operator.
 `
 
 async function main(): Promise<void> {
+  loadDotEnvFile()
   const argv = process.argv.slice(2)
   const command = argv[0]
   const sub = argv[1]

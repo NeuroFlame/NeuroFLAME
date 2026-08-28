@@ -169,6 +169,30 @@ NEUROFLAME_USERNAME=alice NEUROFLAME_PASSWORD=hunter2 neuroflame login
 neuroflame login --username alice --password hunter2
 ```
 
+A third way, for a context where exporting real env vars isn't practical —
+a SLURM batch job, systemd, anywhere without an easy way to inject
+secrets into the job's own environment: drop them in
+`~/.config/neuroflame-cli/.env` (`chmod 600` it — it holds a password)
+and they're picked up automatically, no flags or exports needed:
+
+```bash
+# ~/.config/neuroflame-cli/.env
+NEUROFLAME_USERNAME=alice
+NEUROFLAME_PASSWORD=hunter2
+```
+
+Any `NEUROFLAME_*` variable this CLI reads works here, not just login
+credentials — `NEUROFLAME_HTTP_URL`, `NEUROFLAME_EDGE_URL`, etc. Real
+environment variables always win over the file, same precedence as
+everywhere else in this CLI (env var > persisted config > default) — a
+one-off `export` still overrides it.
+
+If neither a terminal nor full credentials (flag, env var, or `.env`
+file) are available, `login` fails immediately with a clear error rather
+than hanging — without this, a batch job with nothing to prompt on would
+otherwise sit forever waiting for a line on a stdin that will never
+produce one, silently burning its whole time allocation.
+
 The access token and the server it belongs to are saved to
 `~/.config/neuroflame-cli/session.json`, mode `0600`. `neuroflame logout`
 deletes it.

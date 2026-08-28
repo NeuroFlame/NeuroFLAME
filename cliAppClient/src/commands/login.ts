@@ -5,6 +5,7 @@ import { parseFlags } from '../utils/flags.js'
 import { ask, closePrompt } from '../utils/prompt.js'
 import { LOGIN_MUTATION, LoginOutput } from '../graphql/operations.js'
 import { connectEdgeClient, warnAboutMissingMountDirs } from './edge.js'
+import { ENV_FILE_PATH } from '../envFile.js'
 
 interface LoginData {
   login: LoginOutput
@@ -63,16 +64,29 @@ export async function loginCommand(args: string[]): Promise<void> {
   const flags = parseFlags(args)
   const { httpUrl, wsUrl } = await resolveServerUrls(null)
 
-  const username =
-    flags.username || process.env.NEUROFLAME_USERNAME || (await ask('Username: '))
+  const usernameProvided = flags.username || process.env.NEUROFLAME_USERNAME
+  const passwordProvided = flags.password || process.env.NEUROFLAME_PASSWORD
+
+  // Fail fast rather than hang: with no terminal to prompt on (a SLURM
+  // batch job, systemd, CI) and credentials not fully provided some other
+  // way, `ask()`'s underlying readline.question() can sit waiting on a
+  // stdin that will never produce a line — silently burning the job's
+  // whole time allocation instead of erroring immediately.
+  if ((!usernameProvided || !passwordProvided) && !process.stdin.isTTY) {
+    throw new Error(
+      'Not running in a terminal, and credentials were not fully provided. ' +
+        'Set NEUROFLAME_USERNAME/NEUROFLAME_PASSWORD — as real env vars, ' +
+        `--username/--password flags, or in ${ENV_FILE_PATH} — before ` +
+        'running `login` non-interactively (e.g. from a SLURM batch job).',
+    )
+  }
+
+  const username = usernameProvided || (await ask('Username: '))
   // Release the shared readline interface (a no-op if `ask` was never
   // called) before askHidden takes raw stdin mode for password entry — the
   // two must not both be attached to stdin at once.
   closePrompt()
-  const password =
-    flags.password ||
-    process.env.NEUROFLAME_PASSWORD ||
-    (await askHidden('Password: '))
+  const password = passwordProvided || (await askHidden('Password: '))
 
   const data = await gqlRequest<LoginData>(httpUrl, LOGIN_MUTATION, {
     username,
