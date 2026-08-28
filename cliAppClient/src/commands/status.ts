@@ -53,7 +53,9 @@ export async function statusCommand(args: string[]): Promise<void> {
     ? 'env var'
     : session
       ? 'saved session'
-      : 'default'
+      : cliConfig.httpUrl
+        ? 'neuroflame configure'
+        : 'default'
   const edgeSource = process.env.NEUROFLAME_EDGE_URL
     ? 'env var'
     : cliConfig.edgeUrl

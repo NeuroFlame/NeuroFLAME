@@ -25,17 +25,52 @@ dataset directory](#pointing-a-consortium-at-a-local-dataset-directory).
 
 ## Getting Started
 
-```bash
-# 1. Install
-npm install -g @neuroflame/cli
+This CLI only replaces the control plane (auth, consortia, runs). Actually
+*executing* a computation on this machine takes an edge client too —
+either this CLI driving a standalone `neuroflame-edge` process (steps 2-3
+below), or the desktop app running here instead (it starts one for you on
+login). **Skip steps 2-3** if you're only doing control-plane work from a
+node that isn't running any computations itself (admin tasks, watching
+runs, managing a consortium remotely) — everything past `login` still
+works without an edge client anywhere nearby.
 
-# 2. Point it at your server(s) — interactive, checks each URL live before saving
+**Running this alongside the desktop app, or a second identity, on the
+*same* machine?** Each edge client needs its own `EDGE_HOSTING_PORT` *and*
+its own `EDGE_BASE_DIR` — never reuse the desktop app's port (`3003` in a
+typical local config) for a standalone one. An edge client only tracks a
+single logged-in identity at a time; two clients sharing a port means the
+second login silently steals the connection from the first, and whichever
+identity got bumped never actually participates in a run — no error
+anywhere, it just quietly never joins. `neuroflame-edge`'s own shipped
+default (`4001`, used below) is a safe choice precisely because nothing
+else defaults to it.
+
+```bash
+# 1. Install both — the CLI, and the edge client it drives
+npm install -g @neuroflame/cli
+npm install -g edge-federated-client
+
+# 2. Start the edge client (skip if not running computations here —
+#    see the note above). Runs in the foreground; use a separate
+#    terminal/session, or see "Running a standalone edge client" below
+#    for systemd.
+EDGE_HTTP_URL=https://your-central-api.example.com/graphql \
+EDGE_WS_URL=wss://your-central-api.example.com/graphql \
+EDGE_BASE_DIR=/path/to/local/work \
+EDGE_HOSTING_PORT=4001 \
+neuroflame-edge start
+
+# 3. In another terminal: point the CLI at your central API, and
+#    (if you started one) the edge client from step 2 — interactive,
+#    checks each URL live before saving
 neuroflame configure
 
-# 3. Log in
-neuroflame login
+# 4. Log in — --connect-edge also brings the edge client online as you,
+#    which is required before it'll actually pick up any runs (see
+#    "edge connect is easy to forget" below); omit it if you skipped 2-3
+neuroflame login --connect-edge
 
-# 4. Try it
+# 5. Try it
 neuroflame consortium list
 ```
 
@@ -45,6 +80,12 @@ From there:
   walks you through it interactively, the terminal equivalent of the
   desktop app's own setup wizard — see [Guided setup: the
   wizard](#guided-setup-the-wizard).
+- **Edge client running somewhere else, or on a non-default port?** See
+  [Running a standalone edge
+  client](#running-a-standalone-edge-client) for the full option list,
+  and [Pointing a consortium at a local dataset
+  directory](#pointing-a-consortium-at-a-local-dataset-directory) for what
+  to do once it's up.
 - **Something not working?** `neuroflame status` shows exactly what's
   configured, where each value came from, and whether it's reachable right
   now — see [Setup and diagnostics](#setup-and-diagnostics).
@@ -253,6 +294,62 @@ have to be running the desktop app at all: `edgeFederatedClient` (the
 README](../edgeFederatedClient/README.md) for a full headless HPC/cluster
 setup. Every `edge` command here works identically against either one,
 since both expose the same local API.
+
+### Running a standalone edge client
+
+Before any `edge` command here can do anything, *something* has to be
+listening on the edge URL — either the desktop app (which starts one
+in-process on login), or `neuroflame-edge` running on its own. `neuroflame
+status` shows `NOT reachable` on the edge line if nothing is:
+
+```bash
+npm install -g edge-federated-client   # or: cd edgeFederatedClient && npm install
+
+EDGE_HTTP_URL=https://your-central-api.example.com/graphql \
+EDGE_WS_URL=wss://your-central-api.example.com/graphql \
+EDGE_BASE_DIR=/path/to/local/work \
+EDGE_HOSTING_PORT=4001 \
+EDGE_CONTAINER_SERVICE=docker \
+neuroflame-edge start
+```
+
+`EDGE_HTTP_URL`/`EDGE_WS_URL` here are **centralApi's** address (the same
+server `neuroflame configure`'s central API URL points at) — not this
+CLI's own anything. Use `https`/`wss` for a deployment behind TLS (like the
+example above), `http`/`ws` for a raw local port. `EDGE_BASE_DIR` is where
+run kits, mount-dir/local-params config, and results end up, so make it
+somewhere with real space, not `/tmp`.
+
+**On a machine also running the desktop app (or a second identity's own
+edge client), `EDGE_HOSTING_PORT` and `EDGE_BASE_DIR` must both be unique
+to this process** — never point two edge clients at the same port. Each
+one tracks exactly one logged-in identity at a time (a single in-memory
+access token, no per-connection isolation), so if a second client's login
+lands on a port a first one already owns, it silently takes over — the
+first identity gets bumped off with no error anywhere, and just never
+participates in any run it should have. This is easy to hit by accident:
+`3003` is `configs/electronApp1.json`'s desktop-app port, so it's *not* a
+safe choice for a second, standalone client on the same box — `4001`
+(this package's own shipped default, used above) deliberately isn't
+anyone else's default. If something's stuck at `In Progress` with fewer
+containers running than there are sites, this collision is the first
+thing to check — `neuroflame edge get-run-error` and `list-results` on
+the suspect site will both come back empty/404 for a participant that
+never actually joined.
+
+Once it's up, point this CLI at it — `http://localhost:4001/graphql` if
+you ran it on the same machine, matching `EDGE_HOSTING_PORT` above — via
+`neuroflame configure` (persists it) or `NEUROFLAME_EDGE_URL`/`--url` (a
+one-off override), then `neuroflame edge connect` as usual. Confirm with
+`neuroflame status` before going further — it'll catch a wrong port or an
+unreachable host immediately instead of a confusing failure three commands
+later.
+
+This is a foreground process for testing; for anything longer-lived, see
+[edgeFederatedClient's README](../edgeFederatedClient/README.md) for the
+full environment-variable reference (`EDGE_AUTHENTICATION_ENDPOINT`,
+`EDGE_LOG_PATH`), running it under systemd so it survives reboots/crashes,
+and Singularity/Apptainer setup.
 
 ```bash
 neuroflame edge set-mount-dir <consortiumId> /path/to/local/dataset
