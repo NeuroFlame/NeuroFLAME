@@ -300,11 +300,46 @@ since both expose the same local API.
 Before any `edge` command here can do anything, *something* has to be
 listening on the edge URL — either the desktop app (which starts one
 in-process on login), or `neuroflame-edge` running on its own. `neuroflame
-status` shows `NOT reachable` on the edge line if nothing is:
+status` shows `NOT reachable` on the edge line if nothing is.
+
+#### The easy way: let the CLI manage it
 
 ```bash
-npm install -g edge-federated-client   # or: cd edgeFederatedClient && npm install
+npm install -g edge-federated-client   # once, so `neuroflame-edge` exists
+neuroflame edge start                  # spawns it, connects, checks mount dirs
+```
 
+`neuroflame edge start` spawns `neuroflame-edge` itself (using this CLI's
+own configured central API), tracks it by PID
+(`~/.config/neuroflame-cli/edge-daemon.pid`), points this CLI's config at
+it, connects as whoever's logged in, and runs the mount-dir preflight —
+one command instead of a second terminal running `neuroflame-edge start`
+by hand and a separate `edge connect`. Run it again anytime (even in a
+new shell) and it reconnects to the same daemon rather than spawning a
+second one; `neuroflame edge stop` shuts it down.
+`--base-dir <path>`/`--port <n>`/`--container-service docker|singularity`
+override the defaults (`~/.config/neuroflame-cli/edge-data`, `4001`,
+`docker`) — omit them on a later `edge start` and it reuses whatever was
+used last time.
+
+This is genuinely convenient, and it directly targets a real, repeated
+failure mode from actual production testing: the edge daemon getting
+restarted (a crash, a `docker system prune`-adjacent cleanup, closing the
+terminal it was running in) and silently losing its `connectAsUser`
+subscription — invisible until a run starts and only one site's container
+ever shows up. **It only helps when the CLI and the edge daemon belong on
+the same machine, though** — the common single-workstation case. It does
+not change anything about `edgeFederatedClient` itself, and it deliberately
+doesn't merge the two packages: `cliAppClient` still just shells out to a
+separately-installed `neuroflame-edge` binary, so control-plane-only CLI
+usage (the common case per the intro above) never pulls in Docker/Apollo/
+Express — it only reaches for `neuroflame-edge` when you actually ask it
+to. For a genuinely distributed setup — the edge daemon on a different
+node than wherever you run `neuroflame` from, which is the normal shape
+on an actual HPC cluster — start it manually there instead, the same way
+`neuroflame edge start` does under the hood:
+
+```bash
 EDGE_HTTP_URL=https://your-central-api.example.com/graphql \
 EDGE_WS_URL=wss://your-central-api.example.com/graphql \
 EDGE_BASE_DIR=/path/to/local/work \
@@ -376,6 +411,40 @@ either run `edge connect` explicitly, or pass `--connect-edge` to `login`
 active and ready in `consortium show`, a run starts fine, but that member's
 edge client never launches a container for it — from `centralApi`'s side
 everything looks correct, so nothing errors, it just silently never joins.
+
+**A related footgun the same fix doesn't cover: the mount directory itself
+is per (edge client, consortium), not per identity.** It's a local file
+(`<EDGE_BASE_DIR>/<consortiumId>/mount_config.json`) on whichever machine's
+edge client this is — nothing syncs it from centralApi or copies it from a
+different edge client. Point this identity at a *different* edge client
+(a new standalone `neuroflame-edge`, a different `EDGE_BASE_DIR`, a fresh
+machine) and every consortium it's a member of needs `set-mount-dir` run
+again there, even ones it's run in for months elsewhere — `consortium
+show`'s active/ready state is separate, server-side, and doesn't reflect
+this at all. Symptom if you miss it: a run starts, looks fine everywhere
+in `centralApi`, then fails with `Failed to load mount configuration`
+sourced from *inside* the container. `edge connect` (and `login
+--connect-edge`) now check for this automatically, with two lines of
+defense:
+
+1. **Restore what it can.** Every successful `set-mount-dir` remembers
+   `(identity, consortium) → path` locally at
+   `~/.config/neuroflame-cli/mount-dirs.json` — not tied to any particular
+   edge client's base dir. On connect, for anything missing on the edge
+   client it just wired up, it checks this history: if the same identity
+   used a path for that consortium on *this machine* before, and that path
+   still exists on disk, it re-applies it there automatically (and says
+   so) — covering exactly the case above, a moved/re-created edge client
+   for the same identity on the same box.
+2. **Warn about what it can't.** Anything still missing after that (a
+   consortium never configured on this machine, or a genuinely new
+   machine with no history to draw on) prints as before — a plain list
+   with the `set-mount-dir` command to run for each.
+
+It still can't help with a path that's set but wrong or stale — only with
+nothing being set at all — and it only ever *restores* a previously-set
+path, never invents one; the very first time a consortium's data directory
+is set anywhere, that's still a manual `set-mount-dir`.
 
 If a computation also needs local-only parameters (values that shouldn't go
 through central, e.g. site-specific paths), `set-local-params` writes them

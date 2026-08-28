@@ -14,6 +14,9 @@ import { gqlRequest, describeNetworkError } from '../graphqlClient.js'
 import { resolveEdgeUrl, resolveEdgeRunResultsUrl } from '../config.js'
 import { requireSession, usageError, printJsonOrHuman } from './shared.js'
 import { parseFlags, positionals } from '../utils/flags.js'
+import { loadMountDirCache, rememberMountDir } from '../mountDirCache.js'
+import { loadCliConfig, saveCliConfig } from '../cliConfig.js'
+import { startDaemon, stopDaemon, LOG_PATH as DAEMON_LOG_PATH } from '../edgeDaemon.js'
 import {
   EDGE_GET_MOUNT_DIR_QUERY,
   EDGE_SET_MOUNT_DIR_MUTATION,
@@ -22,6 +25,8 @@ import {
   EDGE_CONNECT_AS_USER_MUTATION,
   EDGE_GET_CONTAINER_SERVICE_QUERY,
   EDGE_SET_CONTAINER_SERVICE_MUTATION,
+  GET_CONSORTIUM_LIST_QUERY,
+  ConsortiumListItem,
 } from '../graphql/operations.js'
 
 export async function edgeCommand(
@@ -29,6 +34,10 @@ export async function edgeCommand(
   args: string[],
 ): Promise<void> {
   switch (subcommand) {
+    case 'start':
+      return startDaemonCommand(args)
+    case 'stop':
+      return stopDaemonCommand()
     case 'connect':
       return connect(args)
     case 'get-mount-dir':
@@ -53,9 +62,9 @@ export async function edgeCommand(
       return setContainerService(args)
     default:
       usageError(
-        'neuroflame edge <connect|get-mount-dir|set-mount-dir|get-local-params|' +
-          'set-local-params|list-results|download-results|open-results|get-run-error|' +
-          'get-container-service|set-container-service> ...',
+        'neuroflame edge <start|stop|connect|get-mount-dir|set-mount-dir|' +
+          'get-local-params|set-local-params|list-results|download-results|' +
+          'open-results|get-run-error|get-container-service|set-container-service> ...',
       )
   }
 }
@@ -77,6 +86,127 @@ export async function connectEdgeClient(
   )
 }
 
+/**
+ * Best-effort preflight, run right after connecting: mount-dir config is
+ * per (edge client, consortium) — it lives at
+ * <EDGE_BASE_DIR>/<consortiumId>/mount_config.json on whichever machine's
+ * edge client this is, set once via `edge set-mount-dir`. It is NOT synced
+ * from centralApi and does NOT carry over from a different edge client, so
+ * a freshly stood-up one (a new standalone `neuroflame-edge`, or a base
+ * dir moved to a new port to fix an identity collision — see "Running a
+ * standalone edge client" in the README) starts with none of it set, even
+ * for consortia this identity has actively run in for months elsewhere.
+ *
+ * This is a real, hard-to-diagnose footgun on its own: centralApi still
+ * reports the member active+ready (that's separate, server-side state set
+ * once and never re-checked against the actual edge client), so nothing
+ * *looks* wrong until a run starts and fails deep inside the container
+ * with "Failed to load mount configuration".
+ *
+ * Two lines of defense against that, in order: first, check
+ * mountDirCache.ts — a local record of the last path this same identity
+ * used for this consortium on this machine — and, if the path still
+ * exists on disk, restore it onto the newly-connected edge client
+ * automatically (announced, not silent). That covers the common case this
+ * footgun actually comes from: the same identity's edge client moving to a
+ * new port/base dir on the same machine. Anything still missing after that
+ * (a genuinely new machine, or a consortium never configured here before)
+ * falls through to a warning instead, same as before this cache existed.
+ */
+export async function warnAboutMissingMountDirs(
+  httpUrl: string,
+  edgeUrl: string,
+  accessToken: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const [data, cache] = await Promise.all([
+      gqlRequest<{ getConsortiumList: ConsortiumListItem[] }>(
+        httpUrl,
+        GET_CONSORTIUM_LIST_QUERY,
+        {},
+        accessToken,
+      ),
+      loadMountDirCache(),
+    ])
+    const mine = data.getConsortiumList.filter((c) =>
+      c.members.some((m) => m.id === userId),
+    )
+    const remembered = cache[userId] ?? {}
+
+    const restored: { consortium: ConsortiumListItem; mountDir: string }[] = []
+    const missing: ConsortiumListItem[] = []
+    for (const c of mine) {
+      try {
+        await gqlRequest<{ getMountDir: string | null }>(
+          edgeUrl,
+          EDGE_GET_MOUNT_DIR_QUERY,
+          { consortiumId: c.id },
+          accessToken,
+        )
+        continue // already set on this edge client — nothing to do
+      } catch {
+        // Falls through to the restore/warn logic below.
+      }
+
+      const rememberedPath = remembered[c.id]
+      const stillExists = rememberedPath ? await pathExists(rememberedPath) : false
+      if (rememberedPath && stillExists) {
+        try {
+          await gqlRequest<{ setMountDir: boolean }>(
+            edgeUrl,
+            EDGE_SET_MOUNT_DIR_MUTATION,
+            { consortiumId: c.id, mountDir: rememberedPath },
+            accessToken,
+          )
+          restored.push({ consortium: c, mountDir: rememberedPath })
+          continue
+        } catch {
+          // Fall through to reporting it as missing below.
+        }
+      }
+      missing.push(c)
+    }
+
+    if (restored.length > 0) {
+      console.log(
+        `\nRestored ${restored.length === 1 ? 'a' : restored.length} data ` +
+          `director${restored.length === 1 ? 'y' : 'ies'} on this edge client from ` +
+          'this machine\'s own history:',
+      )
+      for (const { consortium, mountDir } of restored) {
+        console.log(`  ${consortium.title}: ${mountDir}`)
+      }
+    }
+
+    if (missing.length > 0) {
+      const noun = missing.length === 1 ? 'consortium' : 'consortia'
+      console.log(
+        `\nWarning: no data directory set on this edge client for ${missing.length} ` +
+          `${noun} you're a member of — a run will fail here with "Failed to load ` +
+          'mount configuration" until one is set:',
+      )
+      for (const c of missing) {
+        console.log(`  ${c.id}  (${c.title})`)
+      }
+      console.log('  neuroflame edge set-mount-dir <consortiumId> <path>')
+    }
+  } catch {
+    // Best-effort diagnostic only — never let this block a successful
+    // connect, and a centralApi hiccup here isn't worth surfacing as an
+    // error on top of whatever connect() already reported.
+  }
+}
+
+async function pathExists(candidate: string): Promise<boolean> {
+  try {
+    await fs.access(candidate)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function connect(args: string[]): Promise<void> {
   const flags = parseFlags(args)
   const session = await requireSession()
@@ -87,6 +217,73 @@ async function connect(args: string[]): Promise<void> {
     'It will now pick up runs started for consortia this user is an ' +
       'active, ready member of.',
   )
+  await warnAboutMissingMountDirs(session.httpUrl, edgeUrl, session.accessToken, session.userId)
+}
+
+/**
+ * `neuroflame edge start` — Ross's suggestion: rather than a human
+ * separately installing and running `neuroflame-edge start` in its own
+ * terminal, tracking whether it's still alive, and remembering to
+ * `edge connect` again if it ever restarted, this does all of it in one
+ * command. Spawns the daemon (or reconnects to an already-running one it
+ * previously started), persists the launch settings so a bare `edge
+ * start` next time reuses them, points this CLI's own config at it, then
+ * connects and runs the mount-dir preflight — see edgeDaemon.ts for why
+ * this is deliberately not the same thing as merging the two packages.
+ */
+async function startDaemonCommand(args: string[]): Promise<void> {
+  const flags = parseFlags(args)
+  const session = await requireSession()
+
+  const containerService = flags['container-service']
+  if (containerService && containerService !== 'docker' && containerService !== 'singularity') {
+    usageError(
+      'neuroflame edge start [--base-dir <path>] [--port <n>] ' +
+        '[--container-service docker|singularity]',
+    )
+  }
+
+  console.log('Starting local edge client...')
+  const result = await startDaemon(session, {
+    baseDir: flags['base-dir'],
+    hostingPort: flags.port ? Number(flags.port) : undefined,
+    containerService: containerService as 'docker' | 'singularity' | undefined,
+  })
+
+  if (result.alreadyRunning) {
+    console.log(`Already running (pid ${result.pid}) at ${result.edgeUrl}.`)
+  } else {
+    console.log(`Started (pid ${result.pid}) at ${result.edgeUrl}.`)
+    console.log(`  Base dir: ${result.baseDir}`)
+    console.log(`  Container service: ${result.containerService}`)
+    console.log(`  Log: ${DAEMON_LOG_PATH}`)
+  }
+
+  // Point this CLI's own persisted config at it — it's clearly meant to be
+  // this identity's edge client if the CLI just started (or reconnected
+  // to) it. Clear any previously-explicit ws/results overrides: those
+  // were for whatever edgeUrl was set before and would otherwise silently
+  // point at the wrong port now.
+  const cliConfig = await loadCliConfig()
+  await saveCliConfig({
+    ...cliConfig,
+    edgeUrl: result.edgeUrl,
+    edgeWsUrl: undefined,
+    edgeRunResultsUrl: undefined,
+  })
+
+  await connectEdgeClient(result.edgeUrl, session.accessToken)
+  console.log(`Connected as ${session.username}.`)
+  await warnAboutMissingMountDirs(session.httpUrl, result.edgeUrl, session.accessToken, session.userId)
+}
+
+async function stopDaemonCommand(): Promise<void> {
+  const result = await stopDaemon()
+  if (result.stopped) {
+    console.log(`Stopped (was pid ${result.pid}).`)
+  } else {
+    console.log('Not running.')
+  }
 }
 
 async function getMountDir(args: string[]): Promise<void> {
@@ -136,6 +333,17 @@ async function setMountDir(args: string[]): Promise<void> {
     'Note: this only sets the directory. Use `neuroflame consortium set-ready ' +
       `${consortiumId} true\` to flip the Ready toggle, the same as the GUI panel.`,
   )
+  // Best-effort: remembered per (userId, consortiumId) on this machine so a
+  // *future* edge client this identity stands up here — a new port, a new
+  // EDGE_BASE_DIR — can restore it automatically instead of failing a run
+  // before anyone notices it was never set. See mountDirCache.ts.
+  try {
+    await rememberMountDir(session.userId, consortiumId, mountDir)
+  } catch {
+    // Non-fatal — the mount dir itself is already set successfully above;
+    // losing the local memory of it just means the next edge client won't
+    // auto-restore it, same as before this cache existed.
+  }
 }
 
 async function getLocalParams(args: string[]): Promise<void> {

@@ -4,7 +4,7 @@ import { resolveServerUrls, resolveEdgeUrl } from '../config.js'
 import { parseFlags } from '../utils/flags.js'
 import { ask, closePrompt } from '../utils/prompt.js'
 import { LOGIN_MUTATION, LoginOutput } from '../graphql/operations.js'
-import { connectEdgeClient } from './edge.js'
+import { connectEdgeClient, warnAboutMissingMountDirs } from './edge.js'
 
 interface LoginData {
   login: LoginOutput
@@ -98,6 +98,7 @@ export async function loginCommand(args: string[]): Promise<void> {
     try {
       await connectEdgeClient(edgeUrl, data.login.accessToken)
       console.log(`Connected to edge client at ${edgeUrl}.`)
+      await warnAboutMissingMountDirs(httpUrl, edgeUrl, data.login.accessToken, data.login.userId)
     } catch (error) {
       console.error(
         `Warning: logged in, but could not connect to edge client at ${edgeUrl}: ` +

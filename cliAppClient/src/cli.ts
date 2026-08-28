@@ -74,6 +74,8 @@ Usage:
   neuroflame vault list-servers [--json]
   neuroflame vault list-hosted [serverId] [--json]
 
+  neuroflame edge start [--base-dir <path>] [--port <n>] [--container-service docker|singularity]
+  neuroflame edge stop
   neuroflame edge connect [--url <edgeUrl>]
   neuroflame edge get-mount-dir <consortiumId> [--url <edgeUrl>] [--json]
   neuroflame edge set-mount-dir <consortiumId> <path> [--url <edgeUrl>]

@@ -24,6 +24,15 @@ export interface CliConfig {
   // deployment doesn't colocate them the way local dev does.
   edgeWsUrl?: string
   edgeRunResultsUrl?: string
+  // What `neuroflame edge start` last launched a local edge daemon with —
+  // remembered so a bare `edge start` on a later occasion reuses the same
+  // base dir/port/container service instead of needing them re-specified.
+  // See edgeDaemon.ts.
+  edgeDaemon?: {
+    baseDir?: string
+    hostingPort?: number
+    containerService?: 'docker' | 'singularity'
+  }
 }
 
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'neuroflame-cli')

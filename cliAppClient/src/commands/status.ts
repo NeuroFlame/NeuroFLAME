@@ -16,6 +16,7 @@ import {
 } from '../config.js'
 import { describeNetworkError } from '../graphqlClient.js'
 import { printJsonOrHuman } from './shared.js'
+import { getDaemonStatus } from '../edgeDaemon.js'
 
 interface Reachability {
   reachable: boolean
@@ -72,9 +73,10 @@ export async function statusCommand(args: string[]): Promise<void> {
       ? 'neuroflame configure'
       : 'derived from edge URL'
 
-  const [central, edge] = await Promise.all([
+  const [central, edge, daemon] = await Promise.all([
     checkReachable(httpUrl),
     checkReachable(edgeUrl),
+    getDaemonStatus(),
   ])
 
   if (args.includes('--json')) {
@@ -92,6 +94,7 @@ export async function statusCommand(args: string[]): Promise<void> {
         resultsSource: edgeResultsSource,
         ...edge,
       },
+      edgeDaemon: daemon,
     }, '')
     return
   }
@@ -110,6 +113,13 @@ export async function statusCommand(args: string[]): Promise<void> {
   console.log(`  ${mark(edge)}`)
   console.log(`  Subscriptions: ${edgeWsUrl}  [${edgeWsSource}] (not checked)`)
   console.log(`  Run results: ${edgeResultsUrl}  [${edgeResultsSource}]`)
+  console.log(
+    daemon.running
+      ? `  CLI-managed daemon: running (pid ${daemon.pid}) — started with \`neuroflame edge start\``
+      : '  CLI-managed daemon: not running (this may still be reachable via ' +
+          'the desktop app, or a manually-run neuroflame-edge — `neuroflame ' +
+          'edge start` only tracks daemons it launched itself)',
+  )
   if (!edge.reachable && edgeUrl === DEFAULT_EDGE_HTTP_URL) {
     console.log(
       '  This is the hardcoded default, not something set for your setup — ' +
