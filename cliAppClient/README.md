@@ -417,6 +417,63 @@ full environment-variable reference (`EDGE_AUTHENTICATION_ENDPOINT`,
 `EDGE_LOG_PATH`), running it under systemd so it survives reboots/crashes,
 and Singularity/Apptainer setup.
 
+#### Running under SLURM
+
+Neither `neuroflame-edge` nor `neuroflame edge start` know anything about
+SLURM — they're just a process that needs Docker or Singularity
+available. On a cluster, that means running them *inside* compute time
+you've been allocated, not launching them from a job script that submits
+other jobs.
+
+**Interactive (`salloc`)** — get a session, then run `edge start` inside
+it same as anywhere else:
+
+```bash
+salloc --nodes=1 --cpus-per-task=4 --time=02:00:00 --partition=compute
+# once you're in the session:
+neuroflame edge start --base-dir /scratch/$USER/neuroflame-edge --container-service singularity
+```
+
+**Unattended (`sbatch`)** — no terminal to log in on, so pair it with the
+`.env` file from [Login](#login):
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=neuroflame-edge
+#SBATCH --time=02:00:00
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=compute
+
+neuroflame edge start --base-dir /scratch/$USER/neuroflame-edge --container-service singularity
+```
+
+Submitted with `sbatch that-script.sh`. `edge start` needs to already be
+logged in — either `~/.config/neuroflame-cli/session.json` already
+exists from a `neuroflame login` run on the login node beforehand (works
+because compute and login nodes almost always share the same home
+directory), or `~/.config/neuroflame-cli/.env` holds
+`NEUROFLAME_USERNAME`/`NEUROFLAME_PASSWORD` so the job logs in fresh
+itself. Either way, [Login](#login)'s fail-fast behavior means a
+misconfigured job errors immediately instead of hanging until its time
+limit runs out. Point `--base-dir` at scratch storage, not the (usually
+small-quota, slower) home directory — that's where run kits and results
+actually live.
+
+**The real constraint isn't SLURM, it's *when* the container runs, not
+*whether* it can.** `sbatch`/`salloc` don't guarantee the window you
+asked for starts the moment you ask — you're requesting priority on
+shared hardware, not commanding a machine you already own. A run expects
+its participants to connect within a fairly tight window (see the
+`In Progress`-forever failure mode a stalled/late site produces
+elsewhere in this doc), so the practical pattern is to **pre-allocate
+ahead of the actual run** — get the compute sitting there and ready
+*before* a run starts, rather than submitting the job at run-start time
+and hoping the queue clears fast enough. If predictable timing matters,
+ask that site's HPC admin about a SLURM *reservation*
+(`scontrol create reservation`, optionally recurring) — the genuinely
+guaranteed-time option, though it typically needs elevated privileges to
+set up.
+
 ```bash
 neuroflame edge set-mount-dir <consortiumId> /path/to/local/dataset
 neuroflame edge get-mount-dir <consortiumId>          # read it back
