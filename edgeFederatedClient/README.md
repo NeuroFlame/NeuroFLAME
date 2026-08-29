@@ -134,6 +134,33 @@ View logs:
 journalctl -u neuroflame-edge -f
 ```
 
+### When this process exits on its own
+
+This process holds one access token in memory, set once whenever
+something calls `connectAsUser` (`neuroflame edge connect`/`edge start`,
+or the desktop app's own login flow) — it's never refreshed on its own.
+That token is normally only used to answer requests *to* this process; a
+successful run never needs it at all, since run completion is reported
+by the coordinator, not this process. The one place it *does* use that
+stored token itself is reporting a run failure back to `centralApi`
+(`reportRunError`) when a container fails locally.
+
+If that call finds no token stored, or `centralApi` rejects it as
+unauthorized (401/403) — meaning this process's own session has actually
+gone bad, not just a one-off network hiccup — **this process logs the
+reason and exits**, rather than continuing to run in a state where it can
+never successfully report a failure again. A non-auth failure there
+(a 500, a dropped connection) does *not* trigger this — only centralApi
+specifically rejecting the stored token does.
+
+**Under systemd, `Restart=always` brings the process back — it does not
+by itself fix the identity problem that caused the exit.** A fresh
+process still starts with no token until something calls `connectAsUser`
+again. If this keeps happening, whatever's driving this edge client
+(the CLI, a script, the desktop app) needs to reconnect it
+(`neuroflame edge connect`/`edge start`) after a restart, not just count
+on the process being alive.
+
 ## Container runtime: Docker vs. Singularity
 
 Set at startup via `EDGE_CONTAINER_SERVICE`, and also changeable live
