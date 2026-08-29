@@ -1,6 +1,7 @@
 import { getConfig } from '../../config/config.js'
 import { logger } from '../../logger.js'
 import inMemoryStore from '../../inMemoryStore.js'
+import { onStaleSession } from '../../auth/staleSessionHandler.js'
 
 // TypeScript interfaces for the GraphQL response
 interface GraphQLError {
@@ -26,32 +27,6 @@ const REPORT_RUN_ERROR_MUTATION = `
   }
 `
 
-/**
- * This is the only place this process uses its own long-held accessToken
- * (set once at connectAsUser time, never refreshed) for an outbound call
- * of its own — a *successful* run is reported by the coordinator, not
- * this process; onContainerExitSuccess in runStart.ts only logs. This
- * function only runs when a container fails locally and this client
- * tries to tell centralApi about it.
- *
- * A missing token, or centralApi rejecting it as unauthorized, means
- * this process's own session is broken — not a transient network
- * problem, which is handled separately below and does NOT hit this path.
- * Continuing to run in that state is worse than it looks: every future
- * container failure on this site would silently fail to get reported
- * too, the exact same "everything downstream looks fine, nothing was
- * actually recorded" shape as a participant quietly dropping out of a
- * run's aggregation. Failing loudly and exiting turns that into an
- * immediately visible, restart-and-reconnect situation instead — under
- * systemd or `neuroflame edge start`, that means the next `edge
- * connect`/`edge start` picks up a fresh token rather than this process
- * quietly limping along, unable to ever report a failure again.
- */
-function exitOnStaleSession(reason: string): never {
-  logger.error(`[reportRunError] Session appears stale — exiting: ${reason}`)
-  process.exit(1)
-}
-
 export default async function reportRunError({
   runId,
   errorMessage,
@@ -68,10 +43,22 @@ export default async function reportRunError({
     logger.info(`[reportRunError] Access token exists: ${!!accessToken}`)
 
     if (!accessToken) {
-      exitOnStaleSession(
+      // This is the only place this process uses its own long-held
+      // accessToken (set once at connectAsUser time, never refreshed) for
+      // an outbound call of its own — a *successful* run is reported by
+      // the coordinator, not this process; onContainerExitSuccess in
+      // runStart.ts only logs. A missing token here means this process's
+      // own session is broken, not a transient network problem — see
+      // staleSessionHandler.ts for what that triggers (exits the process
+      // by default; overridable by anything embedding this package
+      // in-process, e.g. the desktop app). Explicitly throw afterward
+      // regardless of what the handler does — an overridden handler may
+      // not terminate execution, and this attempt has still failed.
+      onStaleSession(
         'No access token found — connectAsUser was never called on this ' +
           'process, or its in-memory session was cleared.',
       )
+      throw new Error('Access token is missing.')
     }
 
     logger.info(`[reportRunError] Sending GraphQL mutation to ${httpUrl}`)
@@ -97,9 +84,12 @@ export default async function reportRunError({
     // this one report attempt failed.
     if (response.status === 401 || response.status === 403) {
       const responseText = await response.text()
-      exitOnStaleSession(
+      onStaleSession(
         'centralApi rejected the access token stored by this process ' +
           `(HTTP ${response.status}) while reporting a run error: ${responseText}`,
+      )
+      throw new Error(
+        `centralApi rejected the stored access token (HTTP ${response.status}): ${responseText}`,
       )
     }
 

@@ -161,6 +161,30 @@ again. If this keeps happening, whatever's driving this edge client
 (`neuroflame edge connect`/`edge start`) after a restart, not just count
 on the process being alive.
 
+**Exiting is only correct for a standalone process, though — it's
+overridable, and needs to be overridden by anything that embeds this
+package in-process rather than running it as its own OS process.** The
+desktop app is exactly that case: it calls `start()` directly inside
+Electron's main process, not as a spawned child, so the default behavior
+here would silently take the *entire desktop app* down with it, not just
+"the edge client part." `start()`'s second argument covers this:
+
+```ts
+import { start } from 'edge-federated-client'
+
+start(config, {
+  onStaleSession: (reason) => {
+    // Show your own UI, log out, whatever makes sense for how you're
+    // embedding this — anything except letting the default (exit the
+    // process) run, if this process is more than just this package.
+  },
+})
+```
+
+The desktop app uses this to show a "session expired, please log back
+in" dialog instead of exiting — see `showSessionExpiredError` in its
+`main.ts`.
+
 ## Container runtime: Docker vs. Singularity
 
 Set at startup via `EDGE_CONTAINER_SERVICE`, and also changeable live

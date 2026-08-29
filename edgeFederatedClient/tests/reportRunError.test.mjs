@@ -3,6 +3,7 @@ import test from 'node:test'
 import inMemoryStore from '../dist/inMemoryStore.js'
 import { setConfig } from '../dist/config/config.js'
 import reportRunError from '../dist/runCoordinator/report/reportRunError.js'
+import { setStaleSessionHandler } from '../dist/auth/staleSessionHandler.js'
 
 setConfig({
   httpUrl: 'http://central.example/graphql',
@@ -107,6 +108,36 @@ test('reportRunError succeeds normally with a valid token and a healthy response
     assert.equal(result, true)
     assert.equal(exitStub.codeCalledWith(), undefined)
   } finally {
+    exitStub.restore()
+    global.fetch = originalFetch
+  }
+})
+
+test('a custom onStaleSession handler runs instead of the default exit, and reportRunError still throws', async () => {
+  inMemoryStore.set('accessToken', 'stale-token')
+  const originalFetch = global.fetch
+  global.fetch = async () => new Response('unauthorized', { status: 401 })
+  const exitStub = stubProcessExit()
+
+  let handlerCalledWith
+  setStaleSessionHandler((reason) => {
+    handlerCalledWith = reason
+    // Deliberately does NOT exit — e.g. the desktop app showing a dialog
+    // and letting its own process carry on.
+  })
+
+  try {
+    await assert.rejects(() => reportRunError({ runId: 'run1', errorMessage: 'boom' }))
+    assert.match(handlerCalledWith, /rejected the access token stored by this process/)
+    // The default process.exit was never reached — the custom handler
+    // fully replaced it, it wasn't run in addition to it.
+    assert.equal(exitStub.codeCalledWith(), undefined)
+  } finally {
+    // setStaleSessionHandler is a module-level singleton — restore the
+    // exit-on-stale-session behavior the earlier tests (and any real
+    // caller) rely on, so this test's override doesn't leak into
+    // whatever runs after it in this same process.
+    setStaleSessionHandler(() => process.exit(1))
     exitStub.restore()
     global.fetch = originalFetch
   }
