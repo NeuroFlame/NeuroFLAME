@@ -9,11 +9,11 @@
 // client validates it by asking centralApi, not by checking a local secret.
 
 import { promises as fs } from 'fs'
-import { spawn } from 'child_process'
 import { gqlRequest, describeNetworkError } from '../graphqlClient.js'
 import { resolveEdgeUrl, resolveEdgeRunResultsUrl } from '../config.js'
 import { requireSession, usageError, printJsonOrHuman } from './shared.js'
 import { parseFlags, positionals } from '../utils/flags.js'
+import { openInBrowser } from '../utils/openInBrowser.js'
 import { loadMountDirCache, rememberMountDir } from '../mountDirCache.js'
 import { loadCliConfig, saveCliConfig } from '../cliConfig.js'
 import { startDaemon, stopDaemon, LOG_PATH as DAEMON_LOG_PATH } from '../edgeDaemon.js'
@@ -518,20 +518,6 @@ async function downloadResults(args: string[]): Promise<void> {
   console.log(`Saved ${formatBytes(buffer.length)} to ${outPath}`)
 }
 
-/** `open` on macOS, `start` on Windows, `xdg-open` elsewhere. */
-function openUrlInBrowser(url: string): Promise<void> {
-  const platform = process.platform
-  const opener = platform === 'darwin' ? 'open' : platform === 'win32' ? 'start' : 'xdg-open'
-  return new Promise((resolve, reject) => {
-    const child = spawn(opener, [url], { stdio: 'ignore', shell: platform === 'win32' })
-    child.on('error', reject)
-    child.on('exit', (code) => {
-      if (code === 0) resolve()
-      else reject(new Error(`"${opener}" exited with code ${code}`))
-    })
-  })
-}
-
 async function openResults(args: string[]): Promise<void> {
   const flags = parseFlags(args)
   const [consortiumId, runId, explicitParticipantId] = positionals(args)
@@ -567,7 +553,7 @@ async function openResults(args: string[]): Promise<void> {
   const target = `${base}/index.html`
   console.log(`Opening ${target}`)
   try {
-    await openUrlInBrowser(target)
+    await openInBrowser(target)
   } catch (error) {
     console.log(
       `Could not open a browser automatically (${error instanceof Error ? error.message : error}). ` +

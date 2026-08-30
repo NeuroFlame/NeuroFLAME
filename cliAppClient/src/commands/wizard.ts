@@ -15,6 +15,7 @@ import { resolveEdgeUrl } from '../config.js'
 import { requireSession, Session } from './shared.js'
 import { positionals, parseFlags } from '../utils/flags.js'
 import { ask, askYesNo, askIndex, closePrompt, pausePrompt, resumePrompt } from '../utils/prompt.js'
+import { viewMarkdownInBrowser } from '../utils/viewMarkdown.js'
 import { fetchDetails, printDetails } from './consortium.js'
 import { connectEdgeClient } from './edge.js'
 import {
@@ -479,6 +480,35 @@ async function setParametersStep(session: Session, consortiumId: string): Promis
 // Member steps — see ConsortiumWizard.tsx's memberSteps
 // ---------------------------------------------------------------------------
 
+/**
+ * Notes are plain markdown — fine to read as raw text in a terminal for
+ * something short, much easier to follow rendered once it starts using
+ * headers/tables/links/code blocks. Prints as before regardless (so a
+ * scripted/non-interactive run sees no behavior change and this prompt's
+ * `false` default just declines), and offers rendering only when there's
+ * something to render.
+ */
+async function offerToViewNotesInBrowser(
+  computation: Computation | null | undefined,
+  leaderNotes: string | null | undefined,
+): Promise<void> {
+  if (!computation?.notes && !leaderNotes) return
+  if (!(await askYesNo('\nOpen these notes as rendered HTML in your browser instead?', false))) {
+    return
+  }
+  const sections = [
+    computation?.notes && `# ${computation.title}\n\n${computation.notes}`,
+    leaderNotes && `# Leader notes\n\n${leaderNotes}`,
+  ].filter((section): section is string => Boolean(section))
+  try {
+    await viewMarkdownInBrowser('Consortium Requirements', sections.join('\n\n---\n\n'))
+  } catch (error) {
+    console.log(
+      `Could not open a browser automatically (${error instanceof Error ? error.message : error}).`,
+    )
+  }
+}
+
 async function runMemberSteps(
   session: Session,
   consortiumId: string,
@@ -497,6 +527,7 @@ async function runMemberSteps(
   if (details.studyConfiguration.consortiumLeaderNotes) {
     console.log(`\nLeader notes:\n${details.studyConfiguration.consortiumLeaderNotes}`)
   }
+  await offerToViewNotesInBrowser(computation, details.studyConfiguration.consortiumLeaderNotes)
   if (!(await askYesNo("\nI've read and understand the notes. Continue?", true))) {
     throw new WizardQuit()
   }

@@ -707,9 +707,11 @@ which this was copied from):
 `edge connect`) → set local parameters *(only if the computation supports
 them)* → add leader notes *(optional)* → set ready.
 
-**Member:** view requirements (computation + leader notes, must acknowledge
-to continue) → select data directory (+ `edge connect`) → set local
-parameters *(if supported)* → download image → set ready.
+**Member:** view requirements (computation + leader notes, printed as raw
+markdown, with an option to open them instead as rendered HTML in your
+default browser — see `src/utils/viewMarkdown.ts` — before you must
+acknowledge to continue) → select data directory (+ `edge connect`) → set
+local parameters *(if supported)* → download image → set ready.
 
 `join`/`create` aren't a different code path from plain `wizard` past the
 point of getting a `consortiumId` — they're just two more ways to arrive at
