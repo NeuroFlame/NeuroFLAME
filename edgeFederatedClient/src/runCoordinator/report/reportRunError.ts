@@ -111,6 +111,25 @@ export default async function reportRunError({
 
     // Handle GraphQL errors
     if (responseData.errors && responseData.errors.length > 0) {
+      // centralApi's GraphQL endpoint answers a rejected token with a
+      // normal HTTP 200 — Apollo's default behavior for a resolver that
+      // throws is a GraphQL-level error, not an HTTP status, and every
+      // protected resolver in centralApi/src/graphql/resolvers.ts throws
+      // this exact message when the request's token doesn't resolve to a
+      // user. That means the 401/403 branch above, in practice, never
+      // fires against this endpoint — confirmed live by deliberately
+      // sending a garbage token here and getting back 200 OK with this
+      // message, not 401/403. This is the check that actually catches it.
+      const isAuthError = responseData.errors.some((e) =>
+        /not authenticated/i.test(e.message),
+      )
+      if (isAuthError) {
+        onStaleSession(
+          'centralApi rejected the access token stored by this process ' +
+            'while reporting a run error: ' +
+            responseData.errors.map((e) => e.message).join('; '),
+        )
+      }
       logger.error(
         `GraphQL Errors: ${JSON.stringify(responseData.errors, null, 2)}`,
       )
