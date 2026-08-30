@@ -61,6 +61,56 @@ test('reportRunError exits the process when centralApi rejects the stored token 
   }
 })
 
+test('reportRunError exits the process on a 200 OK GraphQL "not authenticated" error', async () => {
+  // This is centralApi's actual real-world shape for a rejected token —
+  // every protected resolver throws inside the resolver (Apollo default:
+  // 200 OK + a GraphQL-level error), never a 401/403 HTTP status. Confirmed
+  // live against a running desktop app before this test was added; the
+  // 401/403-only version of this check silently never fired.
+  inMemoryStore.set('accessToken', 'garbage-token')
+  const originalFetch = global.fetch
+  global.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        errors: [{ message: 'User not authenticated' }],
+      }),
+      { status: 200 },
+    )
+  const exitStub = stubProcessExit()
+
+  try {
+    await assert.rejects(
+      () => reportRunError({ runId: 'run1', errorMessage: 'boom' }),
+      /PROCESS_EXIT_CALLED/,
+    )
+    assert.equal(exitStub.codeCalledWith(), 1)
+  } finally {
+    exitStub.restore()
+    global.fetch = originalFetch
+  }
+})
+
+test('reportRunError does NOT exit on a 200 OK GraphQL error unrelated to auth', async () => {
+  inMemoryStore.set('accessToken', 'valid-token')
+  const originalFetch = global.fetch
+  global.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        errors: [{ message: 'Run with id run1 not found' }],
+      }),
+      { status: 200 },
+    )
+  const exitStub = stubProcessExit()
+
+  try {
+    await assert.rejects(() => reportRunError({ runId: 'run1', errorMessage: 'boom' }))
+    assert.equal(exitStub.codeCalledWith(), undefined)
+  } finally {
+    exitStub.restore()
+    global.fetch = originalFetch
+  }
+})
+
 test('reportRunError exits the process when centralApi rejects the stored token (403)', async () => {
   inMemoryStore.set('accessToken', 'stale-token')
   const originalFetch = global.fetch
