@@ -88,6 +88,7 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
             onClick={() => { navSetDrawerOpen(false) }}
             component={Link}
             to='/admin'
+            data-testid='admin-menu-item'
           >
             <ListItemText primary='Admin' />
           </ListItem>
