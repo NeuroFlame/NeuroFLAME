@@ -47,6 +47,14 @@ export default function RunResults() {
     return () => window.removeEventListener('message', handler)
   }, [setFrameSrc])
 
+  useEffect(() => {
+    const filesOnly = fileList.filter((file) => !file.isDirectory)
+    if (filesOnly.length === 1 && filesOnly[0].name.endsWith('.log')) {
+      setFrameSrc(`${edgeClientRunResultsUrl}/${filesOnly[0].url}`)
+      setCurrentFile(filesOnly[0].name)
+    }
+  }, [fileList])
+
   if (loading) {
     return (
       <Grid container spacing={2} padding={2}>
