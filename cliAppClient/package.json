@@ -17,8 +17,9 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "compile": "tsc && npm run chmod-bin",
-    "build": "tsc && npm run chmod-bin",
+    "build:edge-dep": "cd ../edgeFederatedClient && npm run compile",
+    "compile": "npm run build:edge-dep && tsc && npm run chmod-bin",
+    "build": "npm run build:edge-dep && tsc && npm run chmod-bin",
     "chmod-bin": "chmod +x dist/cli.js",
     "start": "npm run compile && node ./dist/cli.js",
     "prepack": "npm run clean && npm run compile",
