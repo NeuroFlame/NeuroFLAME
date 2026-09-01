@@ -675,8 +675,22 @@ though — a full relaunch reverts to whatever's in the config file it was
 actually started with. For a change that survives restarts, still edit
 that file directly (`edgeClientConfig.containerService` in the desktop
 app's config, or `VAULT_CONTAINER_SERVICE` in `vaultFederatedClient`'s
-`.env`/systemd unit). Requires Singularity or Apptainer to actually be
-installed on that machine either way — `which singularity apptainer`.
+`.env`/systemd unit) — or, for a CLI-managed daemon specifically,
+`neuroflame edge start --container-service singularity` once: unlike a
+live `set-container-service`, that flag *is* remembered
+(`~/.config/neuroflame-cli/config.json`'s `edgeDaemon` field), so a later
+bare `edge start` on the same machine reuses it automatically. Requires
+Singularity or Apptainer to actually be installed on that machine either
+way — `which singularity apptainer`.
+
+Verified end to end on an actual Singularity-only HPC cluster (no Docker
+at all — the common case there): `edge start --container-service
+singularity`, then `consortium wizard join <id>` all the way through a
+real run. The wizard's Download Computation Image step also checks this —
+`imageDownloadUrl` is always a Docker-specific command, so on a Singularity
+edge client it skips offering to run it (edgeFederatedClient's own run
+coordinator pulls and converts the image automatically via Singularity the
+first time a run needs it, regardless of this step).
 
 ## Run results — and knowing they're there
 
