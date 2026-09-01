@@ -136,11 +136,18 @@ Point npm's global prefix at somewhere in your own home directory instead,
 once, and every future `npm install -g` (this or anything else) just works:
 
 ```bash
+echo "prefix=${HOME}/.npm-global" >> ~/.npmrc
 mkdir -p ~/.npm-global
-npm config set prefix ~/.npm-global
 echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.bashrc   # or your shell's rc file
 source ~/.bashrc
 ```
+
+Edit `~/.npmrc` directly rather than running `npm config set prefix ...`
+— that command can fail with `ENOWORKSPACES` if run from inside this repo
+(it has an npm workspaces setup at the root), since some npm config
+changes aren't allowed from inside a workspaces project. Editing the file
+directly sidesteps that — it's just text, independent of where you run it
+from.
 
 Then re-run `npm run init` (or just `npm install -g .` from `cliAppClient`
 if the earlier steps already succeeded).
