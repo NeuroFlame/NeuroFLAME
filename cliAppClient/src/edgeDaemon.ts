@@ -23,11 +23,71 @@
 // the genuinely distributed HPC case where they're deliberately apart.
 
 import { spawn } from 'child_process'
-import { openSync, closeSync, promises as fs } from 'fs'
+import { openSync, closeSync, promises as fs, existsSync } from 'fs'
 import path from 'path'
 import os from 'os'
 import { loadCliConfig, saveCliConfig } from './cliConfig.js'
 import { resolveServerUrls, ServerUrls } from './config.js'
+
+// Resolving `neuroflame-edge` — deliberately NOT a bare `spawn('neuroflame-
+// edge', ...)` PATH lookup. Caught live: a user ran `npm install -g
+// edge-federated-client` successfully, then `nf edge start` still failed
+// with ENOENT — npm's global bin directory for their active Node install
+// simply wasn't on that shell's PATH (a very common footgun, especially
+// with nvm/multiple Node installs, and made worse by the fact the install
+// itself gives no sign anything's wrong). Rather than depend on PATH being
+// set up right, ask the exact npm that's running *this* process — always a
+// sibling of `node` in the same bin directory, for every mainstream Node
+// distribution (nvm, Homebrew, the official installer, ...) — where its
+// global packages actually live, then spawn the resolved script directly
+// with `process.execPath`.
+async function npmGlobalRoot(): Promise<string> {
+  const nodeDir = path.dirname(process.execPath)
+  const siblingNpm = path.join(nodeDir, 'npm')
+  const npmCommand = existsSync(siblingNpm) ? siblingNpm : 'npm'
+  return new Promise((resolve, reject) => {
+    const child = spawn(npmCommand, ['root', '-g'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      // npm's own script is itself a `#!/usr/bin/env node` shebang — even
+      // spawning it by absolute path still needs `node` resolvable via
+      // PATH for that shebang line to run at all. Prepend node's own
+      // directory (found above independent of PATH) so this can't fail
+      // the exact same way for the same reason one level down, regardless
+      // of whatever PATH this process itself inherited.
+      env: { ...process.env, PATH: `${nodeDir}${path.delimiter}${process.env.PATH ?? ''}` },
+    })
+    let stdout = ''
+    child.stdout.on('data', (chunk) => (stdout += chunk))
+    child.on('error', reject)
+    child.on('exit', (code) => {
+      if (code === 0) resolve(stdout.trim())
+      else reject(new Error(`"${npmCommand} root -g" exited with code ${code}`))
+    })
+  })
+}
+
+async function resolveEdgeBinary(): Promise<string> {
+  const globalRoot = await npmGlobalRoot()
+  const pkgDir = path.join(globalRoot, 'edge-federated-client')
+  let pkgJson: { bin?: string | Record<string, string> }
+  try {
+    pkgJson = JSON.parse(await fs.readFile(path.join(pkgDir, 'package.json'), 'utf8'))
+  } catch {
+    throw new Error(
+      "edge-federated-client isn't installed where npm's global packages live " +
+        `(${globalRoot}). Install it: npm install -g edge-federated-client`,
+    )
+  }
+  const binEntry =
+    typeof pkgJson.bin === 'string' ? pkgJson.bin : pkgJson.bin?.['neuroflame-edge']
+  if (!binEntry) {
+    throw new Error(
+      `${pkgDir}/package.json has no "neuroflame-edge" bin entry — this doesn't ` +
+        'look like a compatible edge-federated-client install.',
+    )
+  }
+  return path.join(pkgDir, binEntry)
+}
 
 const STATE_DIR = path.join(os.homedir(), '.config', 'neuroflame-cli')
 const PID_PATH = path.join(STATE_DIR, 'edge-daemon.pid')
@@ -129,12 +189,13 @@ export async function startDaemon(
   }
 
   const { httpUrl, wsUrl } = await resolveServerUrls(session)
+  const edgeBinary = await resolveEdgeBinary()
 
   await fs.mkdir(STATE_DIR, { recursive: true, mode: 0o700 })
   await fs.mkdir(baseDir, { recursive: true })
   const logFd = openSync(LOG_PATH, 'a')
 
-  const child = spawn('neuroflame-edge', ['start'], {
+  const child = spawn(process.execPath, [edgeBinary, 'start'], {
     env: {
       ...process.env,
       EDGE_HTTP_URL: httpUrl,
@@ -159,10 +220,7 @@ export async function startDaemon(
   await new Promise((resolve) => setTimeout(resolve, 300))
   if (spawnError) {
     closeSync(logFd)
-    throw new Error(
-      `Could not launch "neuroflame-edge" (${spawnError.message}). Is ` +
-        'edge-federated-client installed? npm install -g edge-federated-client',
-    )
+    throw new Error(`Could not launch ${edgeBinary} (${spawnError.message}).`)
   }
 
   const pid = child.pid as number

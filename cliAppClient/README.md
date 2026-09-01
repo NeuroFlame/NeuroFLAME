@@ -27,8 +27,8 @@ dataset directory](#pointing-a-consortium-at-a-local-dataset-directory).
 
 This CLI only replaces the control plane (auth, consortia, runs). Actually
 *executing* a computation on this machine takes an edge client too — either
-this CLI managing one directly (step 4 below), or the desktop app running
-here instead (it starts one for you on login). **Skip step 4** if you're
+this CLI managing one directly (step 3 below), or the desktop app running
+here instead (it starts one for you on login). **Skip step 3** if you're
 only doing control-plane work from a node that isn't running any
 computations itself (admin tasks, watching runs, managing a consortium
 remotely) — everything else still works without an edge client anywhere
@@ -41,19 +41,18 @@ git clone https://github.com/NeuroFlame/NeuroFLAME.git
 cd NeuroFLAME/cliAppClient && npm install && npm run build && npm install -g . && cd -
 npm install -g edge-federated-client
 
-# 2. Point the CLI at your central API — interactive, checks it live
-#    before saving
-neuroflame configure
-
-# 3. Log in
+# 2. Log in — no setup needed first: this defaults to the real, shared
+#    deployment (same as the desktop app's own default), so this just
+#    works. Only run `neuroflame configure` if you actually need something
+#    else (a local dev centralApi, a different deployment).
 neuroflame login
 
-# 4. Spawn a local edge client, tracked by this CLI, connected as you,
+# 3. Spawn a local edge client, tracked by this CLI, connected as you,
 #    with a mount-dir check for every consortium you're a member of —
 #    skip if you're not running computations on this machine
 neuroflame edge start
 
-# 5. Try it
+# 4. Try it
 neuroflame consortium list
 ```
 
@@ -132,9 +131,17 @@ neuroflame status [--json]   # on-demand: what's configured, where it came from,
 neuroflame notes-style [terminal|raw|browser]   # how computation/leader notes are shown
 ```
 
-Run `configure` once per machine. It prompts for the central API URL (and
-derives the WS URL from it), then optionally the local edge client's URL,
-checking each one actually responds before accepting it, and saves them to
+`configure` is optional — the central API URL already defaults to the real,
+shared deployment (same one the desktop app defaults to), so `login` works
+with no setup at all for the common case. Run `configure` when you actually
+need something else: it prompts for the central API URL (skipping the
+question entirely if the default is reachable and nothing's saved yet —
+only asks when there's an actual decision to make), then optionally the
+local edge client's URL, checking each one actually responds before
+accepting it — and, for the edge URL specifically, that it's actually
+edge-shaped and not just some other reachable server (centralApi included —
+a plain reachability check can't tell them apart, since both answer a
+generic GraphQL request) — and saves them to
 `~/.config/neuroflame-cli/config.json` — so they stick across shell
 sessions without exporting env vars every time. `status` is the read-only
 companion: run it anytime (or first, out of habit) to see exactly what
@@ -382,7 +389,17 @@ failure mode from actual production testing: the edge daemon getting
 restarted (a crash, a `docker system prune`-adjacent cleanup, closing the
 terminal it was running in) and silently losing its `connectAsUser`
 subscription — invisible until a run starts and only one site's container
-ever shows up. **It only helps when the CLI and the edge daemon belong on
+ever shows up.
+
+Finding `neuroflame-edge` to launch it deliberately doesn't rely on
+`PATH` — a fresh `npm install -g edge-federated-client` succeeding is no
+guarantee its bin directory is actually on `PATH` (a common footgun,
+especially with nvm/multiple Node installs, that gives no sign anything's
+wrong until this spawn fails). It instead asks the exact npm running this
+CLI (always a sibling of `node`, for every mainstream Node distribution)
+where its global packages live, and launches the resolved script directly.
+
+**It only helps when the CLI and the edge daemon belong on
 the same machine, though** — the common single-workstation case. It does
 not change anything about `edgeFederatedClient` itself, and it deliberately
 doesn't merge the two packages: `cliAppClient` still just shells out to a

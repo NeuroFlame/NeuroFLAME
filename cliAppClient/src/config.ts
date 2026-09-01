@@ -2,15 +2,23 @@
 //
 // Precedence: explicit env var > the server a saved session was logged into
 // > a persisted `neuroflame configure` value (cliConfig.ts — useful before
-// any login exists yet) > hardcoded local default. This lets `neuroflame
-// login` against a specific deployment "stick" for later commands without
-// having to re-export env vars every time, while still letting scripts
-// override it per-invocation.
+// any login exists yet) > hardcoded default. This lets `neuroflame login`
+// against a specific deployment "stick" for later commands without having
+// to re-export env vars every time, while still letting scripts override
+// it per-invocation.
+//
+// The default points at the real, shared deployment (matching the desktop
+// app's own defaultConfig.ts) rather than a local-dev localhost address —
+// on purpose: `neuroflame login` should work with zero setup for the common
+// case of "I just installed this and want to use the real thing," the same
+// way the desktop app already does out of the box. `neuroflame configure`
+// is only for pointing at something else (a local dev centralApi, a
+// different deployment).
 
 import { loadCliConfig } from './cliConfig.js'
 
-export const DEFAULT_HTTP_URL = 'http://localhost:3001/graphql'
-export const DEFAULT_WS_URL = 'ws://localhost:3001/graphql'
+export const DEFAULT_HTTP_URL = 'https://trendscenterdev.org/graphql'
+export const DEFAULT_WS_URL = 'wss://trendscenterdev.org/graphql'
 
 export interface ServerUrls {
   httpUrl: string

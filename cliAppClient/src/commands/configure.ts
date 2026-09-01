@@ -68,6 +68,28 @@ function deriveWsUrl(httpUrl: string): string {
   return httpUrl.replace(/^http/, 'ws')
 }
 
+/**
+ * A fresh install (no httpUrl saved yet) with a reachable default needs no
+ * question at all — DEFAULT_HTTP_URL already points at the real, shared
+ * deployment, so "just works with zero setup" only holds if this doesn't
+ * make a first-time user type/confirm a URL they never had a reason to
+ * second-guess. Re-running `configure` after a value is already saved (or
+ * the default being unreachable, e.g. no network / a genuinely different
+ * intended deployment) still goes through the normal editable prompt.
+ */
+async function resolveHttpUrl(existingHttpUrl: string | undefined): Promise<string> {
+  if (!existingHttpUrl) {
+    process.stdout.write(`  checking default (${DEFAULT_HTTP_URL}) ... `)
+    const result = await checkReachable(DEFAULT_HTTP_URL)
+    if (result.reachable) {
+      console.log(`reachable (${result.detail}) — using it.`)
+      return DEFAULT_HTTP_URL
+    }
+    console.log(`NOT reachable (${result.detail})`)
+  }
+  return promptUrl('Central API URL', existingHttpUrl || DEFAULT_HTTP_URL)
+}
+
 /** Prompts for a URL, checks it live, and either loops or accepts it anyway. */
 async function promptUrl(
   label: string,
@@ -106,7 +128,7 @@ export async function configureCommand(): Promise<void> {
     const existing = await loadCliConfig()
 
     console.log('--- Central API ---')
-    const httpUrl = await promptUrl('Central API URL', existing.httpUrl || DEFAULT_HTTP_URL)
+    const httpUrl = await resolveHttpUrl(existing.httpUrl)
     const wsUrl = deriveWsUrl(httpUrl)
     console.log(`Subscriptions will use: ${wsUrl}`)
 
