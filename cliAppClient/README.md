@@ -124,6 +124,27 @@ neuroflame
 nf          # short alias, same binary
 ```
 
+### `npm install -g` fails with EACCES on a shared machine
+
+Common on an HPC cluster's login node, if Node comes from a system-wide
+install (e.g. `module load nodejs`) rather than something per-user like
+nvm: `npm install -g` tries to write into that install's global
+`node_modules` (something like `/usr/lib/nodejs22/lib/node_modules/`),
+which a regular user has no write access to — nothing to do with this
+package specifically, npm behaves the same way for *any* package there.
+Point npm's global prefix at somewhere in your own home directory instead,
+once, and every future `npm install -g` (this or anything else) just works:
+
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.bashrc   # or your shell's rc file
+source ~/.bashrc
+```
+
+Then re-run `npm run init` (or just `npm install -g .` from `cliAppClient`
+if the earlier steps already succeeded).
+
 ## Setup and diagnostics
 
 ```bash
