@@ -846,14 +846,14 @@ NEUROFLAME_PASSWORD          # non-interactive login
 NEUROFLAME_DEBUG             # "true" for verbose diagnostics on stderr
 ```
 
-The last two exist for parity with the desktop app's own config
-(`desktopApp/electronApp/src/types.ts`'s `Config` type has
-`edgeClientSubscriptionUrl` and `edgeClientRunResultsUrl` as independent
-fields, not derived) — in every real setup we've seen they share the edge
-URL's origin, so deriving is the sensible default, but a deployment that
-doesn't colocate them can override either independently without touching
-the other. `neuroflame status` always shows what they actually resolved to
-and where that came from.
+`NEUROFLAME_EDGE_WS_URL` and `NEUROFLAME_EDGE_RESULTS_URL` exist for parity
+with the desktop app's own config (`desktopApp/electronApp/src/types.ts`'s
+`Config` type has `edgeClientSubscriptionUrl` and `edgeClientRunResultsUrl`
+as independent fields, not derived) — in every real setup we've seen they
+share the edge URL's origin, so deriving is the sensible default, but a
+deployment that doesn't colocate them can override either independently
+without touching the other. `neuroflame status` always shows what they
+actually resolved to and where that came from.
 
 Prefer `neuroflame configure` over exporting these for anything you'll run
 more than once — env vars are for one-off overrides (scripts, CI, "just
