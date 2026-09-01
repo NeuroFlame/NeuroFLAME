@@ -21,11 +21,13 @@
     "build": "tsc && npm run chmod-bin",
     "chmod-bin": "chmod +x dist/cli.js",
     "start": "npm run compile && node ./dist/cli.js",
-    "prepack": "npm run clean && npm run compile"
+    "prepack": "npm run clean && npm run compile",
+    "init": "npm install && npm run build && npm install -g ."
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "edge-federated-client": "1.8.0",
     "graphql-ws": "^5.16.0",
     "marked": "^12.0.2",
     "ws": "^8.17.1"

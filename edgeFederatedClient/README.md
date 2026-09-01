@@ -197,7 +197,24 @@ says (env var / systemd unit) the next time it starts.
 
 ## A typical headless setup
 
-On the compute node:
+**The easy way:** this package is a bundled dependency of `cliAppClient`
+now, not something you install separately — `neuroflame edge start` spawns
+it for you. On the compute node — not yet published to npm, so install
+from a checkout (see [cliAppClient's
+README](../cliAppClient/README.md#install)):
+
+```bash
+git clone https://github.com/NeuroFlame/NeuroFLAME.git
+cd NeuroFLAME/cliAppClient && npm run init
+neuroflame login
+neuroflame edge start     # spawns this package as its own process, connects
+neuroflame edge set-mount-dir <consortiumId> /path/to/local/dataset
+neuroflame consortium set-ready <consortiumId> true
+neuroflame run watch-consortium <consortiumId> --latest
+```
+
+**Minimal footprint, no CLI control-plane commands at all:** install and
+run this package directly instead —
 
 ```bash
 npm install -g edge-federated-client
@@ -206,13 +223,12 @@ EDGE_HTTP_URL=... EDGE_WS_URL=... EDGE_BASE_DIR=... EDGE_HOSTING_PORT=4001 \
 # or install the systemd unit for it to survive reboots/crashes
 ```
 
-From `cliAppClient`, on that same node (or anywhere with network access to
-it) — not yet published to npm, so install from a checkout (see
-[cliAppClient's README](../cliAppClient/README.md#install)):
+— then drive it from `cliAppClient` running anywhere with network access
+to it (not necessarily the same node):
 
 ```bash
 git clone https://github.com/NeuroFlame/NeuroFLAME.git
-cd NeuroFLAME/cliAppClient && npm install && npm run build && npm install -g .
+cd NeuroFLAME/cliAppClient && npm run init
 neuroflame configure       # point NEUROFLAME_EDGE_URL at this node's :4001
 neuroflame login --connect-edge
 neuroflame edge set-mount-dir <consortiumId> /path/to/local/dataset

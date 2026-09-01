@@ -16,6 +16,7 @@ import { wizardCommand } from './commands/wizard.js'
 import { statusCommand } from './commands/status.js'
 import { configureCommand } from './commands/configure.js'
 import { notesStyleCommand } from './commands/notesStyle.js'
+import { runEdgeDaemon } from './edgeDaemonEntry.js'
 
 const HELP = `NeuroFLAME CLI
 
@@ -131,6 +132,13 @@ async function main(): Promise<void> {
   const rest = argv.slice(2)
 
   switch (command) {
+    // Internal — this is what `neuroflame edge start` actually spawns as
+    // the background daemon (edgeDaemon.ts). Not a real subcommand for a
+    // human to run directly: it reads its config from EDGE_* env vars
+    // edgeDaemon.ts sets, same as edge-federated-client's own `neuroflame-
+    // edge start` used to when this shelled out to a separate install.
+    case '__edge-daemon':
+      return runEdgeDaemon()
     case 'configure':
       return configureCommand()
     case 'notes-style':

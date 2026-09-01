@@ -35,11 +35,11 @@ remotely) — everything else still works without an edge client anywhere
 nearby.
 
 ```bash
-# 1. Install both — the CLI (not yet on npm, so from a checkout — see
-#    Install below), and the edge client it drives (published, npm's fine)
+# 1. Install — not yet on npm, so from a checkout (see Install below).
+#    edge-federated-client (the edge client `edge start` drives) is a
+#    bundled dependency, not a separate install.
 git clone https://github.com/NeuroFlame/NeuroFLAME.git
-cd NeuroFLAME/cliAppClient && npm install && npm run build && npm install -g . && cd -
-npm install -g edge-federated-client
+cd NeuroFLAME/cliAppClient && npm run init
 
 # 2. Log in — no setup needed first: this defaults to the real, shared
 #    deployment (same as the desktop app's own default), so this just
@@ -106,14 +106,15 @@ this one isn't yet) — install from a checkout of this repo instead:
 ```bash
 git clone https://github.com/NeuroFlame/NeuroFLAME.git
 cd NeuroFLAME/cliAppClient
-npm install
-npm run build
-npm install -g .
+npm run init   # npm install && npm run build && npm install -g .
 ```
 
 Once `@neuroflame/cli` is actually published, this collapses to
 `npm install -g @neuroflame/cli`, same as any other npm package — nothing
-about how the CLI itself works changes either way.
+about how the CLI itself works changes either way. `edge-federated-client`
+(what actually runs when you `edge start`) is a bundled dependency, not
+something you install separately — see [Running a standalone edge
+client](#running-a-standalone-edge-client).
 
 Either way, installing gives you two equivalent global commands — use
 whichever you prefer:
@@ -367,18 +368,19 @@ status` shows `NOT reachable` on the edge line if nothing is.
 #### The easy way: let the CLI manage it
 
 ```bash
-npm install -g edge-federated-client   # once, so `neuroflame-edge` exists
-neuroflame edge start                  # spawns it, connects, checks mount dirs
+neuroflame edge start   # spawns it, connects, checks mount dirs
 ```
 
-`neuroflame edge start` spawns `neuroflame-edge` itself (using this CLI's
-own configured central API), tracks it by PID
-(`~/.config/neuroflame-cli/edge-daemon.pid`), points this CLI's config at
-it, connects as whoever's logged in, and runs the mount-dir preflight —
-one command instead of a second terminal running `neuroflame-edge start`
-by hand and a separate `edge connect`. Run it again anytime (even in a
-new shell) and it reconnects to the same daemon rather than spawning a
-second one; `neuroflame edge stop` shuts it down.
+`edge-federated-client` is a bundled dependency of this CLI (not a
+separate install) — installing `@neuroflame/cli` is enough. `neuroflame
+edge start` spawns it as its own OS process (so it survives after this
+command exits — using this CLI's own configured central API), tracks it
+by PID (`~/.config/neuroflame-cli/edge-daemon.pid`), points this CLI's
+config at it, connects as whoever's logged in, and runs the mount-dir
+preflight — one command instead of a second terminal running
+`neuroflame-edge start` by hand and a separate `edge connect`. Run it
+again anytime (even in a new shell) and it reconnects to the same daemon
+rather than spawning a second one; `neuroflame edge stop` shuts it down.
 `--base-dir <path>`/`--port <n>`/`--container-service docker|singularity`
 override the defaults (`~/.config/neuroflame-cli/edge-data`, `4001`,
 `docker`) — omit them on a later `edge start` and it reuses whatever was
@@ -391,27 +393,31 @@ terminal it was running in) and silently losing its `connectAsUser`
 subscription — invisible until a run starts and only one site's container
 ever shows up.
 
-Finding `neuroflame-edge` to launch it deliberately doesn't rely on
-`PATH` — a fresh `npm install -g edge-federated-client` succeeding is no
-guarantee its bin directory is actually on `PATH` (a common footgun,
-especially with nvm/multiple Node installs, that gives no sign anything's
-wrong until this spawn fails). It instead asks the exact npm running this
-CLI (always a sibling of `node`, for every mainstream Node distribution)
-where its global packages live, and launches the resolved script directly.
+`edge-federated-client` used to be a separately-installed sibling package
+here (`cliAppClient` just shelled out to its globally-installed
+`neuroflame-edge` binary) — on the theory that a pure-control-plane CLI
+user shouldn't pay for Docker/Apollo/Express-weight dependencies they'd
+never touch. That flipped once it collided with reality: a `PATH`-dependent
+external binary is fragile on a fresh machine (a common nvm/multiple-Node-
+installs footgun that gives no sign anything's wrong until the spawn
+fails), and the actual primary use case for this whole CLI turned out to
+be a headless edge client, not pure control-plane usage. Bundling trades
+away the lighter install for a CLI that just works, self-contained, no
+separate package/PATH/version-sync concerns ever again.
 
 **It only helps when the CLI and the edge daemon belong on
-the same machine, though** — the common single-workstation case. It does
-not change anything about `edgeFederatedClient` itself, and it deliberately
-doesn't merge the two packages: `cliAppClient` still just shells out to a
-separately-installed `neuroflame-edge` binary, so control-plane-only CLI
-usage (the common case per the intro above) never pulls in Docker/Apollo/
-Express — it only reaches for `neuroflame-edge` when you actually ask it
-to. For a genuinely distributed setup — the edge daemon on a different
-node than wherever you run `neuroflame` from, which is the normal shape
-on an actual HPC cluster — start it manually there instead, the same way
-`neuroflame edge start` does under the hood:
+the same machine, though** — the common single-workstation case. For a
+genuinely distributed setup — the edge daemon on a different node than
+wherever you run `neuroflame` from, which is the normal shape on an actual
+HPC cluster — install `@neuroflame/cli` there too and run `edge start` the
+same way, or, for a minimal footprint with no CLI control-plane commands
+at all, install and run `edge-federated-client`'s own standalone binary
+directly — the same env vars `neuroflame edge start` sets when it spawns
+its bundled copy, just configured and launched by hand instead:
 
 ```bash
+npm install -g edge-federated-client   # once, so `neuroflame-edge` exists
+
 EDGE_HTTP_URL=https://your-central-api.example.com/graphql \
 EDGE_WS_URL=wss://your-central-api.example.com/graphql \
 EDGE_BASE_DIR=/path/to/local/work \
