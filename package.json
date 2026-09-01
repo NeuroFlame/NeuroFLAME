@@ -4,7 +4,8 @@
     "workspaces": [
         "desktopApp/electronApp",
         "edgeFederatedClient",
-        "vaultFederatedClient"
+        "vaultFederatedClient",
+        "cliAppClient"
     ],
     "devDependencies": {
         "@changesets/cli": "^2.29.2",

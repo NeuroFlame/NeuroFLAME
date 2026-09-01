@@ -4,11 +4,19 @@
   "description": "",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "neuroflame-edge": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "systemd",
+    "README.md"
+  ],
   "scripts": {
-    "compile": "tsc",
-    "build": "tsc",
+    "compile": "tsc && chmod +x dist/cli.js",
+    "build": "tsc && chmod +x dist/cli.js",
     "test": "npm run compile && node --test tests/*.test.mjs",
-    "start": "npm run compile && node ./dist/index.js $npm_config_path"
+    "start": "npm run compile && node ./dist/cli.js start"
   },
   "author": "",
   "license": "ISC",

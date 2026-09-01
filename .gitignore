@@ -2,6 +2,7 @@
 **/node_modules/
 **/dist/
 _devTestDirectories/
+centralFederatedClientDir/
 configs/*.json
 *.log
 .DS_Store

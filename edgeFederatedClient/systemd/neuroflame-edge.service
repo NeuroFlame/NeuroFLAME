@@ -1,0 +1,66 @@
+# systemd service file for the NeuroFLAME Edge Federated Client
+#
+# Usage:
+#   neuroflame-edge systemd-template
+#   Edit ./neuroflame-edge.service
+#   sudo cp ./neuroflame-edge.service /etc/systemd/system/neuroflame-edge.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable neuroflame-edge
+#   sudo systemctl start neuroflame-edge
+
+[Unit]
+Description=NeuroFLAME Edge Federated Client
+Documentation=https://github.com/NeuroFlame/NeuroFLAME
+After=network-online.target docker.service
+Wants=network-online.target
+# Remove this line if EDGE_CONTAINER_SERVICE=singularity below — Docker
+# isn't needed in that case, and a hard Requires= will block startup on a
+# host that doesn't have docker.service at all.
+Requires=docker.service
+
+[Service]
+Type=simple
+
+# Run as a user with access to whichever container runtime you're using
+# (Docker group membership, or a working user-space Singularity/Apptainer
+# install — check with `which singularity apptainer` first).
+User=ubuntu
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+# Required NeuroFLAME edge client configuration.
+# Use http/ws for a raw central API port. Use https/wss only behind TLS.
+Environment=EDGE_HTTP_URL=http://your-central-api.example.com:3001/graphql
+Environment=EDGE_WS_URL=ws://your-central-api.example.com:3001/graphql
+# Local storage for downloaded run kits, mount-dir/local-params config,
+# Singularity images (if used), and run results.
+Environment=EDGE_BASE_DIR=/var/lib/neuroflame/edge/work
+# The port THIS edge client listens on — what NEUROFLAME_EDGE_URL (or
+# `neuroflame configure`) on the CLI side should point at.
+Environment=EDGE_HOSTING_PORT=4001
+
+# Optional NeuroFLAME edge client configuration.
+# EDGE_AUTHENTICATION_ENDPOINT defaults to EDGE_HTTP_URL with /graphql
+# replaced by /authenticateToken — set it explicitly only if that's wrong
+# for your deployment (a different host for auth vs. GraphQL, etc.).
+#Environment=EDGE_AUTHENTICATION_ENDPOINT=http://your-central-api.example.com:3001/authenticateToken
+Environment=EDGE_LOG_PATH=/var/log/neuroflame/edge
+Environment=EDGE_CONTAINER_SERVICE=docker
+
+ExecStart=/usr/bin/env neuroflame-edge start
+
+Restart=always
+RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=90
+KillSignal=SIGTERM
+KillMode=mixed
+
+MemoryMax=4G
+TasksMax=200
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neuroflame-edge
+
+[Install]
+WantedBy=multi-user.target
