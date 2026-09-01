@@ -34,6 +34,7 @@ import {
   EDGE_GET_MOUNT_DIR_QUERY,
   EDGE_SET_MOUNT_DIR_MUTATION,
   EDGE_SET_LOCAL_PARAMS_MUTATION,
+  EDGE_GET_CONTAINER_SERVICE_QUERY,
   ConsortiumListItem,
   ConsortiumDetails,
   ComputationListItem,
@@ -209,7 +210,44 @@ function runShellCommand(command: string): Promise<number> {
   })
 }
 
-async function downloadImage(imageDownloadUrl: string): Promise<void> {
+/**
+ * `imageDownloadUrl` is a Docker-specific command (`docker pull ...`) —
+ * offering to run it unconditionally would confidently fail on a
+ * Singularity-only machine (no `docker` binary at all, which is the
+ * common case on an HPC cluster — see edgeFederatedClient/README.md).
+ * Checked live: edgeFederatedClient's own run coordinator
+ * (computationImage.ts's prepareComputationImage) already pulls and
+ * converts the image automatically via `singularity pull docker://...`
+ * the first time a run actually needs it, regardless of whether this
+ * step ran — so for Singularity this is genuinely a no-op, not a step
+ * that's just being skipped-and-hoped-for.
+ */
+async function downloadImage(imageDownloadUrl: string, session: Session): Promise<void> {
+  let containerService: string | null = null
+  try {
+    const edgeUrl = await resolveEdgeUrl(undefined)
+    const data = await gqlRequest<{ getContainerService: string }>(
+      edgeUrl,
+      EDGE_GET_CONTAINER_SERVICE_QUERY,
+      {},
+      session.accessToken,
+    )
+    containerService = data.getContainerService
+  } catch {
+    // Edge client unreachable, or some other hiccup checking — fall
+    // through to the Docker-pull prompt below rather than blocking the
+    // wizard over a check that's only here to avoid a confusing failure.
+  }
+
+  if (containerService === 'singularity') {
+    console.log(
+      "\nThis edge client uses Singularity — nothing to download now. It'll " +
+        'pull and convert the image automatically the first time a run ' +
+        'actually needs it.',
+    )
+    return
+  }
+
   if (!(await askYesNo(`Download the image now? (runs: ${imageDownloadUrl})`, true))) {
     console.log('Skipped — you can run that command yourself later.')
     return
@@ -423,7 +461,7 @@ async function selectComputationStep(
     session.accessToken,
   )
   const computation = computationData.getComputationDetails
-  await downloadImage(computation.imageDownloadUrl)
+  await downloadImage(computation.imageDownloadUrl, session)
   return computation
 }
 
@@ -531,7 +569,7 @@ async function runMemberSteps(
 
   step('Download Computation Image')
   if (computation) {
-    await downloadImage(computation.imageDownloadUrl)
+    await downloadImage(computation.imageDownloadUrl, session)
   } else {
     console.log('No computation selected yet — ask the leader to select one first.')
   }
