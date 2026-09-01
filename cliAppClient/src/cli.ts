@@ -15,11 +15,13 @@ import { edgeCommand } from './commands/edge.js'
 import { wizardCommand } from './commands/wizard.js'
 import { statusCommand } from './commands/status.js'
 import { configureCommand } from './commands/configure.js'
+import { notesStyleCommand } from './commands/notesStyle.js'
 
 const HELP = `NeuroFLAME CLI
 
 Usage:
   neuroflame configure
+  neuroflame notes-style [terminal|raw|browser]
   neuroflame status [--json]
   neuroflame login [--username <name>] [--password <pass>] [--connect-edge] [--url <edgeUrl>]
   neuroflame logout
@@ -131,6 +133,8 @@ async function main(): Promise<void> {
   switch (command) {
     case 'configure':
       return configureCommand()
+    case 'notes-style':
+      return notesStyleCommand(argv.slice(1))
     case 'status':
       return statusCommand(argv.slice(1))
     case 'login':

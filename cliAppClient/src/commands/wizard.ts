@@ -15,7 +15,7 @@ import { resolveEdgeUrl } from '../config.js'
 import { requireSession, Session } from './shared.js'
 import { positionals, parseFlags } from '../utils/flags.js'
 import { ask, askYesNo, askIndex, closePrompt, pausePrompt, resumePrompt } from '../utils/prompt.js'
-import { viewMarkdownInBrowser } from '../utils/viewMarkdown.js'
+import { getNotesViewStyle, showNotes } from '../utils/notesStyle.js'
 import { fetchDetails, printDetails } from './consortium.js'
 import { connectEdgeClient } from './edge.js'
 import {
@@ -481,31 +481,23 @@ async function setParametersStep(session: Session, consortiumId: string): Promis
 // ---------------------------------------------------------------------------
 
 /**
- * Notes are plain markdown — fine to read as raw text in a terminal for
- * something short, much easier to follow rendered once it starts using
- * headers/tables/links/code blocks. Prints as before regardless (so a
- * scripted/non-interactive run sees no behavior change and this prompt's
- * `false` default just declines), and offers rendering only when there's
- * something to render.
+ * Notes are plain markdown, shown per the user's saved notes-view style
+ * (utils/notesStyle.ts: terminal-rendered, raw, or opened in a browser) —
+ * asked once and remembered from then on, changeable anytime with
+ * `neuroflame notes-style`, rather than asked fresh on every wizard run.
  */
-async function offerToViewNotesInBrowser(
+async function showRequirementNotes(
   computation: Computation | null | undefined,
   leaderNotes: string | null | undefined,
 ): Promise<void> {
   if (!computation?.notes && !leaderNotes) return
-  if (!(await askYesNo('\nOpen these notes as rendered HTML in your browser instead?', false))) {
-    return
+  const style = await getNotesViewStyle()
+  if (computation?.notes) {
+    await showNotes(computation.title, computation.notes, style)
   }
-  const sections = [
-    computation?.notes && `# ${computation.title}\n\n${computation.notes}`,
-    leaderNotes && `# Leader notes\n\n${leaderNotes}`,
-  ].filter((section): section is string => Boolean(section))
-  try {
-    await viewMarkdownInBrowser('Consortium Requirements', sections.join('\n\n---\n\n'))
-  } catch (error) {
-    console.log(
-      `Could not open a browser automatically (${error instanceof Error ? error.message : error}).`,
-    )
+  if (leaderNotes) {
+    console.log('\nLeader notes:')
+    await showNotes('Leader notes', leaderNotes, style)
   }
 }
 
@@ -520,14 +512,11 @@ async function runMemberSteps(
 
   step('View Consortium Requirements')
   if (computation) {
-    console.log(`\nComputation: ${computation.title}\n${computation.notes}`)
+    console.log(`\nComputation: ${computation.title}`)
   } else {
     console.log('The leader has not selected a computation yet.')
   }
-  if (details.studyConfiguration.consortiumLeaderNotes) {
-    console.log(`\nLeader notes:\n${details.studyConfiguration.consortiumLeaderNotes}`)
-  }
-  await offerToViewNotesInBrowser(computation, details.studyConfiguration.consortiumLeaderNotes)
+  await showRequirementNotes(computation, details.studyConfiguration.consortiumLeaderNotes)
   if (!(await askYesNo("\nI've read and understand the notes. Continue?", true))) {
     throw new WizardQuit()
   }

@@ -33,6 +33,11 @@ export interface CliConfig {
     hostingPort?: number
     containerService?: 'docker' | 'singularity'
   }
+  // How to display markdown notes (computation notes, leader notes) — see
+  // utils/notesStyle.ts. Asked once, the first time it's needed, then
+  // remembered here so later sessions don't ask again; changeable anytime
+  // with `neuroflame notes-style`.
+  notesViewStyle?: 'terminal' | 'raw' | 'browser'
 }
 
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'neuroflame-cli')

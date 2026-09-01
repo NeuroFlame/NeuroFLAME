@@ -1,5 +1,7 @@
 import { gqlRequest } from '../graphqlClient.js'
-import { requireSession, usageError, printJsonOrHuman } from './shared.js'
+import { requireSession, usageError } from './shared.js'
+import { closePrompt } from '../utils/prompt.js'
+import { getNotesViewStyle, showNotes } from '../utils/notesStyle.js'
 import {
   GET_COMPUTATION_LIST_QUERY,
   GET_COMPUTATION_DETAILS_QUERY,
@@ -62,18 +64,27 @@ async function show(args: string[]): Promise<void> {
   )
   const c = data.getComputationDetails
 
-  printJsonOrHuman(
-    args.includes('--json'),
-    c,
+  if (args.includes('--json')) {
+    // Scripted use — raw notes, no interactive style prompt.
+    console.log(JSON.stringify(c, null, 2))
+    return
+  }
+
+  console.log(
     [
       `${c.title}  (${c.imageName})`,
       `owner: ${c.owner}`,
       `has local parameters: ${c.hasLocalParameters}`,
       `download url: ${c.imageDownloadUrl}`,
       '',
-      c.notes,
     ].join('\n'),
   )
+  try {
+    const style = await getNotesViewStyle()
+    await showNotes(c.title, c.notes, style)
+  } finally {
+    closePrompt()
+  }
 }
 
 async function create(args: string[]): Promise<void> {
