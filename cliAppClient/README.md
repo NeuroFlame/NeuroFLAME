@@ -97,6 +97,8 @@ From there:
   now — see [Setup and diagnostics](#setup-and-diagnostics).
 - **Looking for a specific command?** See [Commands](#commands) for the
   full reference.
+- **Wondering what this stores or executes locally?** See [Security
+  notes](#security-notes).
 
 ## Install
 
@@ -827,6 +829,58 @@ Two things worth knowing if you're extending this:
   a data-loss bug the original per-question-interface design had) and
   explicitly pauses/resumes it around that child so the two don't fight
   over stdin.
+
+## Security notes
+
+This CLI is lightweight — almost everything it does is just calling
+`centralApi`'s GraphQL API, the same as the desktop app's UI does. The few
+exceptions, and what's actually worth knowing about each:
+
+- **Your access token is stored locally**, at
+  `~/.config/neuroflame-cli/session.json`, so `login` doesn't ask again
+  every command — the same pattern the `gh`/`aws` CLIs use. Written mode
+  `0600`, in a `0700` directory (`src/session.ts`), and re-`chmod`'d on
+  every save in case it already existed with looser permissions. If you
+  put `NEUROFLAME_PASSWORD` in `~/.config/neuroflame-cli/.env` for
+  non-interactive login (see [Environment
+  variables](#environment-variables) below), that file is *not*
+  auto-hardened the same way — the CLI only reads it, never writes it — so
+  `chmod 600` it yourself if you use that.
+- **The GraphQL/WS API is bearer-token authenticated** — no new
+  server-side auth path, same `x-access-token`/`connectionParams` model
+  the desktop app already uses (see [Design notes](#design-notes)). The
+  local edge client validates that token by asking `centralApi`, not by
+  checking a local secret of its own.
+- **The local edge client's run-results REST routes carry no auth at
+  all** (`list-results`/`download-results`/`open-results`/`get-run-error`
+  — see `src/commands/edge.ts`'s own comment on this). Anyone who can
+  reach that port — default `4001`, whatever `hostingPort` is actually
+  configured — can read a run's result files. This is unchanged from the
+  desktop app's identical local API, not something the CLI adds, but
+  worth knowing if an edge client ends up listening somewhere more
+  exposed than a laptop's loopback-only setup typically is.
+- **Notes rendered in your browser are sanitized, not just trusted** —
+  computation/leader notes are markdown written by other consortium
+  members, not necessarily fully trusted content. The terminal-rendered
+  style (`renderMarkdownAnsi.ts`) was always safe (raw HTML tokens are
+  simply dropped, and a link's href is only ever printed as inert text,
+  never navigated to). The browser style (`viewMarkdown.ts`) writes real
+  HTML to a real file opened in a real browser, which is a genuine
+  injection surface if left unsanitized — confirmed live that `marked`'s
+  default renderer passes `<script>`/`javascript:` hrefs straight through
+  unsanitized — so it uses a custom renderer that strips raw HTML
+  entirely and blocks script-capable URL schemes (`javascript:`, `data:`,
+  `vbscript:`, `file:`) on links and images, stripping whitespace first so
+  an obfuscated scheme can't slip past the check.
+- **"Download the image" and container execution run real,
+  server-provided commands and images locally** — `imageDownloadUrl` (a
+  literal shell command from `centralApi`, e.g. `docker pull ...`) is
+  executed as-is (see [Design notes](#design-notes)), and the edge client
+  runs whatever container image a consortium's computation specifies,
+  using your local Docker/Singularity. Both are the same trust model the
+  desktop app's embedded terminal and edge client already have — nothing
+  new here, but the actual trust boundary is which consortia/computations
+  you participate in, not the CLI itself.
 
 ## Environment variables
 
