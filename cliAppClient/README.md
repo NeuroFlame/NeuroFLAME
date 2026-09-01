@@ -35,8 +35,10 @@ remotely) — everything else still works without an edge client anywhere
 nearby.
 
 ```bash
-# 1. Install both — the CLI, and the edge client it drives
-npm install -g @neuroflame/cli
+# 1. Install both — the CLI (not yet on npm, so from a checkout — see
+#    Install below), and the edge client it drives (published, npm's fine)
+git clone https://github.com/NeuroFlame/NeuroFLAME.git
+cd NeuroFLAME/cliAppClient && npm install && npm run build && npm install -g . && cd -
 npm install -g edge-federated-client
 
 # 2. Point the CLI at your central API — interactive, checks it live
@@ -99,11 +101,23 @@ From there:
 
 ## Install
 
+Not yet published to npm (`@neuroflame/vault`/`edge-federated-client` are;
+this one isn't yet) — install from a checkout of this repo instead:
+
 ```bash
-npm install -g @neuroflame/cli
+git clone https://github.com/NeuroFlame/NeuroFLAME.git
+cd NeuroFLAME/cliAppClient
+npm install
+npm run build
+npm install -g .
 ```
 
-Installs two equivalent global commands — use whichever you prefer:
+Once `@neuroflame/cli` is actually published, this collapses to
+`npm install -g @neuroflame/cli`, same as any other npm package — nothing
+about how the CLI itself works changes either way.
+
+Either way, installing gives you two equivalent global commands — use
+whichever you prefer:
 
 ```bash
 neuroflame
@@ -115,6 +129,7 @@ nf          # short alias, same binary
 ```bash
 neuroflame configure   # stepped, interactive: checks each URL live, then saves it
 neuroflame status [--json]   # on-demand: what's configured, where it came from, is it up
+neuroflame notes-style [terminal|raw|browser]   # how computation/leader notes are shown
 ```
 
 Run `configure` once per machine. It prompts for the central API URL (and
@@ -135,6 +150,15 @@ failed` deep inside whatever command you were trying to run, with no
 indication *why*. `configure` fixes it once; `status` tells you if
 something's still wrong and, critically, *why* (wrong port vs. server not
 running vs. wrong host).
+
+`notes-style` is separate: the first time the wizard or `computation show`
+has notes to display, it asks once how you'd like to see them (rendered in
+the terminal, raw markdown, or opened as HTML in your browser — see
+`src/utils/notesStyle.ts`), then saves the answer to the same config file
+so it's never asked again. Run `notes-style` anytime — with no argument to
+see the current choice and pick a new one interactively, or with an
+argument (`neuroflame notes-style raw`) to set it directly without a
+prompt.
 
 Full resolution order for every URL, highest priority first: an explicit
 per-command `--url` flag → an env var (`NEUROFLAME_HTTP_URL`,
@@ -707,11 +731,11 @@ which this was copied from):
 `edge connect`) → set local parameters *(only if the computation supports
 them)* → add leader notes *(optional)* → set ready.
 
-**Member:** view requirements (computation + leader notes, printed as raw
-markdown, with an option to open them instead as rendered HTML in your
-default browser — see `src/utils/viewMarkdown.ts` — before you must
-acknowledge to continue) → select data directory (+ `edge connect`) → set
-local parameters *(if supported)* → download image → set ready.
+**Member:** view requirements (computation + leader notes, shown per your
+saved notes-view style — see "Setup and diagnostics" above and
+`src/utils/notesStyle.ts` — before you must acknowledge to continue) →
+select data directory (+ `edge connect`) → set local parameters *(if
+supported)* → download image → set ready.
 
 `join`/`create` aren't a different code path from plain `wizard` past the
 point of getting a `consortiumId` — they're just two more ways to arrive at

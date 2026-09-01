@@ -207,10 +207,12 @@ EDGE_HTTP_URL=... EDGE_WS_URL=... EDGE_BASE_DIR=... EDGE_HOSTING_PORT=4001 \
 ```
 
 From `cliAppClient`, on that same node (or anywhere with network access to
-it):
+it) — not yet published to npm, so install from a checkout (see
+[cliAppClient's README](../cliAppClient/README.md#install)):
 
 ```bash
-npm install -g @neuroflame/cli
+git clone https://github.com/NeuroFlame/NeuroFLAME.git
+cd NeuroFLAME/cliAppClient && npm install && npm run build && npm install -g .
 neuroflame configure       # point NEUROFLAME_EDGE_URL at this node's :4001
 neuroflame login --connect-edge
 neuroflame edge set-mount-dir <consortiumId> /path/to/local/dataset
