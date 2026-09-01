@@ -9,11 +9,50 @@
 import { promises as fs } from 'fs'
 import os from 'os'
 import path from 'path'
-import { marked } from 'marked'
+import { marked, Renderer } from 'marked'
 import { openInBrowser } from './openInBrowser.js'
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function escapeAttr(value: string): string {
+  return escapeHtml(value).replace(/"/g, '&quot;')
+}
+
+// marked.parse()'s default renderer passes raw HTML and link/image hrefs
+// straight through unsanitized (confirmed live: a <script> block and a
+// javascript: href both come out verbatim) — fine for the ANSI terminal
+// renderer (renderMarkdownAnsi.ts already drops HTML tokens outright and
+// only ever prints an href as inert text, never navigates to it), but this
+// writes real HTML to a real file that gets opened in a real browser.
+// Computation/leader notes are written by other consortium members, not
+// necessarily fully trusted, so this needs to actually be safe, not just
+// "unlikely to matter." Strips raw HTML entirely and blocks script-capable
+// URL schemes on links/images — stripping whitespace first (the standard
+// sanitizer trick, same as DOMPurify) so an obfuscated scheme like
+// "java script:" (a literal space) can't slip past the check.
+const DANGEROUS_URL_SCHEME = /^(?:javascript|data|vbscript|file):/i
+
+function isSafeUrl(href: string): boolean {
+  const cleaned = href.replace(/\s/g, '')
+  return !DANGEROUS_URL_SCHEME.test(cleaned)
+}
+
+function createSafeRenderer(): Renderer {
+  const renderer = new Renderer()
+  renderer.html = () => ''
+  renderer.link = (href, title, text) => {
+    const safeHref = isSafeUrl(href) ? href : '#'
+    const titleAttr = title ? ` title="${escapeAttr(title)}"` : ''
+    return `<a href="${escapeAttr(safeHref)}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`
+  }
+  renderer.image = (href, title, text) => {
+    if (!isSafeUrl(href)) return escapeHtml(text)
+    const titleAttr = title ? ` title="${escapeAttr(title)}"` : ''
+    return `<img src="${escapeAttr(href)}" alt="${escapeAttr(text)}"${titleAttr}>`
+  }
+  return renderer
 }
 
 function renderPage(title: string, bodyHtml: string): string {
@@ -49,7 +88,7 @@ ${bodyHtml}
  * page's <title> — it does not need to match a heading in `markdown`.
  */
 export async function viewMarkdownInBrowser(title: string, markdown: string): Promise<void> {
-  const html = renderPage(title, await marked.parse(markdown))
+  const html = renderPage(title, await marked.parse(markdown, { renderer: createSafeRenderer() }))
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'neuroflame-notes-'))
   const filePath = path.join(dir, 'notes.html')
   await fs.writeFile(filePath, html)
