@@ -45,7 +45,7 @@ export default async function downloadFile({
         try {
           // Verify file size matches expected content-length
           const fileSize = (await fs.promises.stat(pathOutputFile)).size
-          const contentLength = response.headers['content-length']
+          const contentLength = response.headers['content-length'] as string
 
           if (contentLength && fileSize !== parseInt(contentLength, 10)) {
             reject(
