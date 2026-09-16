@@ -6,7 +6,9 @@ module.exports = [
     ignores: [
       ...neostandard.resolveIgnoresFromGitignore(),
       '**/*/*.cjs',
+      '**/*/*.mjs',
       '**/generated/*.*',
+      'edgeFederatedClient/static/niivue.umd.js',
     ],
     semi: false,
   }),
