@@ -167,11 +167,11 @@ const consortia: SeedConsortium[] = [
     title: 'Single Round Ridge Regression Consortium',
     description: 'Test consortium for single round ridge regression',
     leader: predefinedIds.user1Id,
-    members: [predefinedIds.user1Id, predefinedIds.user2Id],
-    activeMembers: [predefinedIds.user1Id, predefinedIds.user2Id],
+    members: [predefinedIds.user1Id, predefinedIds.user2Id, predefinedIds.user3Id],
+    activeMembers: [predefinedIds.user1Id, predefinedIds.user2Id, predefinedIds.user3Id],
     vaultMembers: [predefinedIds.hostedVault1Id],
-    activeVaultMembers: [predefinedIds.hostedVault1Id],
-    readyVaultMembers: [predefinedIds.hostedVault1Id],
+    activeVaultMembers: [],
+    readyVaultMembers: [],
     studyConfiguration: {
       consortiumLeaderNotes: 'Leader notes for single round ridge regression',
       computationParameters: JSON.stringify({
