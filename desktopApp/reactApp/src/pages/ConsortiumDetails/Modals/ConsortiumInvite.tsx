@@ -79,7 +79,7 @@ const ConsortiumInviteModal: React.FC<ConsortiumInviteModalProps> = ({
       </DialogTitle>
       <DialogContent>
         <Typography mb={2}>
-          Please type <strong>Username</strong> or <strong>Email</strong>.
+          Please type <strong>Email</strong>.
         </Typography>
         <TextField
           fullWidth
