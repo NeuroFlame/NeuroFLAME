@@ -100,9 +100,10 @@ test.describe('Admin Page', () => {
     const testUser = await createRegularTestUser(page, 'roles')
 
     await changeUserRoles(page, testUser.username, ['admin'])
-    await expect(page.getByRole('alert')).toContainText(
-      `Roles for ${testUser.username} were successfully updated.`,
-    )
+    const successMessage = `Roles for ${testUser.username} were successfully updated.`
+    await expect(
+      page.getByRole('alert').filter({ hasText: successMessage }),
+    ).toBeVisible()
 
     await user.logOut(page)
     await user.logIn(testUser, page)

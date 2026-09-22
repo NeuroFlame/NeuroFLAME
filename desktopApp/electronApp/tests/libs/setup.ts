@@ -41,7 +41,11 @@ async function createInstance(appId: string | number) {
   }
   const appPage = await app.firstWindow()
 
-  appPage.on('console', (msg) => console.log(`INSTANCE ${appId} -> ${msg.text()}`))
+  appPage.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      console.error(`INSTANCE ${appId} -> ${msg.text()}`)
+    }
+  })
   appPage.on('pageerror', (err) => {
     console.log(`******** Window Error Instance ${appId}: ${err.message}`)
   })
