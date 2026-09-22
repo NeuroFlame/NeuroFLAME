@@ -315,19 +315,6 @@ const getLocalDockerImageId = async (
   }
 }
 
-const validateImageCompatibility = async (imageName: string): Promise<void> => {
-  const image = await docker.getImage(imageName).inspect()
-  const labels = image.Config?.Labels ?? {}
-  for (const [label, expected] of Object.entries(REQUIRED_IMAGE_LABELS)) {
-    const actual = labels[label]
-    if (actual !== expected) {
-      throw new Error(
-        `Image "${imageName}" is incompatible: label "${label}" must be "${expected}"`,
-      )
-    }
-  }
-}
-
 const shouldPullBeforeRun = (imageName: string): boolean => {
   if (imageName.includes('@sha256:')) {
     return false

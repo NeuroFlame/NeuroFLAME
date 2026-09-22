@@ -41,7 +41,11 @@ async function createInstance(appId: string | number) {
   }
   const appPage = await app.firstWindow()
 
-  appPage.on('console', (msg) => console.log(`INSTANCE ${appId} -> ${msg.text()}`))
+  appPage.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      console.error(`INSTANCE ${appId} -> ${msg.text()}`)
+    }
+  })
   appPage.on('pageerror', (err) => {
     console.log(`******** Window Error Instance ${appId}: ${err.message}`)
   })
@@ -65,7 +69,9 @@ async function setup(instanceCount = 1) {
 }
 
 async function destroyAllInstances() {
-  await Promise.all(instances.map((instance) => instance.app.close()))
+  const currentInstances = instances
+  instances = []
+  await Promise.all(currentInstances.map((instance) => instance.app.close()))
 }
 
 export { createInstance, destroyAllInstances, setup }

@@ -1,4 +1,5 @@
 import {
+  Navigate,
   Route,
   Routes,
 } from 'react-router-dom'
@@ -18,6 +19,17 @@ import AdminPage from './Admin/AdminPage'
 import ConsortiumWizard from './ConsortiumWizard/ConsortiumWizard'
 import VaultListPage from './VaultList/VaultListPage'
 import HealthPage from './HealthPage/HealthPage'
+import { useUserState } from '../contexts/UserStateContext'
+
+function AdminRoute() {
+  const { isInitialized, roles, username } = useUserState()
+
+  if (!isInitialized) return null
+  if (!username) return <Navigate to='/' replace />
+  if (!roles.includes('admin')) return <Navigate to='/home' replace />
+
+  return <AdminPage />
+}
 
 export default function AppRoutes() {
   return (
@@ -49,7 +61,7 @@ export default function AppRoutes() {
       <Route path='/vaults/list' element={<VaultListPage />} />
       <Route path='/appConfig' element={<AppConfig />} />
       <Route path='/appHealth' element={<HealthPage />} />
-      <Route path='/admin' element={<AdminPage />} />
+      <Route path='/admin' element={<AdminRoute />} />
     </Routes>
   )
 }
