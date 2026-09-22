@@ -10,6 +10,7 @@ interface UserStateContextType {
   userId: string;
   username: string;
   roles: string[];
+  isInitialized: boolean;
   setUserData: (userData: {
     accessToken: string,
     userId: string,
@@ -29,33 +30,38 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     username: '',
     roles: [] as string[],
   })
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
     loadUserFromLocalStorage()
   }, [])
 
   const loadUserFromLocalStorage = async () => {
-    const keepLoggedIn = localStorage.getItem('keepLoggedIn') === 'true'
+    try {
+      const keepLoggedIn = localStorage.getItem('keepLoggedIn') === 'true'
 
-    if (!keepLoggedIn) {
-      clearLocalStorageForUser()
-      return
-    }
+      if (!keepLoggedIn) {
+        clearLocalStorageForUser()
+        return
+      }
 
-    const localAccessToken = localStorage.getItem('accessToken')
-    const localUserId = localStorage.getItem('userId')
-    const localUsername = localStorage.getItem('username')
-    const localRoles = localStorage.getItem('roles')
+      const localAccessToken = localStorage.getItem('accessToken')
+      const localUserId = localStorage.getItem('userId')
+      const localUsername = localStorage.getItem('username')
+      const localRoles = localStorage.getItem('roles')
 
-    // if all of these exist, set the user state
-    if (localAccessToken && localUserId && localUsername && localRoles) {
-      _setUserData({
-        accessToken: localAccessToken,
-        userId: localUserId,
-        username: localUsername,
-        roles: JSON.parse(localRoles),
-      })
-      sessionStorage.setItem('accessToken', localAccessToken)
+      // if all of these exist, set the user state
+      if (localAccessToken && localUserId && localUsername && localRoles) {
+        _setUserData({
+          accessToken: localAccessToken,
+          userId: localUserId,
+          username: localUsername,
+          roles: JSON.parse(localRoles),
+        })
+        sessionStorage.setItem('accessToken', localAccessToken)
+      }
+    } finally {
+      setIsInitialized(true)
     }
   }
 
@@ -133,6 +139,7 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
         userId: userData.userId,
         username: userData.username,
         roles: userData.roles,
+        isInitialized,
         setUserData,
         clearUserData,
       }}

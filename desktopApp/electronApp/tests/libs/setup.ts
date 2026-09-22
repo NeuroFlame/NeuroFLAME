@@ -65,7 +65,9 @@ async function setup(instanceCount = 1) {
 }
 
 async function destroyAllInstances() {
-  await Promise.all(instances.map((instance) => instance.app.close()))
+  const currentInstances = instances
+  instances = []
+  await Promise.all(currentInstances.map((instance) => instance.app.close()))
 }
 
 export { createInstance, destroyAllInstances, setup }
