@@ -226,6 +226,7 @@ elif command -v curl >/dev/null 2>&1; then
   # Real, if rough, one-sample measurements against Cloudflare's
   # speed-test endpoint (well-known, reliable, no signup/API key needed),
   # timed by curl itself rather than a separate stopwatch.
+  echo "Running Internet Speedtest"
   DOWN_BYTES_PER_SEC=$(curl -o /dev/null -s -w '%{speed_download}' \
     --max-time 20 "https://speed.cloudflare.com/__down?bytes=10000000" 2>/dev/null)
   if [ -n "$DOWN_BYTES_PER_SEC" ] && [ "${DOWN_BYTES_PER_SEC%.*}" -gt 0 ] 2>/dev/null; then
