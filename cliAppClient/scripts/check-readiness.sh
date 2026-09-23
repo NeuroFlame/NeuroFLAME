@@ -216,19 +216,33 @@ DISK_AVAIL=$(echo "$DISK_LINE" | awk '{print $4}')
 DISK_TOTAL=$(echo "$DISK_LINE" | awk '{print $2}')
 echo "Disk: $DISK_AVAIL free of $DISK_TOTAL on /"
 
+bytes_per_sec_to_mbps() {
+  echo "$1" | awk '{printf "%.1f", $1 * 8 / 1000000}'
+}
+
 if [ "${NEUROFLAME_SKIP_SPEEDTEST:-}" = "1" ]; then
   echo "Net:  $WARN skipped (NEUROFLAME_SKIP_SPEEDTEST=1)"
 elif command -v curl >/dev/null 2>&1; then
-  # A real, if rough, download-speed measurement — 10MB from Cloudflare's
+  # Real, if rough, one-sample measurements against Cloudflare's
   # speed-test endpoint (well-known, reliable, no signup/API key needed),
   # timed by curl itself rather than a separate stopwatch.
-  SPEED_BYTES_PER_SEC=$(curl -o /dev/null -s -w '%{speed_download}' \
+  DOWN_BYTES_PER_SEC=$(curl -o /dev/null -s -w '%{speed_download}' \
     --max-time 20 "https://speed.cloudflare.com/__down?bytes=10000000" 2>/dev/null)
-  if [ -n "$SPEED_BYTES_PER_SEC" ] && [ "${SPEED_BYTES_PER_SEC%.*}" -gt 0 ] 2>/dev/null; then
-    SPEED_MBPS=$(echo "$SPEED_BYTES_PER_SEC" | awk '{printf "%.1f", $1 * 8 / 1000000}')
-    echo "Net:  ~${SPEED_MBPS} Mbps down (10MB sample, one data point — not a full speed test)"
+  if [ -n "$DOWN_BYTES_PER_SEC" ] && [ "${DOWN_BYTES_PER_SEC%.*}" -gt 0 ] 2>/dev/null; then
+    echo "Net:  ~$(bytes_per_sec_to_mbps "$DOWN_BYTES_PER_SEC") Mbps down (10MB sample, one data point — not a full speed test)"
   else
     echo "Net:  $WARN download sample failed — check connectivity"
+  fi
+
+  UPLOAD_SAMPLE=$(mktemp)
+  head -c 5000000 /dev/zero > "$UPLOAD_SAMPLE" 2>/dev/null
+  UP_BYTES_PER_SEC=$(curl -o /dev/null -s -w '%{speed_upload}' \
+    --max-time 20 -X POST --data-binary "@$UPLOAD_SAMPLE" "https://speed.cloudflare.com/__up" 2>/dev/null)
+  rm -f "$UPLOAD_SAMPLE"
+  if [ -n "$UP_BYTES_PER_SEC" ] && [ "${UP_BYTES_PER_SEC%.*}" -gt 0 ] 2>/dev/null; then
+    echo "      ~$(bytes_per_sec_to_mbps "$UP_BYTES_PER_SEC") Mbps up (5MB sample, one data point — not a full speed test)"
+  else
+    echo "      $WARN upload sample failed — check connectivity"
   fi
 else
   echo "Net:  $WARN skipped (curl not found)"
