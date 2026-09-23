@@ -1,22 +1,32 @@
 #!/usr/bin/env bash
 # NeuroFLAME CLI readiness check — against the real production deployment.
 #
-# Verifies: the CLI is installed, you're logged in, centralApi resolves to
-# the actual production server (not a dev/local override left over from
-# somewhere) and is reachable, an edge client can actually be started here
-# (a real `neuroflame edge start`, not just a passive check — see below),
-# and there's a usable container runtime for actually running
-# computations. Share this with anyone setting up a new machine — nothing
-# here is environment-specific.
+# Runs with zero setup — logs in fresh as a dedicated test account, so
+# there's nothing to know or configure beforehand. Verifies: the CLI is
+# installed, login actually works, centralApi resolves to the real
+# production server (not a dev/local override left over from somewhere)
+# and is reachable, an edge client can actually be started here (a real
+# `neuroflame edge start`, not just a passive check), and there's a usable
+# container runtime for actually running computations. Share this with
+# anyone setting up a new machine — nothing here is environment-specific.
 #
-# Note: this actually starts a CLI-managed edge daemon if one isn't
-# running already, leaving it running in the background afterward (same
-# as running `neuroflame edge start` yourself — it's idempotent, so
-# running this script again won't double-spawn one). Set
-# NEUROFLAME_SKIP_EDGE_START=1 to skip that step on a machine that's
-# deliberately control-plane-only.
+# Always logs back out and stops whatever edge daemon it started at the
+# end — even if a check fails or the script is interrupted — and prints a
+# short report first. It only stops the daemon if *this invocation*
+# actually started it: the CLI-managed daemon is a single, machine-wide
+# process, so stopping one this script merely reconnected to would yank
+# it out from under anything else relying on it.
 #
-# Usage: ./check-readiness.sh   (or: bash check-readiness.sh)
+# TEST_USERNAME/TEST_PASSWORD below are a dedicated test account on the
+# production server, not anyone's real credentials — safe to bake in for
+# a script whose whole point is running unattended. Override with
+# NEUROFLAME_USERNAME/NEUROFLAME_PASSWORD (or positional args) only if
+# you deliberately want to run this as a different account.
+#
+# Usage:
+#   ./check-readiness.sh
+#   NEUROFLAME_USERNAME=... NEUROFLAME_PASSWORD=... ./check-readiness.sh
+#   NEUROFLAME_SKIP_EDGE_START=1 ./check-readiness.sh   # control-plane-only machine
 
 set -uo pipefail
 
@@ -24,11 +34,42 @@ set -uo pipefail
 # "production" means for this check. Override only if you're deliberately
 # pointing this whole check at a different deployment.
 PRODUCTION_HTTP_URL="${NEUROFLAME_EXPECTED_HTTP_URL:-https://trendscenterdev.org/graphql}"
+TEST_USERNAME="user1"
+TEST_PASSWORD="password1"
+LOGIN_USERNAME="${1:-${NEUROFLAME_USERNAME:-$TEST_USERNAME}}"
+LOGIN_PASSWORD="${2:-${NEUROFLAME_PASSWORD:-$TEST_PASSWORD}}"
 
 PASS="✔"
 FAIL="✘"
 WARN="⚠"
 failures=0
+LOGGED_IN=0
+EDGE_STARTED=0
+
+# Always runs, success or failure — prints a short report, then logs out
+# and stops the daemon (only if this invocation actually started it).
+cleanup() {
+  local exit_code=$?
+  echo
+  echo "=== Report ==="
+  echo "Account tested: $LOGIN_USERNAME"
+  echo "Target:         $PRODUCTION_HTTP_URL"
+  if [ "$failures" -eq 0 ]; then
+    echo "$PASS All checks passed."
+  else
+    echo "$FAIL $failures check(s) failed — see above."
+  fi
+  echo
+  echo "--- Cleaning up ---"
+  if [ "$EDGE_STARTED" = "1" ]; then
+    neuroflame edge stop || true
+  fi
+  if [ "$LOGGED_IN" = "1" ]; then
+    neuroflame logout || true
+  fi
+  exit "$exit_code"
+}
+trap cleanup EXIT INT TERM
 
 echo "=== NeuroFLAME CLI readiness check ==="
 echo
@@ -41,7 +82,18 @@ if ! command -v neuroflame >/dev/null 2>&1; then
 fi
 echo "$PASS neuroflame CLI installed ($(command -v neuroflame))"
 
-# --- 2. Ask the CLI itself what it thinks is going on -------------------
+# --- 2. Log in fresh as the test account --------------------------------
+echo
+echo "--- Logging in as $LOGIN_USERNAME ---"
+if neuroflame login --username "$LOGIN_USERNAME" --password "$LOGIN_PASSWORD"; then
+  LOGGED_IN=1
+else
+  echo "$FAIL Login failed for $LOGIN_USERNAME" >&2
+  failures=$((failures + 1))
+fi
+echo
+
+# --- 3. Ask the CLI itself what it thinks is going on -------------------
 STATUS_JSON=$(neuroflame status --json 2>/dev/null)
 if [ -z "$STATUS_JSON" ]; then
   echo "$FAIL neuroflame status failed to run"
@@ -56,21 +108,12 @@ PARSED=$(echo "$STATUS_JSON" | node -e '
   const data = JSON.parse(require("fs").readFileSync(0, "utf8"))
   console.log([
     data.session ? "1" : "0",
-    data.session ? data.session.username : "-",
     data.centralApi.reachable ? "1" : "0",
     data.centralApi.httpUrl,
     data.edgeClient.reachable ? "1" : "0",
-    data.edgeDaemon.running ? "1" : "0",
   ].join("\t"))
 ')
-IFS=$'\t' read -r LOGGED_IN USERNAME CENTRAL_OK CENTRAL_URL EDGE_OK DAEMON_RUNNING <<< "$PARSED"
-
-if [ "$LOGGED_IN" = "1" ]; then
-  echo "$PASS Logged in as $USERNAME"
-else
-  echo "$FAIL Not logged in — run: neuroflame login"
-  failures=$((failures + 1))
-fi
+IFS=$'\t' read -r SESSION_ACTIVE CENTRAL_OK CENTRAL_URL EDGE_OK <<< "$PARSED"
 
 if [ "$CENTRAL_URL" = "$PRODUCTION_HTTP_URL" ]; then
   echo "$PASS Pointed at production ($CENTRAL_URL)"
@@ -94,20 +137,26 @@ else
   echo "$WARN Edge client not reachable — fine if you only need control-plane commands"
 fi
 
-# --- 3. Can an edge client actually start here? -------------------------
+# --- 4. Can an edge client actually start here? -------------------------
 # This is an active check, not a passive one: it really runs `neuroflame
 # edge start` (idempotent — reconnects instead of double-spawning if one's
 # already running, same as running it by hand), which leaves a real
 # background daemon running on this machine afterward. Skip it with
 # NEUROFLAME_SKIP_EDGE_START=1 for a machine that's deliberately
-# control-plane-only and shouldn't have one running.
+# control-plane-only.
 if [ "${NEUROFLAME_SKIP_EDGE_START:-}" = "1" ]; then
   echo "$WARN Skipped edge start check (NEUROFLAME_SKIP_EDGE_START=1)"
 elif [ "$LOGGED_IN" != "1" ]; then
   echo "$WARN Skipped edge start check — not logged in (see above)"
 else
+  DAEMON_ALREADY_RUNNING=$(neuroflame status --json | node -e '
+    console.log(JSON.parse(require("fs").readFileSync(0, "utf8")).edgeDaemon.running ? "1" : "0")
+  ')
   if EDGE_START_OUTPUT=$(neuroflame edge start 2>&1); then
     echo "$PASS Edge client started (or already running)"
+    if [ "$DAEMON_ALREADY_RUNNING" != "1" ]; then
+      EDGE_STARTED=1
+    fi
   else
     echo "$FAIL neuroflame edge start failed:"
     echo "$EDGE_START_OUTPUT" | sed 's/^/    /'
@@ -115,7 +164,7 @@ else
   fi
 fi
 
-# --- 4. Is there anything to actually run computations with? -----------
+# --- 5. Is there anything to actually run computations with? -----------
 echo
 echo "--- Container runtime ---"
 if command -v docker >/dev/null 2>&1 && docker ps >/dev/null 2>&1; then
@@ -134,11 +183,59 @@ else
   failures=$((failures + 1))
 fi
 
+# --- 6. System specs — informational, not pass/fail --------------------
+# There's no universal "correct" amount of RAM/disk/bandwidth for running
+# a computation — that depends on the specific computation and dataset —
+# so this only reports, it never adds to $failures.
 echo
+echo "--- System specs ---"
+if [ "$(uname -s)" = "Darwin" ]; then
+  CPU_BRAND=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "unknown")
+  CPU_CORES=$(sysctl -n hw.physicalcpu 2>/dev/null || echo "?")
+  CPU_THREADS=$(sysctl -n hw.logicalcpu 2>/dev/null || echo "?")
+  RAM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
+  echo "CPU:  $CPU_BRAND ($CPU_CORES cores, $CPU_THREADS threads)"
+elif [ -r /proc/cpuinfo ]; then
+  CPU_BRAND=$(grep -m1 "model name" /proc/cpuinfo | sed 's/.*: //')
+  CPU_CORES=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
+  RAM_BYTES=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') * 1024))
+  echo "CPU:  ${CPU_BRAND:-unknown} ($CPU_CORES cores)"
+else
+  echo "CPU:  $WARN could not determine (unsupported platform)"
+  RAM_BYTES=0
+fi
+
+if [ "${RAM_BYTES:-0}" -gt 0 ] 2>/dev/null; then
+  echo "RAM:  $((RAM_BYTES / 1024 / 1024 / 1024)) GB"
+else
+  echo "RAM:  $WARN could not determine"
+fi
+
+DISK_LINE=$(df -h / | tail -1)
+DISK_AVAIL=$(echo "$DISK_LINE" | awk '{print $4}')
+DISK_TOTAL=$(echo "$DISK_LINE" | awk '{print $2}')
+echo "Disk: $DISK_AVAIL free of $DISK_TOTAL on /"
+
+if [ "${NEUROFLAME_SKIP_SPEEDTEST:-}" = "1" ]; then
+  echo "Net:  $WARN skipped (NEUROFLAME_SKIP_SPEEDTEST=1)"
+elif command -v curl >/dev/null 2>&1; then
+  # A real, if rough, download-speed measurement — 10MB from Cloudflare's
+  # speed-test endpoint (well-known, reliable, no signup/API key needed),
+  # timed by curl itself rather than a separate stopwatch.
+  SPEED_BYTES_PER_SEC=$(curl -o /dev/null -s -w '%{speed_download}' \
+    --max-time 20 "https://speed.cloudflare.com/__down?bytes=10000000" 2>/dev/null)
+  if [ -n "$SPEED_BYTES_PER_SEC" ] && [ "${SPEED_BYTES_PER_SEC%.*}" -gt 0 ] 2>/dev/null; then
+    SPEED_MBPS=$(echo "$SPEED_BYTES_PER_SEC" | awk '{printf "%.1f", $1 * 8 / 1000000}')
+    echo "Net:  ~${SPEED_MBPS} Mbps down (10MB sample, one data point — not a full speed test)"
+  else
+    echo "Net:  $WARN download sample failed — check connectivity"
+  fi
+else
+  echo "Net:  $WARN skipped (curl not found)"
+fi
+
 if [ "$failures" -eq 0 ]; then
-  echo "$PASS All checks passed."
   exit 0
 else
-  echo "$FAIL $failures check(s) failed — see above."
   exit 1
 fi
