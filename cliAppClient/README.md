@@ -154,6 +154,41 @@ from.
 Then re-run `npm run init` (or just `npm install -g .` from `cliAppClient`
 if the earlier steps already succeeded).
 
+### `npm run init` succeeds, but `nf`/`neuroflame` isn't found
+
+Different from the EACCES case above — no error, `npm run init` finishes
+clean, but the shell still doesn't know the command. This means it
+installed somewhere real, just not somewhere on this shell's `PATH` —
+common on a fresh machine (a Homebrew-installed Node on Apple Silicon
+puts global bins in `/opt/homebrew/bin`, which isn't always on `PATH` by
+default; same idea for other non-system Node installs). Find out where it
+actually went, and confirm it's not already on `PATH`:
+
+```bash
+npm prefix -g
+echo "$PATH" | tr ':' '\n' | grep -F "$(npm prefix -g)/bin"
+```
+
+If that last line prints nothing, add it — **to your shell's actual rc
+file**, not necessarily `~/.bashrc`: zsh (the default on macOS since
+Catalina) reads `~/.zshrc`, not `~/.bashrc`, so the earlier EACCES
+section's example needs adjusting if that's what you're running. Check
+with `echo $SHELL` if unsure, then:
+
+```bash
+# zsh:
+echo "export PATH=\"$(npm prefix -g)/bin:\$PATH\"" >> ~/.zshrc
+source ~/.zshrc
+
+# bash:
+echo "export PATH=\"$(npm prefix -g)/bin:\$PATH\"" >> ~/.bashrc
+source ~/.bashrc
+```
+
+`neuroflame status`/`nf status` from a fresh shell confirms it worked —
+or use `scripts/check-readiness.sh`, which fails loudly at the very first
+step if the command still isn't on `PATH`.
+
 ## Setup and diagnostics
 
 ```bash
