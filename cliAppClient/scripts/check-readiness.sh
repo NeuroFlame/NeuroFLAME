@@ -3,10 +3,18 @@
 #
 # Verifies: the CLI is installed, you're logged in, centralApi resolves to
 # the actual production server (not a dev/local override left over from
-# somewhere) and is reachable, the edge client (if any) is reachable, and
-# there's a usable container runtime for actually running computations.
-# Share this with anyone setting up a new machine — nothing here is
-# environment-specific.
+# somewhere) and is reachable, an edge client can actually be started here
+# (a real `neuroflame edge start`, not just a passive check — see below),
+# and there's a usable container runtime for actually running
+# computations. Share this with anyone setting up a new machine — nothing
+# here is environment-specific.
+#
+# Note: this actually starts a CLI-managed edge daemon if one isn't
+# running already, leaving it running in the background afterward (same
+# as running `neuroflame edge start` yourself — it's idempotent, so
+# running this script again won't double-spawn one). Set
+# NEUROFLAME_SKIP_EDGE_START=1 to skip that step on a machine that's
+# deliberately control-plane-only.
 #
 # Usage: ./check-readiness.sh   (or: bash check-readiness.sh)
 
@@ -86,14 +94,28 @@ else
   echo "$WARN Edge client not reachable — fine if you only need control-plane commands"
 fi
 
-if [ "$DAEMON_RUNNING" = "1" ]; then
-  echo "$PASS CLI-managed edge daemon running"
+# --- 3. Can an edge client actually start here? -------------------------
+# This is an active check, not a passive one: it really runs `neuroflame
+# edge start` (idempotent — reconnects instead of double-spawning if one's
+# already running, same as running it by hand), which leaves a real
+# background daemon running on this machine afterward. Skip it with
+# NEUROFLAME_SKIP_EDGE_START=1 for a machine that's deliberately
+# control-plane-only and shouldn't have one running.
+if [ "${NEUROFLAME_SKIP_EDGE_START:-}" = "1" ]; then
+  echo "$WARN Skipped edge start check (NEUROFLAME_SKIP_EDGE_START=1)"
+elif [ "$LOGGED_IN" != "1" ]; then
+  echo "$WARN Skipped edge start check — not logged in (see above)"
 else
-  echo "$WARN No CLI-managed edge daemon running here (fine unless you're using" \
-       "edge commands — neuroflame edge start)"
+  if EDGE_START_OUTPUT=$(neuroflame edge start 2>&1); then
+    echo "$PASS Edge client started (or already running)"
+  else
+    echo "$FAIL neuroflame edge start failed:"
+    echo "$EDGE_START_OUTPUT" | sed 's/^/    /'
+    failures=$((failures + 1))
+  fi
 fi
 
-# --- 3. Is there anything to actually run computations with? -----------
+# --- 4. Is there anything to actually run computations with? -----------
 echo
 echo "--- Container runtime ---"
 if command -v docker >/dev/null 2>&1 && docker ps >/dev/null 2>&1; then
