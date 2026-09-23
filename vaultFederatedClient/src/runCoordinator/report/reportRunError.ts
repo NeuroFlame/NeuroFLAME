@@ -1,6 +1,5 @@
 import { VAULT_ACCESS_TOKEN, VAULT_HTTP_URL } from '../../config.js'
 import { logger } from '../../logger.js'
-import fetch from 'node-fetch' // Import node-fetch
 
 // TypeScript interfaces for the GraphQL response
 interface GraphQLResponse<T> {
