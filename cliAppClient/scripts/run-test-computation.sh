@@ -6,9 +6,12 @@
 # consortium, runs a real computation against known test data (cloned
 # fresh from a public repo, so this works on any machine — no dependency
 # on whatever happens to already be on disk), reports success/failure,
-# then always cleans up: deletes the test consortium, logs out, and stops
-# the edge daemon — even if the run itself fails or the script is
-# interrupted.
+# then always cleans up: deletes the test consortium and logs out, even
+# if the run itself fails or the script is interrupted. It only stops the
+# edge daemon if *this invocation* actually started it — the CLI-managed
+# daemon is a single, machine-wide process, so stopping one this script
+# merely reconnected to would yank it out from under anything else
+# relying on it, including a concurrent run of this very script.
 #
 # Usage:
 #   ./run-test-computation.sh
@@ -36,7 +39,16 @@ if ! command -v neuroflame >/dev/null 2>&1; then
   exit 1
 fi
 
-WORKDIR=$(mktemp -d)
+# Under $HOME, visibly named (no leading dot) rather than a system temp
+# dir or a hidden dotfile. Confirmed live: the run failed with the
+# container's own log showing "No such file or directory:
+# /workspace/data/covariates.csv" even though mount_config.json correctly
+# pointed at this directory — something deleted it between creation and
+# the run actually needing it. This machine runs CleanMyMac, which (like
+# similar "junk cleaner" utilities) can auto-sweep dot-prefixed
+# directories and system temp dirs as junk; a visibly-named, ordinary
+# directory under $HOME is far less likely to look like a cleanup target.
+WORKDIR=$(mktemp -d "$HOME/neuroflame-smoke-test.XXXXXXXX")
 CONSORTIUM_ID=""
 LOGGED_IN=0
 EDGE_STARTED=0
@@ -79,6 +91,27 @@ if [ ! -f "$DATA_DIR/covariates.csv" ]; then
 fi
 echo "✔ Test data ready at $DATA_DIR"
 
+# Confirmed live (fs_usage traced it): Docker Desktop's file sharing
+# (VirtioFS) can lag behind a directory that was only just created — the
+# real computation container would later see an empty mount and fail with
+# "No such file or directory" even though the host-side files genuinely
+# exist and are untouched. A disposable container that actually mounts
+# and reads this exact path forces Docker to register/sync it for real,
+# rather than gambling on enough wall-clock time having passed by the
+# time the real run needs it.
+if command -v docker >/dev/null 2>&1; then
+  for attempt in 1 2 3 4 5; do
+    if docker run --rm -v "$DATA_DIR:/data:ro" busybox test -f /data/covariates.csv 2>/dev/null; then
+      break
+    fi
+    if [ "$attempt" = 5 ]; then
+      echo "✘ Docker still can't see $DATA_DIR after 5 attempts — file-sharing settings may need checking" >&2
+      exit 1
+    fi
+    sleep 1
+  done
+fi
+
 echo
 echo "--- Logging in as $USERNAME ---"
 if ! neuroflame login --username "$USERNAME" --password "$PASSWORD"; then
@@ -117,8 +150,19 @@ neuroflame study set-parameters "$CONSORTIUM_ID" "$PARAMETERS"
 
 echo
 echo "--- Starting the edge client ---"
+# The CLI-managed edge daemon is a single, machine-wide process, not
+# something scoped to this script's own invocation — if one's already
+# running (this script reconnects to it rather than spawning a second),
+# it's not this script's to stop: something else may be relying on it,
+# including a concurrent run of this very script. Only stop it in cleanup
+# if this invocation is the one that actually started it.
+DAEMON_ALREADY_RUNNING=$(neuroflame status --json | node -e '
+  console.log(JSON.parse(require("fs").readFileSync(0, "utf8")).edgeDaemon.running ? "1" : "0")
+')
 neuroflame edge start
-EDGE_STARTED=1
+if [ "$DAEMON_ALREADY_RUNNING" != "1" ]; then
+  EDGE_STARTED=1
+fi
 neuroflame edge set-mount-dir "$CONSORTIUM_ID" "$DATA_DIR"
 neuroflame consortium set-ready "$CONSORTIUM_ID" true
 
