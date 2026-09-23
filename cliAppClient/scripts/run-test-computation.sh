@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 # NeuroFLAME full-lifecycle smoke test.
 #
-# Logs in, creates a throwaway single-client consortium, runs a real
-# computation against known test data (cloned fresh from a public repo,
-# so this works on any machine — no dependency on whatever happens to
-# already be on disk), reports success/failure, then always cleans up:
-# deletes the test consortium, logs out, and stops the edge daemon —
-# even if the run itself fails or the script is interrupted.
+# Runs with zero setup — no login, no credentials to know or pass in. It
+# logs in as a dedicated test account, creates a throwaway single-client
+# consortium, runs a real computation against known test data (cloned
+# fresh from a public repo, so this works on any machine — no dependency
+# on whatever happens to already be on disk), reports success/failure,
+# then always cleans up: deletes the test consortium, logs out, and stops
+# the edge daemon — even if the run itself fails or the script is
+# interrupted.
 #
 # Usage:
-#   ./run-test-computation.sh <username> <password>
-#   NEUROFLAME_USERNAME=... NEUROFLAME_PASSWORD=... ./run-test-computation.sh
+#   ./run-test-computation.sh
 #
-# Prefer the env var form on a shared machine or in scripted contexts —
-# same convention the CLI itself uses for non-interactive login — since a
-# password as a positional arg is visible in `ps` output and shell
-# history.
+# TEST_USERNAME/TEST_PASSWORD below are a dedicated test account on the
+# production server, not anyone's real credentials — safe to bake in for
+# a script whose whole point is running unattended. Override with
+# NEUROFLAME_USERNAME/NEUROFLAME_PASSWORD (or positional args) only if
+# you deliberately want to run this as a different account.
 
 set -uo pipefail
 
@@ -23,14 +25,11 @@ TEST_DATA_REPO="https://github.com/NeuroFlame/nfc-single-round-ridge-regression-
 # Matches this repo's test_data/server/parameters.json exactly.
 PARAMETERS='{"Dependents": {"4th-Ventricle": "float", "5th-Ventricle": "float"}, "Covariates": {"sex": "str", "isControl": "bool", "age": "float"}, "Lambda": 1, "IgnoreSubjectsWithMissingData": true, "StrictTypeChecking": false}'
 RUN_TIMEOUT_SECONDS=300
+TEST_USERNAME="user1"
+TEST_PASSWORD="password1"
 
-USERNAME="${1:-${NEUROFLAME_USERNAME:-}}"
-PASSWORD="${2:-${NEUROFLAME_PASSWORD:-}}"
-if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
-  echo "Usage: $0 <username> <password>" >&2
-  echo "   or: NEUROFLAME_USERNAME=... NEUROFLAME_PASSWORD=... $0" >&2
-  exit 1
-fi
+USERNAME="${1:-${NEUROFLAME_USERNAME:-$TEST_USERNAME}}"
+PASSWORD="${2:-${NEUROFLAME_PASSWORD:-$TEST_PASSWORD}}"
 
 if ! command -v neuroflame >/dev/null 2>&1; then
   echo "✘ neuroflame CLI not found on PATH" >&2
