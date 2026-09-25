@@ -6,7 +6,7 @@ import {
 } from '../authentication/authentication.js'
 import { CLIENT_FILE_SERVER_URL, CONSORTIUM_INVITE_URL, RESEND_API_KEY } from '../config.js'
 import Consortium from '../database/models/Consortium.js'
-import Run, { IRun, IResolvedComputationImage } from '../database/models/Run.js'
+import Run, { IResolvedComputationImage } from '../database/models/Run.js'
 import User from '../database/models/User.js'
 import VaultServer from '../database/models/VaultServer.js'
 import HostedVault from '../database/models/HostedVault.js'
@@ -41,6 +41,11 @@ interface Context {
   roles: string[]
   error: string
 }
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+const notNull = <T>(value: T | null | undefined): value is T => value != null
 
 const toObjectIdString = (value: unknown): string | null => {
   if (!value) {
@@ -134,16 +139,17 @@ const mapDatasetMappings = (
   Array.isArray(datasetMappings)
     ? datasetMappings
       .filter(
-        (mapping) =>
-          mapping &&
+        (mapping): mapping is { computationId: { toString(): string }; datasetKey: string } =>
+          Boolean(mapping) &&
           typeof mapping === 'object' &&
-          mapping.computationId &&
+          mapping.computationId != null &&
+          typeof (mapping.computationId as { toString?: unknown }).toString === 'function' &&
           typeof mapping.datasetKey === 'string' &&
           mapping.datasetKey.trim().length > 0,
       )
       .map((mapping) => ({
         computationId: mapping.computationId.toString(),
-        datasetKey: mapping.datasetKey!.trim(),
+        datasetKey: mapping.datasetKey.trim(),
       }))
     : []
 )
@@ -382,7 +388,7 @@ const allowsComputation = (
 ): boolean =>
   Array.isArray(user.vault?.allowedComputations) &&
   user.vault.allowedComputations.some(
-    (computation) => computation._id.toString() === computationId,
+    (computation) => toObjectIdString(computation._id) === computationId,
   )
 
 const hostedVaultAllowsComputation = (
@@ -391,7 +397,7 @@ const hostedVaultAllowsComputation = (
 ): boolean =>
   Array.isArray(vault.allowedComputations) &&
   vault.allowedComputations.some(
-    (computation) => computation._id.toString() === computationId,
+    (computation) => toObjectIdString(computation._id) === computationId,
   )
 
 const getInviteUrl = (token: string): string => {
@@ -563,9 +569,11 @@ export default {
         .exec()
 
       const consortiumIds = new Set<string>()
-      server.status?.runningComputations?.forEach((comp) => {
-        consortiumIds.add(comp.consortiumId)
-      })
+      server.status?.runningComputations?.forEach(
+        (comp: { consortiumId: string }) => {
+          consortiumIds.add(comp.consortiumId)
+        },
+      )
 
       const consortiums = await Consortium.find({
         _id: { $in: Array.from(consortiumIds) },
@@ -709,20 +717,30 @@ export default {
           vault: mapVault(user.vault),
         })
 
+        if (!leader) {
+          throw new Error('Consortium leader is missing')
+        }
+
         return {
           id: consortiumObjectId.toString(),
           title,
           description,
-          leader: leader ? transformUser(leader) : null,
+          leader: transformUser(leader),
           members: members ? members.map(transformUser) : [],
           activeMembers: activeMembers ? activeMembers.map(transformUser) : [],
           readyMembers: readyMembers ? readyMembers.map(transformUser) : [],
-          vaultMembers: (vaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
-          activeVaultMembers: (activeVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
-          readyVaultMembers: (readyVaultMembers || []).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+          vaultMembers: (vaultMembers || [])
+            .map((vault: any) => mapHostedVault(vault))
+            .filter(notNull),
+          activeVaultMembers: (activeVaultMembers || [])
+            .map((vault: any) => mapHostedVault(vault))
+            .filter(notNull),
+          readyVaultMembers: (readyVaultMembers || [])
+            .map((vault: any) => mapHostedVault(vault))
+            .filter(notNull),
           studyConfiguration: {
             consortiumLeaderNotes,
-            computationParameters,
+            computationParameters: computationParameters ?? '',
             computation: computation
               ? {
                   title: computation.title,
@@ -730,7 +748,7 @@ export default {
                   imageDownloadUrl: computation.imageDownloadUrl,
                   notes: computation.notes,
                   owner: computation.owner,
-                  hasLocalParameters: computation.hasLocalParameters,
+                  hasLocalParameters: computation.hasLocalParameters ?? false,
                 }
               : null,
           },
@@ -770,7 +788,7 @@ export default {
         }
       } catch (error) {
         logger.error('Error in getComputationDetails:', error)
-        throw new Error(`Failed to fetch computation details: ${error.message}`)
+        throw new Error(`Failed to fetch computation details: ${getErrorMessage(error)}`)
       }
     },
     getRunList: async (
@@ -844,7 +862,7 @@ export default {
       }
 
       try {
-        const run: IRun = await Run.findById(runId)
+        const run = await Run.findById(runId)
           .populate({
             path: 'consortium',
             select: 'title leader activeMembers readyMembers activeVaultMembers readyVaultMembers',
@@ -899,6 +917,10 @@ export default {
           .lean()
           .exec()
 
+        if (!run) {
+          throw new Error('Run not found')
+        }
+
         // if the userId is not in the members array, throw an error
         const isHumanRunMember = run.members
           .map((member: any) => member._id.toString())
@@ -935,18 +957,24 @@ export default {
           readyVaultMembers: any[]
         }
 
+        if (!consortium.leader) {
+          throw new Error('Consortium leader is missing')
+        }
+
         return {
           runId: run._id.toString(),
           consortium: {
             id: consortium._id.toString(),
             title: consortium.title as string,
-            leader: consortium.leader ? transformUser(consortium.leader) : null,
+            leader: transformUser(consortium.leader),
             activeMembers: (consortium.activeMembers || []).map(transformUser),
             readyMembers: (consortium.readyMembers || []).map(transformUser),
             activeVaultMembers: (consortium.activeVaultMembers || [])
-              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+              .map((vault: any) => mapHostedVault(vault))
+              .filter(notNull),
             readyVaultMembers: (consortium.readyVaultMembers || [])
-              .map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+              .map((vault: any) => mapHostedVault(vault))
+              .filter(notNull),
           },
           status: run.status,
           lastUpdated: run.lastUpdated,
@@ -956,7 +984,9 @@ export default {
             username: member.username,
             vault: mapVault(member.vault),
           })),
-          vaultMembers: (run.vaultMembers as any[]).map((vault: any) => mapHostedVault(vault)).filter(Boolean),
+          vaultMembers: (run.vaultMembers as any[])
+            .map((vault: any) => mapHostedVault(vault))
+            .filter(notNull),
           studyConfiguration: {
             consortiumLeaderNotes: run.studyConfiguration.consortiumLeaderNotes,
             computationParameters: run.studyConfiguration.computationParameters,
@@ -1196,7 +1226,7 @@ export default {
       return true
     },
     login: async (
-      _,
+      _: unknown,
       {
         username,
         password,
@@ -1475,6 +1505,9 @@ export default {
       const consortiumId = run.consortium._id
 
       const consortium = await Consortium.findById(consortiumId)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
 
       run.members.forEach((memberId) => {
         pubsub.publish('RUN_START_EDGE', {
@@ -1653,7 +1686,7 @@ export default {
 
     reportRunComplete: async (
       _: unknown,
-      { runId },
+      { runId }: { runId: string },
       context: Context,
     ): Promise<boolean> => {
       logger.info('reportRunComplete', runId)
@@ -1670,12 +1703,18 @@ export default {
 
       // get the run's details from the database
       const run = await Run.findById(runId)
+      if (!run) {
+        throw new Error(`Run with id ${runId} not found`)
+      }
       await Run.updateOne(
         { _id: runId },
         { status: 'Complete', lastUpdated: Date.now() },
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
 
       pubsub.publish('RUN_EVENT', {
         consortiumId: consortium._id.toString(),
@@ -1755,7 +1794,7 @@ export default {
         return true
       } catch (error) {
         logger.error('Error in studySetComputation:', error)
-        throw new Error(`Failed to set computation: ${error.message}`)
+        throw new Error(`Failed to set computation: ${getErrorMessage(error)}`)
       }
     },
     studySetParameters: async (
@@ -1796,7 +1835,7 @@ export default {
         return true
       } catch (error) {
         logger.error('Error in setStudyParameters:', error)
-        throw new Error(`Failed to set computation: ${error.message}`)
+        throw new Error(`Failed to set computation: ${getErrorMessage(error)}`)
       }
     },
     studySetNotes: async (
@@ -1827,7 +1866,7 @@ export default {
         return true
       } catch (error) {
         logger.error('Error in setStudyNotes:', error)
-        throw new Error(`Failed to set computation: ${error.message}`)
+        throw new Error(`Failed to set computation: ${getErrorMessage(error)}`)
       }
     },
     consortiumCreate: async (
@@ -2294,8 +2333,8 @@ export default {
         throw new Error('Only the consortium leader can send invites')
       }
 
-      const isAlreadyMember = (consortium.members as any).some(
-        (member) => normalizeUsername(member.username) === normalizedEmail,
+      const isAlreadyMember = (consortium.members as Array<{ username?: string }>).some(
+        (member) => normalizeUsername(member.username ?? '') === normalizedEmail,
       )
 
       // User is already a member of the consortium
@@ -2378,8 +2417,9 @@ export default {
           roles: user.roles,
         }
       } catch (error) {
-        logger.error('Error creating user:', error.message)
-        throw new Error(error.message)
+        const errorMessage = getErrorMessage(error)
+        logger.error('Error creating user:', errorMessage)
+        throw new Error(errorMessage)
       }
     },
 
@@ -2405,14 +2445,14 @@ export default {
     adminChangeUserPassword: async (
       _: unknown,
       { username, password }: { username: string; password: string },
-      context: any,
+      context: Context,
     ): Promise<boolean> => {
       // Get the user based on context.userId
       const callingUser = await User.findById(context.userId)
-
-      // Check if the user is the same or an admin
-      const isAuthorized = callingUser.roles.includes('admin')
-      if (!isAuthorized) {
+      if (!callingUser) {
+        throw new Error('User not found')
+      }
+      if (!callingUser.roles.includes('admin')) {
         throw new Error('Unauthorized')
       }
 
@@ -3236,7 +3276,7 @@ export default {
         userId: string
         active: boolean
       },
-      context,
+      context: Context,
     ): Promise<Boolean> => {
       // is the user authenticated?
       if (!context.userId) {
@@ -3273,8 +3313,8 @@ export default {
     },
     leaderRemoveMember: async (
       _: unknown,
-      { consortiumId, userId },
-      context,
+      { consortiumId, userId }: { consortiumId: string; userId: string },
+      context: Context,
     ): Promise<Boolean> => {
       // is the user authenticated?
       if (!context.userId) {
@@ -3303,8 +3343,8 @@ export default {
     },
     leaderAddVaultUser: async (
       _: unknown,
-      { consortiumId, userId },
-      context,
+      { consortiumId, userId }: { consortiumId: string; userId: string },
+      context: Context,
     ): Promise<Boolean> => {
       // is the user authenticated?
       if (!context.userId) {
