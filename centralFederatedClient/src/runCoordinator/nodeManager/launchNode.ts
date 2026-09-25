@@ -124,6 +124,7 @@ const launchDockerNode = async ({
     const container = await docker.createContainer({
       Image: resolvedImageName,
       Cmd: commandsToRun,
+      Labels: { 'org.neuroflame.computation': 'true' },
       ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: binds,
