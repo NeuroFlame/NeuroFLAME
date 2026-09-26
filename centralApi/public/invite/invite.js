@@ -268,7 +268,8 @@ function renderJoinError(message) {
 function handleJoinFailure(message) {
   if (message.includes('already a member')) {
     showStatus('success', "You're already a member of this consortium.")
-    elements.joinCopy.textContent = 'Your account already has access to this consortium. Download NeuroFLAME to continue.'
+    elements.joinCopy.textContent =
+      'Your account already has access to this consortium. Download NeuroFLAME to continue.'
     elements.joinError.textContent = ''
     elements.joinActions.hidden = true
     return
