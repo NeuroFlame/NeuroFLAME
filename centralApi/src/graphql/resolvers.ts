@@ -1423,13 +1423,19 @@ export default {
         })),
       ]
 
+      // Computations receive the leader's user ID with their parameters, for
+      // example to give the leader's site a role in the run.
+      const provisionedComputationParameters = JSON.stringify({
+        ...JSON.parse(computationParameters),
+        consortium_leader_id: consortium.leader.toString(),
+      })
+
       pubsub.publish('RUN_START_CENTRAL', {
         runId: run._id.toString(),
         imageName: consortium.studyConfiguration.computation.imageName,
         activeParticipants,
         consortiumId: consortium._id.toString(),
-        consortiumLeaderId: consortium.leader.toString(),
-        computationParameters,
+        computationParameters: provisionedComputationParameters,
         requiredComputationApiVersion: COMPUTATION_API_VERSION,
       })
 

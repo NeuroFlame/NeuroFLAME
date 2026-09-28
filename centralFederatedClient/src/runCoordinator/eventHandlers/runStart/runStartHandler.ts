@@ -15,7 +15,6 @@ export const RUN_START_SUBSCRIPTION = `
         userId
         vaultId
       }
-      consortiumLeaderId
       computationParameters
       requiredComputationApiVersion
       imageName
@@ -33,7 +32,6 @@ export const runStartHandler = {
       consortiumId,
       runId,
       activeParticipants,
-      consortiumLeaderId,
       computationParameters,
       requiredComputationApiVersion,
       imageName,
@@ -45,7 +43,6 @@ export const runStartHandler = {
         activeParticipants,
         consortiumId,
         runId,
-        consortiumLeaderId,
         computationParameters,
         requiredComputationApiVersion,
       })

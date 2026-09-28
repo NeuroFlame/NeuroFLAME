@@ -482,7 +482,6 @@ export type RunStartCentralPayload = {
   activeParticipants: Array<ActiveParticipant>;
   computationParameters: Scalars['String']['output'];
   consortiumId: Scalars['String']['output'];
-  consortiumLeaderId: Scalars['String']['output'];
   imageName: Scalars['String']['output'];
   runId: Scalars['String']['output'];
 }

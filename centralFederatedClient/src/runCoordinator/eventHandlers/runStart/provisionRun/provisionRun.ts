@@ -14,7 +14,6 @@ interface ActiveParticipant {
 interface provisionRunArgs {
   imageName: string
   activeParticipants: ActiveParticipant[]
-  consortiumLeaderId: string
   pathRun: string
   computationParameters: string
   fedLearnPort: number
@@ -24,7 +23,6 @@ interface provisionRunArgs {
 export async function provisionRun({
   imageName,
   activeParticipants,
-  consortiumLeaderId,
   computationParameters,
   pathRun,
   fedLearnPort,
@@ -41,7 +39,6 @@ export async function provisionRun({
       id: participantId,
       name: displayName,
     })),
-    consortium_leader_id: consortiumLeaderId,
     computation_parameters: computationParameters,
     fed_learn_port: fedLearnPort,
     host_identifier: FQDN,
