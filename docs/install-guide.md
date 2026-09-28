@@ -151,8 +151,9 @@ badge alone doesn't necessarily mean something's wrong.
 ### Haven't logged in yet, or login isn't working?
 
 You don't need to log in to check App Health. On the login screen,
-click **App Configuration** (below the login form) — that page has its
-own **Check App Health** button, which opens the same App Health page.
+click **App Configuration** (below the login form), then the **⋮**
+(more options) menu icon, then **Check App Health** — that opens the
+same App Health page.
 
 This matters because login shows one generic **"Login failed, please
 try again"** message no matter the actual cause — wrong password,
