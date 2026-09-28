@@ -134,7 +134,6 @@ using [the command-line client](../cliAppClient/README.md).
 ## 4. Verify it's working
 
 Open the app, log in, and check **Settings** — it should show your
-central server as reachable. If you're planning to run computations,
-confirm Docker (or Singularity) is actually running before joining a
-consortium; the app will tell you clearly if a run fails because no
-container runtime is available.
+central server as reachable. Confirm Docker (or Singularity) is
+actually running before joining a consortium; the app will tell you
+clearly if a run fails because no container runtime is available.
