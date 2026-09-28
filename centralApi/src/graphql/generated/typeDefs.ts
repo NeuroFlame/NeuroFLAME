@@ -121,6 +121,7 @@ type RunStartCentralPayload {
   imageName: String!
   activeParticipants: [ActiveParticipant!]!
   consortiumId: String!
+  consortiumLeaderId: String!
   computationParameters: String!
   requiredComputationApiVersion: String!
 }

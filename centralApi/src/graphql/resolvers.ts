@@ -1428,6 +1428,7 @@ export default {
         imageName: consortium.studyConfiguration.computation.imageName,
         activeParticipants,
         consortiumId: consortium._id.toString(),
+        consortiumLeaderId: consortium.leader.toString(),
         computationParameters,
         requiredComputationApiVersion: COMPUTATION_API_VERSION,
       })

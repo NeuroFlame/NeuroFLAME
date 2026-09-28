@@ -32,6 +32,7 @@ interface StartRunArgs {
   activeParticipants: ActiveParticipant[]
   consortiumId: string
   runId: string
+  consortiumLeaderId: string
   computationParameters: string
   requiredComputationApiVersion: string
 }
@@ -41,6 +42,7 @@ export default async function startRun({
   activeParticipants,
   consortiumId,
   runId,
+  consortiumLeaderId,
   computationParameters,
   requiredComputationApiVersion,
 }: StartRunArgs) {
@@ -80,6 +82,7 @@ export default async function startRun({
     await provisionRun({
       imageName: resolvedImage.reference,
       activeParticipants,
+      consortiumLeaderId,
       pathRun,
       computationParameters,
       fedLearnPort,
