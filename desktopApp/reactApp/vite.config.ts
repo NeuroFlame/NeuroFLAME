@@ -16,11 +16,14 @@ export default defineConfig({
     // IPv4 so Electron (localhost:3000) and Docker (react:3000) hit this process
     host: '0.0.0.0',
     open: false,
+    // Vite 6 blocks unknown Host headers (403). CI Electron loads http://react:3000.
+    allowedHosts: ['react'],
   },
   preview: {
     port: 3000,
     strictPort: true,
     host: '0.0.0.0',
+    allowedHosts: ['react'],
   },
   assetsInclude: ['**/*.wasm'],
   optimizeDeps: {
