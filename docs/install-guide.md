@@ -147,3 +147,24 @@ Docker (or Singularity) shows as running here before joining a
 consortium — note the App Health page doesn't have a dedicated
 Singularity check, so on a Singularity/Apptainer setup a "Docker" DOWN
 badge alone doesn't necessarily mean something's wrong.
+
+### Haven't logged in yet, or login isn't working?
+
+You don't need to log in to check App Health. On the login screen,
+click **App Configuration** (below the login form) — that page has its
+own **Check App Health** button, which opens the same App Health page.
+
+This matters because login shows one generic **"Login failed, please
+try again"** message no matter the actual cause — wrong password,
+wrong username, or the app simply can't reach the central server all
+look identical. If login keeps failing, check App Health first: a
+"Central GraphQL" check showing DOWN means the app can't reach the
+server at all (worth checking the **App Configuration** page's server
+URL fields before assuming it's a credentials problem), while OK there
+but login still failing points to your username or password.
+
+New accounts are self-service — click **Create User** on the login
+screen (username must be a valid email address) — there's no email
+verification or admin approval step, so a new account can log in
+immediately. **Reset Password** on the login screen handles forgotten
+passwords via an emailed reset link.
