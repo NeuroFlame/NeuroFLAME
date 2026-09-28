@@ -87,7 +87,15 @@ cd centralFederatedClient && npm run compile && cd ..
 ```
 
 ### **6. Start the Services**
-Open a terminal for each service and run:
+The easiest way to control all backend services is via `dev-ctl.sh`, for instance the below starts everything in separate terminal tabs:
+
+```bash
+./dev-ctl.sh start
+```
+
+`dev-ctl.sh` without arguments gives usage. It provides start, status, stop, and restart actions, and oversees terminals, processes, and computation containers.  
+
+**Manual alternative** (if you prefer to manage terminals/processes/containers yourself):
 
 ```bash
 cd centralApi && node dev-start.js
