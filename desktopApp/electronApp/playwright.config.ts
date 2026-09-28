@@ -37,5 +37,9 @@ export default defineConfig({
       testMatch: '**/computation/**/*.test.ts',
       dependencies: ['auth-reset-password'],
     },
+    {
+      name: 'admin',
+      testMatch: '**/admin/**/*.test.ts',
+    },
   ],
 })

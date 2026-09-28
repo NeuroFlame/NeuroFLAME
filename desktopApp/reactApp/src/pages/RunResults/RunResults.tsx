@@ -9,6 +9,78 @@ import MatViewer from './MatViewer'
 import NiiVueViewer from './NiiVueViewer'
 import TextViewer from './TextViewer'
 import { useUserState } from '../../contexts/UserStateContext'
+import {
+  LocalComputationError,
+  SHARED_SITE_FAILURE_MESSAGE,
+} from '../../apis/edgeApi/getLocalComputationError'
+import { RunDetails } from '../../apis/centralApi/generated/graphql'
+import { useRunErrorDetails } from './useRunErrorDetails'
+import { RunErrorCard } from '../RunDetails/RunErrorCard'
+
+function RunErrorsDisplay({
+  localComputationError,
+  runErrorDetails,
+  runErrorsError,
+  userId,
+}: {
+  localComputationError: LocalComputationError | null;
+  runErrorDetails: RunDetails | null;
+  runErrorsError: string | null;
+  userId: string;
+}) {
+  const sharedRunErrors = runErrorDetails?.runErrors.filter((runError) =>
+    !(
+      !runError.vault &&
+      localComputationError &&
+      runError.user.id === userId &&
+      runError.message === SHARED_SITE_FAILURE_MESSAGE
+    ),
+  ) ?? []
+
+  return (
+    <>
+      {localComputationError && (
+        <Grid size={{ sm: 12 }}>
+          <Alert severity='error'>
+            <AlertTitle>Local computation failed</AlertTitle>
+            {localComputationError.scope && (
+              <strong>[{localComputationError.scope}] </strong>
+            )}
+            {localComputationError.errorType && (
+              <strong>{localComputationError.errorType}: </strong>
+            )}
+            {localComputationError.message}
+          </Alert>
+        </Grid>
+      )}
+      {runErrorsError && (
+        <Grid size={{ sm: 12 }}>
+          <Alert severity='warning'>
+            <AlertTitle>Shared run errors unavailable</AlertTitle>
+            {runErrorsError}
+          </Alert>
+        </Grid>
+      )}
+      {sharedRunErrors.length > 0 && (
+        <Grid size={{ sm: 12 }}>
+          <Box p={2} borderRadius={2} marginBottom={2} bgcolor='white'>
+            <Typography variant='h6' gutterBottom>
+              Consortium run errors
+            </Typography>
+            {sharedRunErrors.map((runError, index) => (
+              <RunErrorCard
+                key={`${runError.timestamp}-${runError.vault?.id ?? runError.user.id}-${index}`}
+                timestamp={runError.timestamp}
+                source={runError.vault?.name ?? runError.user.username}
+                message={runError.message}
+              />
+            ))}
+          </Box>
+        </Grid>
+      )}
+    </>
+  )
+}
 
 export default function RunResults() {
   const navigate = useNavigate()
@@ -33,6 +105,11 @@ export default function RunResults() {
     handleHideFiles,
     handleShowFiles,
   } = useRunResults()
+
+  const {
+    runDetails: runErrorDetails,
+    error: runErrorsError,
+  } = useRunErrorDetails(runId)
 
   const [currentFile, setCurrentFile] = useState<string>('')
 
@@ -68,6 +145,14 @@ export default function RunResults() {
           >
             {error}
           </Typography>
+        </Grid>
+        <RunErrorsDisplay
+          localComputationError={localComputationError}
+          runErrorDetails={runErrorDetails}
+          runErrorsError={runErrorsError}
+          userId={userId}
+        />
+        <Grid size={{ sm: 12 }}>
           <Button
             variant='contained'
             color='primary'
@@ -136,20 +221,12 @@ export default function RunResults() {
           </Box>
         </Box>
       </Grid>
-      {localComputationError && (
-        <Grid size={{ sm: 12 }}>
-          <Alert severity='error'>
-            <AlertTitle>Local computation failed</AlertTitle>
-            {localComputationError.scope && (
-              <strong>[{localComputationError.scope}] </strong>
-            )}
-            {localComputationError.errorType && (
-              <strong>{localComputationError.errorType}: </strong>
-            )}
-            {localComputationError.message}
-          </Alert>
-        </Grid>
-      )}
+      <RunErrorsDisplay
+        localComputationError={localComputationError}
+        runErrorDetails={runErrorDetails}
+        runErrorsError={runErrorsError}
+        userId={userId}
+      />
       <Grid size={filesPanelWidth} style={{ transition: 'width 0.5s' }}>
         <Box display={filesPanelShow}>
           <Typography variant='h6' style={{ marginTop: '2rem' }}>
