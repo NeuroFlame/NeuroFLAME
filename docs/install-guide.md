@@ -6,7 +6,23 @@ Singularity/Apptainer as an alternative). NeuroFLAME runs every
 computation inside a container, so one of these is required, not
 optional — install it before you install NeuroFLAME itself.
 
-## 1. Prerequisite: Docker (or Singularity)
+## 1. Minimum system requirements
+
+There's no official published spec — actual needs depend on the
+computation and dataset you're running — but as a practical baseline:
+
+| | Minimum | Recommended |
+| --- | --- | --- |
+| RAM | 8 GB | 16 GB+ |
+| CPU | 4 cores | more for faster runs |
+| Free disk space | 20 GB | more for larger datasets |
+| OS | 64-bit macOS, Windows 10/11, or a modern 64-bit Linux distro | |
+
+This comes from Docker Desktop's own minimums plus headroom for
+typical neuroimaging containers (e.g. FreeSurfer-based computations are
+memory-hungry) — a specific computation module may need more.
+
+## 2. Prerequisite: Docker (or Singularity)
 
 ### macOS and Windows: Docker Desktop
 
@@ -65,7 +81,7 @@ its settings (Docker is the default) — see the app's own Settings panel,
 or `neuroflame edge set-container-service singularity` if you're also
 using [the command-line client](../cliAppClient/README.md).
 
-## 2. Download
+## 3. Download
 
 Go to the [latest release](https://github.com/NeuroFlame/NeuroFLAME/releases/latest)
 and download the file for your operating system:
@@ -76,7 +92,7 @@ and download the file for your operating system:
 | Windows | `NeuroFLAME-Setup-<version>.exe` |
 | Linux | `NeuroFlame-<version>-linux.AppImage` |
 
-## 3. Install
+## 4. Install
 
 ### macOS
 
@@ -126,7 +142,7 @@ AppImage itself, with both the AppImage and its containing directory
 writable by your user — keep it somewhere like `~/Applications` rather
 than a read-only or system location if you want update prompts to work.
 
-## 4. Verify it's working
+## 5. Verify it's working
 
 Open the app, log in, then open the menu (the hamburger icon in the top
 bar) and click **App Health**. This page checks and reports:
