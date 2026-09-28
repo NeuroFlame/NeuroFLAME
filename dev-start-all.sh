@@ -53,7 +53,7 @@ tell application "System Events"
     tell process "Terminal"
         keystroke "t" using {command down}
         delay 0.5
-        keystroke "cd '$SCRIPT_DIR/desktopApp/reactApp' && echo 'Starting React App (Webpack)...' && npm start"
+        keystroke "cd '$SCRIPT_DIR/desktopApp/reactApp' && echo 'Starting React App (Vite)...' && npm start"
         keystroke return
     end tell
 end tell
@@ -71,7 +71,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         gnome-terminal --tab --title="Central API" -- bash -c "cd '$SCRIPT_DIR/centralApi' && echo 'Starting Central API...' && node dev-start.js; exec bash" \
                      --tab --title="Central Federated Client" -- bash -c "sleep 2 && cd '$SCRIPT_DIR/centralFederatedClient' && echo 'Starting Central Federated Client...' && node dev-start.js; exec bash" \
                      --tab --title="File Server" -- bash -c "cd '$SCRIPT_DIR/fileServer' && echo 'Starting File Server...' && node dev-start.js; exec bash" \
-                     --tab --title="React App (Webpack)" -- bash -c "cd '$SCRIPT_DIR/desktopApp/reactApp' && echo 'Starting React App (Webpack)...' && npm start; exec bash"
+                     --tab --title="React App (Vite)" -- bash -c "cd '$SCRIPT_DIR/desktopApp/reactApp' && echo 'Starting React App (Vite)...' && npm start; exec bash"
         echo "All services launched in gnome-terminal tabs!"
     elif command -v xterm &> /dev/null; then
         # Fall back to xterm (opens separate windows)
@@ -79,7 +79,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         sleep 2
         xterm -T "Central Federated Client" -e "cd '$SCRIPT_DIR/centralFederatedClient' && node dev-start.js" &
         xterm -T "File Server" -e "cd '$SCRIPT_DIR/fileServer' && node dev-start.js" &
-        xterm -T "React App (Webpack)" -e "cd '$SCRIPT_DIR/desktopApp/reactApp' && npm start" &
+        xterm -T "React App (Vite)" -e "cd '$SCRIPT_DIR/desktopApp/reactApp' && npm start" &
         echo "All services launched in xterm windows!"
     else
         echo "Error: No supported terminal found. Please install gnome-terminal or xterm."

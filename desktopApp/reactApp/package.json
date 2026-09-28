@@ -2,7 +2,6 @@
   "name": "react-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "./",
   "dependencies": {
     "@apollo/client": "^3.10.1",
     "@emotion/react": "^11.13.3",
@@ -13,15 +12,10 @@
     "@mui/icons-material": "^6.1.0",
     "@mui/material": "^6.1.0",
     "@niivue/niivue": "^0.58.0",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
     "axios": "^1.20.0",
-    "buffer": "^6.0.3",
     "graphql": "^16.8.1",
     "graphql-ws": "^5.16.0",
     "h5wasm": "^0.8.1",
@@ -33,7 +27,6 @@
     "react-markdown": "^9.0.1",
     "react-router-dom": "^6.27.0",
     "react-router-hash-link": "^2.4.3",
-    "react-scripts": "5.0.1",
     "react-scroll-to-bottom": "^4.2.0",
     "react-textarea-autosize": "^8.5.4",
     "react-toastify": "^10.0.5",
@@ -42,21 +35,13 @@
     "remark-emoji": "^5.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "web-vitals": "^2.1.4",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   },
   "scripts": {
-    "start": "BROWSER=none react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
@@ -75,6 +60,8 @@
     "@types/papaparse": "^5.3.16",
     "@types/react-router-hash-link": "^2.4.9",
     "@types/react-scroll-to-bottom": "^4.2.5",
-    "typescript": "^4.9.5"
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^4.9.5",
+    "vite": "^6.3.5"
   }
 }
