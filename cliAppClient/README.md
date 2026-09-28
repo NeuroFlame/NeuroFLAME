@@ -100,6 +100,117 @@ From there:
 - **Wondering what this stores or executes locally?** See [Security
   notes](#security-notes).
 
+## Linux: installing the prerequisites first
+
+The rest of this README assumes Node.js, `git`, and a container runtime
+are already on the machine. If you're starting from a genuinely bare Linux
+box (a fresh cluster account, a new VM), here's what to get first —
+covers a plain Ubuntu/Debian desktop through a shared HPC login node.
+
+### Node.js + npm
+
+Three ways to get there, in order of preference:
+
+**nvm (recommended)** — installs entirely in your home directory, no
+`sudo`, no fighting your distro's often-ancient packaged Node version,
+and sidesteps the whole [EACCES-on-a-shared-machine
+issue](#npm-install--g-fails-with-eacces-on-a-shared-machine) below
+before it can even happen:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc   # or ~/.zshrc — restart your shell, or source its rc file
+nvm install --lts
+node --version && npm --version
+```
+
+**Your distro's package manager** — simpler, but often ships an older
+Node than this CLI wants (check with `node --version`; 18+ is a safe
+bet), and installs into a system directory a regular user can't write
+to (see the EACCES section below if `npm install -g` then fails):
+
+```bash
+# Debian/Ubuntu
+sudo apt-get update && sudo apt-get install -y nodejs npm git
+
+# RHEL/Fedora/CentOS
+sudo dnf install -y nodejs npm git
+```
+
+**An HPC module system** — if this is a shared cluster, check for a
+provided Node module before installing anything yourself:
+
+```bash
+module avail 2>&1 | grep -i node
+module load nodejs   # or whatever module avail actually showed
+```
+
+This is exactly the "system-wide install, not yours to write to" case —
+expect to need the [EACCES
+fix](#npm-install--g-fails-with-eacces-on-a-shared-machine) right after.
+
+### git
+
+Needed to clone this repo at all (`@neuroflame/cli` isn't published to
+npm yet — see [Install](#install) below):
+
+```bash
+sudo apt-get install -y git      # Debian/Ubuntu
+sudo dnf install -y git          # RHEL/Fedora/CentOS
+module load git                  # if it's provided as a module instead
+```
+
+### A container runtime — Docker or Singularity/Apptainer
+
+Computations actually run in one of these — the CLI itself doesn't need
+one to install or do control-plane work (auth, browsing consortia,
+watching runs), only `edge start` does. Which one depends on the
+machine:
+
+**Docker** — the usual choice on a personal machine or a VM you fully
+control. Needs root to install, and your user needs to be in the
+`docker` group afterward to run it without `sudo` every time:
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker "$USER"
+# log out and back in (group membership needs a fresh session), then:
+docker run hello-world
+```
+
+**Singularity or Apptainer** — the common choice on shared HPC clusters,
+specifically because it doesn't need root to *run* containers (only to
+install, and it's frequently already provided as a module — check
+before installing):
+
+```bash
+module avail 2>&1 | grep -iE "singularity|apptainer"
+# if nothing turns up and you're installing it yourself, see:
+# https://apptainer.org/docs/admin/main/installation.html
+```
+
+If it's Singularity/Apptainer, tell the edge client so — Docker is the
+default:
+
+```bash
+neuroflame edge start --container-service singularity
+```
+
+See [Docker vs. Singularity](#docker-vs-singularity) below for more on
+this, including how to change it later without restarting.
+
+### Verify everything actually works
+
+Once Node/npm, `git`, and a container runtime are in place, install the
+CLI itself ([Install](#install) below) and confirm the whole chain end to
+end — installed, logged in, reachable, edge client starts, container
+runtime usable:
+
+```bash
+cd cliAppClient
+./scripts/check-readiness.sh
+```
+
 ## Install
 
 Not yet published to npm (`@neuroflame/vault`/`edge-federated-client` are;
