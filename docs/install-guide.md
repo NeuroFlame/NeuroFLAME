@@ -133,7 +133,17 @@ using [the command-line client](../cliAppClient/README.md).
 
 ## 4. Verify it's working
 
-Open the app, log in, and check **Settings** — it should show your
-central server as reachable. Confirm Docker (or Singularity) is
-actually running before joining a consortium; the app will tell you
-clearly if a run fails because no container runtime is available.
+Open the app, log in, then open the menu (the hamburger icon in the top
+bar) and click **App Health**. This page checks and reports:
+
+- Docker CLI and daemon status
+- Central server reachability (GraphQL over HTTP and WebSocket)
+- Edge client reachability
+
+Each check shows an OK/DOWN badge and latency; a **Re-run Checks**
+button retests everything, and expandable **Docker Logs** / **Edge
+Client Logs** panels show raw output if something's down. Confirm
+Docker (or Singularity) shows as running here before joining a
+consortium — note the App Health page doesn't have a dedicated
+Singularity check, so on a Singularity/Apptainer setup a "Docker" DOWN
+badge alone doesn't necessarily mean something's wrong.
