@@ -27,6 +27,7 @@ To make this process seamless, NeuroFlame provides an **easy-to-use desktop appl
 
 ## **Documentation**
 
+- **[Install Guide](./docs/install-guide.md)** – How to install the desktop app and its prerequisites on macOS, Windows, and Linux.
 - **[User Guide](./docs/user-guide.md)** – How to configure studies, execute runs, and interpret results.
 - **[Computation Author Guide](./docs/computation-author-guide.md)** – How to create and integrate custom computation modules.
 - **[Hosting and Deployment Guide](./docs/hosting-and-deployment-guide.md)** – How to set up and maintain a NeuroFlame deployment.
