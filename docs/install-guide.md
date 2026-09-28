@@ -84,6 +84,29 @@ shows in the menu bar / system tray) before starting a run. That's the
 whole requirement — no configuration inside NeuroFLAME needed, Docker is
 the default.
 
+#### Windows: if Docker Desktop won't start
+
+On Windows, Docker Desktop runs containers inside WSL2, which needs CPU
+virtualization (Intel VT-x / AMD-V) turned on. Two things commonly block
+this, especially on OEM or corporate laptops where it's off by default:
+
+1. **Check whether virtualization is on**, without touching the BIOS:
+   open Task Manager → **Performance** tab → **CPU** — it shows
+   "Virtualization: Enabled" or "Disabled" near the bottom.
+2. **If it's disabled**, it needs to be turned on in the BIOS/UEFI setup
+   (reboot and enter BIOS setup — the key and menu name vary by
+   manufacturer, e.g. "Intel VT-x," "SVM Mode," "Virtualization
+   Technology"), then run `wsl --install` from an administrator
+   PowerShell prompt to set up WSL2 itself.
+
+The tell-tale sign of this exact problem is Docker Desktop failing with
+an error like `WslRegisterDistribution failed with error 0x80370102`.
+
+If this is a **work-managed machine**, BIOS settings and Hyper-V/Device
+Guard policy are frequently locked down by IT and can't be changed from
+inside Windows — if the steps above aren't available to you, this needs
+your IT department rather than a workaround.
+
 ### Linux: Docker Engine, or Singularity/Apptainer
 
 **Docker**, if you're on a personal machine or a VM you fully control:
