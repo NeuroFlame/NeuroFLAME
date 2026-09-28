@@ -230,7 +230,9 @@ function initializeApp(): Promise<void> {
           compatibilityStatus.status === 'compatible' &&
           config.startEdgeClientOnLaunch
         ) {
-          startEdgeFederatedClient(config.edgeClientConfig)
+          startEdgeFederatedClient(config.edgeClientConfig, {
+            onStaleSession: showSessionExpiredError,
+          })
         }
       } catch (error) {
         showInitializationError(error as Error)
@@ -419,4 +421,22 @@ function showInitializationError(error: Error) {
     Please contact support if the issue persists.
   `
   dialog.showErrorBox('Application Initialization Error', errorMessage.trim())
+}
+
+// Passed to edgeFederatedClient's start() as onStaleSession — without
+// this, the embedded edge client's default response to its own session
+// going stale is to call process.exit(1), which (since it runs in this
+// same Electron main process, not a spawned child) would silently kill
+// this entire app out from under the user, mid-session, with no warning.
+// This replaces that with a dialog and lets the app keep running — the
+// user just needs to log out and back in to actually restore edge
+// participation; this alone doesn't do that for them.
+function showSessionExpiredError(reason: string) {
+  logger.error(`Edge client session expired: ${reason}`)
+  dialog.showErrorBox(
+    'NeuroFLAME session expired',
+    'This device\'s connection for running computations has expired and ' +
+      'can no longer participate in runs. Please log out and log back in ' +
+      'to reconnect.',
+  )
 }

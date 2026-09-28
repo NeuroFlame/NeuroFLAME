@@ -1,0 +1,41 @@
+{
+  "name": "@neuroflame/cli",
+  "version": "0.1.0",
+  "description": "NeuroFLAME command-line client for headless environments (HPC clusters, servers without a GUI)",
+  "main": "dist/cli.js",
+  "type": "module",
+  "bin": {
+    "neuroflame": "dist/cli.js",
+    "nf": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:edge-dep": "cd ../edgeFederatedClient && npm run compile",
+    "compile": "npm run build:edge-dep && tsc && npm run chmod-bin",
+    "build": "npm run build:edge-dep && tsc && npm run chmod-bin",
+    "chmod-bin": "chmod +x dist/cli.js",
+    "start": "npm run compile && node ./dist/cli.js",
+    "prepack": "npm run clean && npm run compile",
+    "init": "npm install && npm run build && npm install -g ."
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "edge-federated-client": "1.8.0",
+    "graphql-ws": "^5.16.0",
+    "marked": "^12.0.2",
+    "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.9.2"
+  }
+}

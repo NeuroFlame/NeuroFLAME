@@ -11,6 +11,7 @@
 **/.next
 
 _devTestDirectories
+centralFederatedClientDir
 mongo_data
 docker_logs
 docker_inspect

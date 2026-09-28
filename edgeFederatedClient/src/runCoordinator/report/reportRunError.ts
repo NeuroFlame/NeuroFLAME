@@ -1,6 +1,7 @@
 import { getConfig } from '../../config/config.js'
 import { logger } from '../../logger.js'
 import inMemoryStore from '../../inMemoryStore.js'
+import { onStaleSession } from '../../auth/staleSessionHandler.js'
 
 // TypeScript interfaces for the GraphQL response
 interface GraphQLError {
@@ -42,7 +43,21 @@ export default async function reportRunError({
     logger.info(`[reportRunError] Access token exists: ${!!accessToken}`)
 
     if (!accessToken) {
-      logger.error('No access token found. Aborting reportRunError operation.')
+      // This is the only place this process uses its own long-held
+      // accessToken (set once at connectAsUser time, never refreshed) for
+      // an outbound call of its own — a *successful* run is reported by
+      // the coordinator, not this process; onContainerExitSuccess in
+      // runStart.ts only logs. A missing token here means this process's
+      // own session is broken, not a transient network problem — see
+      // staleSessionHandler.ts for what that triggers (exits the process
+      // by default; overridable by anything embedding this package
+      // in-process, e.g. the desktop app). Explicitly throw afterward
+      // regardless of what the handler does — an overridden handler may
+      // not terminate execution, and this attempt has still failed.
+      onStaleSession(
+        'No access token found — connectAsUser was never called on this ' +
+          'process, or its in-memory session was cleared.',
+      )
       throw new Error('Access token is missing.')
     }
 
@@ -60,6 +75,23 @@ export default async function reportRunError({
       }),
     })
     logger.info(`[reportRunError] Received response status: ${response.status} ${response.statusText}`)
+
+    // 401/403 specifically means centralApi rejected the stored token
+    // itself — this process's session, not a one-off request problem.
+    // Any other non-OK status (500, a network blip surfacing as a bad
+    // response, etc.) falls through to the generic handling below
+    // instead: those don't indicate this session is broken, just that
+    // this one report attempt failed.
+    if (response.status === 401 || response.status === 403) {
+      const responseText = await response.text()
+      onStaleSession(
+        'centralApi rejected the access token stored by this process ' +
+          `(HTTP ${response.status}) while reporting a run error: ${responseText}`,
+      )
+      throw new Error(
+        `centralApi rejected the stored access token (HTTP ${response.status}): ${responseText}`,
+      )
+    }
 
     // Check for non-OK HTTP status
     if (!response.ok) {
@@ -79,6 +111,25 @@ export default async function reportRunError({
 
     // Handle GraphQL errors
     if (responseData.errors && responseData.errors.length > 0) {
+      // centralApi's GraphQL endpoint answers a rejected token with a
+      // normal HTTP 200 — Apollo's default behavior for a resolver that
+      // throws is a GraphQL-level error, not an HTTP status, and every
+      // protected resolver in centralApi/src/graphql/resolvers.ts throws
+      // this exact message when the request's token doesn't resolve to a
+      // user. That means the 401/403 branch above, in practice, never
+      // fires against this endpoint — confirmed live by deliberately
+      // sending a garbage token here and getting back 200 OK with this
+      // message, not 401/403. This is the check that actually catches it.
+      const isAuthError = responseData.errors.some((e) =>
+        /not authenticated/i.test(e.message),
+      )
+      if (isAuthError) {
+        onStaleSession(
+          'centralApi rejected the access token stored by this process ' +
+            'while reporting a run error: ' +
+            responseData.errors.map((e) => e.message).join('; '),
+        )
+      }
       logger.error(
         `GraphQL Errors: ${JSON.stringify(responseData.errors, null, 2)}`,
       )

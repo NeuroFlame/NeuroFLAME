@@ -1,5 +1,5 @@
 import * as runCoordinator from '../../runCoordinator/runCoordinator.js'
-import { getConfig } from '../../config/config.js'
+import { getConfig, setConfig } from '../../config/config.js'
 import path from 'path'
 import fs from 'fs/promises'
 import { logger } from '../../logger.js'
@@ -65,6 +65,18 @@ export const resolvers = {
         logger.error(`Error reading ${configPath}:`, err)
         throw new Error('Failed to read local parameters from mount directory')
       }
+    },
+    getContainerService: async (
+      _: any,
+      __: any,
+      context: any,
+    ): Promise<string> => {
+      const { tokenPayload } = context
+      if (!tokenPayload || !tokenPayload.userId) {
+        throw new Error('Not authorized')
+      }
+      const { containerService = 'docker' } = getConfig()
+      return containerService
     },
   },
 
@@ -134,6 +146,31 @@ export const resolvers = {
         logger.error('Error in setLocalParams:', error)
         throw new Error('Failed to set/save local parameters')
       }
+    },
+    // Mutates the in-memory config singleton (config.ts) directly, which
+    // is enough on its own: runStart.ts reads containerService fresh from
+    // getConfig() on every run, not a value cached at startup, so this
+    // takes effect immediately for the next run started in this process.
+    // It does NOT rewrite whatever config file this process was originally
+    // launched with (the desktop app's config.json, a dev configs/*.json,
+    // etc.) — restarting this edge client reverts to that file's value.
+    setContainerService: async (
+      _: any,
+      { containerService }: { containerService: string },
+      context: any,
+    ): Promise<boolean> => {
+      const { tokenPayload } = context
+      if (!tokenPayload || !tokenPayload.userId) {
+        throw new Error('Not authorized')
+      }
+      if (containerService !== 'docker' && containerService !== 'singularity') {
+        throw new Error('containerService must be "docker" or "singularity"')
+      }
+
+      const config = getConfig()
+      setConfig({ ...config, containerService })
+      logger.info(`Container service set to: ${containerService}`)
+      return true
     },
   },
 }

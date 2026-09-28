@@ -2,6 +2,7 @@
 **/node_modules/
 **/dist/
 _devTestDirectories/
+centralFederatedClientDir/
 _devLogs/
 configs/*.json
 *.log
