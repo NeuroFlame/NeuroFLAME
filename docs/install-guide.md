@@ -41,8 +41,16 @@ virtualization (Intel VT-x / AMD-V) turned on. Two things commonly block
 this, especially on OEM or corporate laptops where it's off by default:
 
 1. **Check whether virtualization is on**, without touching the BIOS:
-   open Task Manager → **Performance** tab → **CPU** — it shows
-   "Virtualization: Enabled" or "Disabled" near the bottom.
+   - Press **Ctrl + Shift + Esc** to open Task Manager. If it opens as
+     a short list with no tabs, click **More details** at the bottom
+     first.
+   - Go to the **Performance** section — on Windows 11 it's the
+     icon that looks like a heart-rate graph on the left side; on
+     Windows 10 it's a **Performance** tab near the top.
+   - Click **CPU** (usually the first item on the left).
+   - In the details on the bottom-right, find **Virtualization** —
+     you may need to widen the window to see it — and check whether
+     it says **Enabled** or **Disabled**.
 2. **If it's disabled**, it needs to be turned on in the BIOS/UEFI setup
    (reboot and enter BIOS setup — the key and menu name vary by
    manufacturer, e.g. "Intel VT-x," "SVM Mode," "Virtualization
