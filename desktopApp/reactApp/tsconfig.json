@@ -1,8 +1,9 @@
 {
     "compilerOptions": {
-      "target": "es5",                                // Specify ECMAScript target version
+      "target": "ES2020",
       "module": "esnext",                             // Specify module code generation
-      "lib": ["dom", "dom.iterable", "es2015"],       // Specify library files to be included in the compilation
+      "lib": ["dom", "dom.iterable", "ES2020"],
+      "types": ["vite/client"],
       "allowJs": true,                                // Allow JavaScript files to be compiled
       "skipLibCheck": true,                           // Skip type checking of all declaration files (*.d.ts)
       "esModuleInterop": true,                        // Enables emit interoperability between CommonJS and ES Modules
@@ -12,7 +13,7 @@
       "moduleResolution": "node",                     // Resolve modules using Node.js module resolution
       "resolveJsonModule": true,                      // Include modules imported with '.json' extension
       "isolatedModules": true,                        // Ensure each file can be safely transpiled without relying on other imports
-      "noEmit": true,                                 // Do not emit outputs (used by create-react-app)
+      "noEmit": true,
       "jsx": "react-jsx",                              // Support JSX in .tsx files: "react", "react-jsx", "react-jsxdev"
       "typeRoots": ["./node_modules/@types", "./types"] // Add "./types" if you created a custom declaration file
     },
