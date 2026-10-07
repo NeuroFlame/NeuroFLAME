@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
@@ -13,16 +14,21 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: true,
-    // IPv4 so Electron (localhost:3000) and Docker (react:3000) hit this process
-    host: '0.0.0.0',
+    // Docker opts into network access with --host; local development stays private.
+    host: '127.0.0.1',
     open: false,
     // Vite 6 blocks unknown Host headers (403). CI Electron loads http://react:3000.
     allowedHosts: ['react'],
+    fs: {
+      strict: true,
+      // The workspace root also contains private run files and local configuration.
+      allow: [fileURLToPath(new URL('.', import.meta.url))],
+    },
   },
   preview: {
     port: 3000,
     strictPort: true,
-    host: '0.0.0.0',
+    host: '127.0.0.1',
     allowedHosts: ['react'],
   },
   assetsInclude: ['**/*.wasm'],
