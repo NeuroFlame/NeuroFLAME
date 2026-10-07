@@ -15,7 +15,7 @@
       "isolatedModules": true,                        // Ensure each file can be safely transpiled without relying on other imports
       "noEmit": true,
       "jsx": "react-jsx",                              // Support JSX in .tsx files: "react", "react-jsx", "react-jsxdev"
-      "typeRoots": ["./node_modules/@types", "./types"] // Add "./types" if you created a custom declaration file
+      "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "./types"]
     },
     "include": [         
       "src/**/*"                                     // Include all files in the src directory                                  
@@ -28,4 +28,3 @@
       "**/*.test.tsx"
     ]
   }
-  

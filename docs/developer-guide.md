@@ -2,7 +2,7 @@
 
 ## **Prerequisites**
 Before you begin, ensure you have the following installed:
-- [Node.js](https://nodejs.org/) (latest LTS version recommended)
+- [Node.js](https://nodejs.org/) 24 LTS (the tested patch version is in `.nvmrc`)
 - [Docker](https://www.docker.com/)
 - [npm](https://www.npmjs.com/)
 - [Git](https://git-scm.com/)
@@ -23,21 +23,31 @@ cd NeuroFLAME
 ```
 
 ### **2. Install Dependencies**
-From the repository root, run these commands:
+If you use nvm, run `nvm install` and `nvm use` from the repository root to select
+the version in `.nvmrc`. Otherwise, install Node 24 LTS using your existing
+installation method.
+
+From the repository root, install all seven workspaces:
 
 ```bash
-cd edgeFederatedClient && npm install && cd ..
-cd centralApi && npm install && cd ..
-cd centralFederatedClient && npm install && cd ..
-cd fileServer && npm install && cd ..
-cd desktopApp/reactApp && npm install && cd ../..
-cd desktopApp/electronApp && npm install && cd ../..
+npm install
 ```
 
-Or equivalently as a single command (fails fast on any error):
-```bash
-for component in edgeFederatedClient centralApi centralFederatedClient fileServer desktopApp/reactApp desktopApp/electronApp; do (cd $component && npm install) || { echo "ERROR: npm install failed in $component"; exit 1; }; done
-```
+Use `npm ci` for a clean, reproducible install from the root lockfile (as CI does).
+Repository installs use the root `package-lock.json`; npm may place shared dependencies
+in root `node_modules`. Add a dependency to a service with
+`npm install <package> --workspace <service-directory>`.
+
+The vault Dockerfiles copy the vault package into a standalone directory and still
+use `vaultFederatedClient/package-lock.json`. Keep that lockfile synchronized when
+changing vault dependencies. Other existing service lockfiles are not used by
+repository workspace installs.
+
+npm 11 requires dependency install scripts to be approved. The root and standalone
+vault manifests record approvals in `allowScripts` for the locked versions. When
+updating a dependency that needs an install script, review it with
+`npm install-scripts ls` and record its approval with
+`npm install-scripts approve <package>` before verifying a fresh install.
 
 ### **3. Initialize Configuration**
 Initialize .env files and set proper values in .env files:

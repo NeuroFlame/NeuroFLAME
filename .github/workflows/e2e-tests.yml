@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always() # ensures it runs even if tests fail
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ui-artifacts
           path: |

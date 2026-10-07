@@ -19,34 +19,24 @@ npm run release -- --deploy-gh
 npm run release -- --publish-npm --deploy-gh --yes
 ```
 
-### 1. Desktop App (React App)
+### 1. Install Workspace Dependencies
 ```bash
-cd desktopApp/reactApp
 npm install
-npm run build
 ```
 
-### 2. Edge Federated Client
+### 2. Build Desktop Components
 ```bash
-cd edgeFederatedClient
-npm install
-npm run build
+npm run build --workspace desktopApp/reactApp
+npm run build --workspace edgeFederatedClient
+npm run build --workspace desktopApp/electronApp
 ```
 
-### 3. Desktop App (Electron App)
+### 3. Create Distributable
 ```bash
-cd desktopApp/electronApp
-npm install
-npm run build
+npm run dist --workspace desktopApp/electronApp
 ```
 
-### 4. Create Distributable
-```bash
-cd desktopApp/electronApp
-npm run dist
-```
-
-### 5. Locate the Distributable File
+### 4. Locate the Distributable File
 The distributable file is located at:
 ```
 desktopApp/electronApp/dist

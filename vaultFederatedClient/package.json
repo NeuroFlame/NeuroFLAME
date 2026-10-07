@@ -15,6 +15,11 @@
   "publishConfig": {
     "access": "public"
   },
+  "allowScripts": {
+    "cpu-features@0.0.10": true,
+    "protobufjs@7.6.6": true,
+    "ssh2@1.17.0": true
+  },
   "scripts": {
     "clean": "rm -rf dist",
     "compile": "tsc",
