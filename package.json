@@ -2,7 +2,11 @@
     "name": "project",
     "private": true,
     "workspaces": [
+        "centralApi",
+        "centralFederatedClient",
+        "fileServer",
         "desktopApp/electronApp",
+        "desktopApp/reactApp",
         "edgeFederatedClient",
         "vaultFederatedClient"
     ],
