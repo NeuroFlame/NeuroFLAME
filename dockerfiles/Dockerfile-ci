@@ -60,7 +60,7 @@ WORKDIR /nf/edgeFederatedClient
 RUN npm run build
 
 WORKDIR /nf/desktopApp/reactApp
-RUN npm run build
+RUN npm test && npm run build
 
 WORKDIR /nf/desktopApp/electronApp
 RUN npm run build
