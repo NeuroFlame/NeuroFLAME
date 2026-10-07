@@ -1,7 +1,7 @@
 # Vault Federated Client Dockerfile
 # Runs on data provider servers to participate in federated computations
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Install Docker CLI for container management
 # The vault needs to launch computation containers
@@ -13,12 +13,13 @@ WORKDIR /app
 COPY vaultFederatedClient/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --include=dev
 
 # Copy source and compile
 COPY vaultFederatedClient/tsconfig.json ./
 COPY vaultFederatedClient/src ./src
 RUN npm run compile
+RUN npm prune --omit=dev
 
 # Health check - verifies process is running and responsive
 # Checks every 30s, fails after 3 consecutive failures
