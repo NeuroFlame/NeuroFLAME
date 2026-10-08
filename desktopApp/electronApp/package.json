@@ -11,6 +11,9 @@
   "scripts": {
     "build": "tsc && cp src/preload.js build/preload.js",
     "start": "npm run build && electron . --",
+    "start-production": "npm run build && electron . --production-client=1",
+    "start-production-2": "npm run build && electron . --production-client=2",
+    "start-production-3": "npm run build && electron . --production-client=3",
     "pack": "electron-builder --dir",
     "dist": "NODE_ENV=production DEPLOY=true node ./scripts/build.cjs",
     "start-configured": "npm run build && electron . --config=../../configs/electronApp1.json",
@@ -18,6 +21,7 @@
     "start-configured-3": "npm run build && electron . --config=../../configs/electronApp3.json",
     "test": "npm run build && playwright test",
     "test-unit": "npm run build && node --test tests/*.test.mjs",
+    "test-production-clients": "npm run build && node --test tests/integration/productionClients.test.mjs",
     "test-version-compatibility": "npm run build && node --test tests/versionCompatibility.test.mjs"
   },
   "keywords": [],

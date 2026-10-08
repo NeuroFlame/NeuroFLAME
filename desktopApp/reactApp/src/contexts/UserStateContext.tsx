@@ -5,18 +5,14 @@ import {
   ReactNode,
   useEffect,
 } from 'react'
+import { clearUserSession, restoreUserSession, saveUserSession, UserSession } from './userSession'
 
 interface UserStateContextType {
   userId: string;
   username: string;
   roles: string[];
   isInitialized: boolean;
-  setUserData: (userData: {
-    accessToken: string,
-    userId: string,
-    username: string,
-    roles: string[],
-  }, options?: { keepLoggedIn?: boolean }) => void;
+  setUserData: (userData: UserSession, options?: { keepLoggedIn?: boolean }) => void;
   clearUserData: () => void;
 }
 
@@ -33,104 +29,23 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
-    loadUserFromLocalStorage()
+    const user = restoreUserSession(localStorage, sessionStorage)
+    if (user) _setUserData(user)
+    setIsInitialized(true)
   }, [])
 
-  const loadUserFromLocalStorage = async () => {
-    try {
-      const keepLoggedIn = localStorage.getItem('keepLoggedIn') === 'true'
-
-      if (!keepLoggedIn) {
-        clearLocalStorageForUser()
-        return
-      }
-
-      const localAccessToken = localStorage.getItem('accessToken')
-      const localUserId = localStorage.getItem('userId')
-      const localUsername = localStorage.getItem('username')
-      const localRoles = localStorage.getItem('roles')
-
-      // if all of these exist, set the user state
-      if (localAccessToken && localUserId && localUsername && localRoles) {
-        _setUserData({
-          accessToken: localAccessToken,
-          userId: localUserId,
-          username: localUsername,
-          roles: JSON.parse(localRoles),
-        })
-        sessionStorage.setItem('accessToken', localAccessToken)
-      }
-    } finally {
-      setIsInitialized(true)
-    }
-  }
-
-  const setLocalStorageForUser = async ({
-    accessToken,
-    userId,
-    username,
-    roles,
-  }: {
-    accessToken: string,
-    userId: string,
-    username: string,
-    roles: string[],
-  }) => {
-    sessionStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('userId', userId)
-    localStorage.setItem('username', username)
-    localStorage.setItem('roles', JSON.stringify(roles))
-    localStorage.setItem('keepLoggedIn', 'true')
-  }
-
-  const setSessionStorageForUser = async ({
-    accessToken,
-  }: {
-    accessToken: string,
-  }) => {
-    clearLocalStorageForUser()
-    sessionStorage.setItem('accessToken', accessToken)
-  }
-
-  const clearUserData = async () => {
+  const clearUserData = () => {
     _setUserData({
       accessToken: '',
       userId: '',
       username: '',
       roles: [],
     })
-    clearLocalStorageForUser()
+    clearUserSession(localStorage, sessionStorage)
   }
-
-  const clearLocalStorageForUser = async () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('userId')
-    localStorage.removeItem('username')
-    localStorage.removeItem('roles')
-    localStorage.removeItem('keepLoggedIn')
-    sessionStorage.removeItem('accessToken')
-  }
-
-  const setUserData = async (data: {
-    accessToken: string,
-    userId: string,
-    username: string,
-    roles: string[],
-  }, options?: { keepLoggedIn?: boolean }) => {
-    _setUserData({
-      accessToken: data.accessToken,
-      userId: data.userId,
-      username: data.username,
-      roles: data.roles,
-    })
-
-    if (options?.keepLoggedIn) {
-      setLocalStorageForUser(data)
-      return
-    }
-
-    setSessionStorageForUser(data)
+  const setUserData = (data: UserSession, options?: { keepLoggedIn?: boolean }) => {
+    saveUserSession(data, options?.keepLoggedIn ?? false, localStorage, sessionStorage)
+    _setUserData(data)
   }
 
   return (

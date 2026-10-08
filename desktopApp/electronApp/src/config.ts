@@ -3,6 +3,7 @@ import { promises as fs } from 'fs'
 import { app, shell } from 'electron'
 import { defaultConfig, testConfig } from './defaultConfig.js'
 import { Config } from './types.js'
+import { getProductionClient, productionClientConfig } from './productionClient.js'
 import { logger } from './logger.js'
 
 export function getConfigPath(): string {
@@ -16,7 +17,8 @@ export function getConfigPath(): string {
 }
 
 export async function getConfig(): Promise<Config> {
-  if (process.env.NODE_ENV === 'test' && process.env.CI !== 'true') {
+  const productionClient = getProductionClient(process.argv.slice(1))
+  if (productionClient === undefined && process.env.NODE_ENV === 'test' && process.env.CI !== 'true') {
     return testConfig
   }
 
@@ -30,8 +32,11 @@ export async function getConfig(): Promise<Config> {
       logger.info(
         'Configuration file not found, creating default configuration.',
       )
-      await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2))
-      return defaultConfig
+      const config = productionClient === undefined
+        ? defaultConfig
+        : productionClientConfig(productionClient)
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2), { mode: 0o600 })
+      return config
     } else {
       logger.error(
         `Failed to read or parse the configuration file: ${

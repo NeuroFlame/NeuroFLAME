@@ -3,18 +3,12 @@ import { electronApi } from '../../../apis/electronApi/electronApi'
 import ScrollToBottom from 'react-scroll-to-bottom'
 import { Box, Button, Typography, CircularProgress } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import { createDockerImageDetector } from './dockerImageOutput'
 
 const ScrollToBottomWrapper = forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof ScrollToBottom>
 >((props, ref) => <ScrollToBottom {...props} />)
-
-const MATCHERS = [
-  /"Id":\s*"sha256:/, // docker image inspect output
-  /Status:\s+Downloaded newer image for/i,
-  // optional: include the fully qualified repo line from Docker Hub
-  /docker\.io\/coinstacteam\/nfc-single-round-ridge-regression-freesurfer:latest/i,
-]
 
 const TerminalWindow: React.FC<{
   command: string;
@@ -25,19 +19,18 @@ const TerminalWindow: React.FC<{
   const [isTerminalReady, setTerminalReady] = useState(false)
   const [showTerminal, setShowTerminal] = useState(false)
   const [imageExists, setImageExists] = useState(false)
-  const [isSingularity, setIsSingularity] = useState(false)
+  const [isSingularity, setIsSingularity] = useState<boolean | null>(null)
   const [isPulling, setIsPulling] = useState(false)
   const [pullError, setPullError] = useState<string | null>(null)
 
-  const imageExistsRef = useRef(false)
   useEffect(() => {
-    imageExistsRef.current = imageExists
     onImageExists?.(imageExists)
   }, [imageExists, onImageExists])
 
   useEffect(() => {
-    imageExistsRef.current = false
     setImageExists(false)
+    setTerminalReady(false)
+    setIsSingularity(null)
     setOutput([])
     setShowTerminal(false)
     setPullError(null)
@@ -59,9 +52,11 @@ const TerminalWindow: React.FC<{
 
   // Check if using Singularity
   useEffect(() => {
+    let active = true
     const checkContainerService = async () => {
       try {
         const config = await getConfig()
+        if (!active) return
         const usingSingularity = config?.edgeClientConfig?.containerService === 'singularity'
         setIsSingularity(usingSingularity || false)
 
@@ -69,59 +64,43 @@ const TerminalWindow: React.FC<{
           // Check if Singularity image exists
           const imageName = command.replace(/^docker\s+pull\s+/i, '')
           const exists = await checkSingularityImageExists(imageName)
-          setImageExists(exists)
+          if (active) setImageExists(exists)
         }
       } catch (error) {
         console.error('Error checking container service:', error)
+        if (active) setPullError('Unable to check the container service. Reload this step to retry.')
       }
     }
     checkContainerService()
+    return () => { active = false }
   }, [command])
-
-  const lineIndicatesImage = (line: string) => MATCHERS.some((rx) => rx.test(line))
-
-  // Wrapped setter that the Electron API will call.
-  // It detects the match in real time and then updates `output`.
-  const setOutputDetecting = (val: string[] | string | ((prev: string[]) => string[])) => {
-    if (typeof val === 'function') {
-      setOutput((prev) => {
-        const next = val(prev)
-        if (!imageExistsRef.current && next.some(lineIndicatesImage)) {
-          setImageExists(true)
-        }
-        return Array.from(new Set(next))
-      })
-    } else {
-      const incoming = Array.isArray(val) ? val : [val]
-      setOutput((prev) => {
-        const next = [...prev, ...incoming]
-        if (!imageExistsRef.current && next.some(lineIndicatesImage)) {
-          setImageExists(true)
-        }
-        const deduped = Array.from(new Set(next))
-        // keep view scrolled
-        queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }))
-        return deduped
-      })
-    }
-  }
 
   useEffect(() => {
     // Only set up terminal for Docker
-    if (!isSingularity) {
-      if (!isTerminalReady) {
-        spawnTerminal(setTerminalReady)
-      }
-
-      // IMPORTANT: register listener ONCE with (output, setOutput)
-      // We pass our wrapped setter to get real-time detection.
-      terminalOutput(output, setOutputDetecting)
-
-      // Probe whether image already exists (flips `imageExists` from inspect output)
+    if (isSingularity === false) {
+      let active = true
       const imageName = command.replace(/^docker\s+pull\s+/i, '')
-      terminalInput(`docker image inspect ${imageName}`)
+      const detectImage = createDockerImageDetector(imageName)
+      terminalOutput((chunk) => {
+        if (!active) return
+        if (detectImage(chunk)) setImageExists(true)
+        setOutput((prev) => [...prev, chunk])
+        queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }))
+      })
+
+      // Await the IPC acknowledgement before sending the probe or allowing a pull.
+      // A fresh terminal also separates output when the selected image changes.
+      spawnTerminal().then(() => {
+        if (!active) return
+        setTerminalReady(true)
+        terminalInput(`docker image inspect ${imageName}`)
+      }).catch((error) => {
+        console.error('Error starting Docker terminal:', error)
+        if (active) setPullError('Unable to start the Docker terminal. Reload this step to retry.')
+      })
 
       return () => {
+        active = false
         removeTerminalOutputListener()
       }
     }
@@ -173,7 +152,7 @@ const TerminalWindow: React.FC<{
         setIsPulling(false)
       }
     } else {
-      // Handle Docker pull (original behavior)
+      if (!isTerminalReady) return
       terminalInput(input)
       setShowTerminal(true)
     }
@@ -203,7 +182,7 @@ const TerminalWindow: React.FC<{
           size='small'
           onClick={() => handleButtonPress(command)}
           style={{ backgroundColor: '#0066FF' }}
-          disabled={isPulling}
+          disabled={isPulling || isSingularity === null || (!isSingularity && !isTerminalReady)}
         >
           {isSingularity ? 'Run Singularity Pull' : 'Run Docker Pull'}
         </Button>

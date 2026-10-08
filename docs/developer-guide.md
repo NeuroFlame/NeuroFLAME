@@ -117,3 +117,33 @@ cd desktopApp/electronApp && npm run start-configured
 Log in as `user1@email.com` / `password1`. You can now explore the UI and browse the seeded consortia and computations.
 
 To run an actual federated computation locally, see 📖 [Local Multi-Site Development Guide](./local-dev-multisite.md).
+
+### Multiple desktop clients against production
+
+Keep the React development server running as above. In separate terminals, launch
+from `desktopApp/electronApp`:
+
+```bash
+npm run start-production
+```
+
+```bash
+npm run start-production-2
+```
+
+These connect to `https://trendscenterdev.org` and use local edge ports `3003`
+and `3004`. `start-production-3` uses `3005`. Each numbered client has a separate
+config, browser login session, logs, and dataset/run settings under
+`<Electron userData>/profiles/production-client-N/`. The first launch creates its
+config; subsequent launches and the in-app Restart preserve that profile and
+its settings. Window titles identify the client number. Opening an already
+running profile focuses its existing window.
+
+Sign in with a different account in each client, choose each client's dataset
+directory, and mark both ready before starting a run. Close old desktop instances
+using these same ports before launching the new profiles. Existing default and
+local development configurations are not migrated or overwritten.
+
+For additional profiles, run `npm start -- --production-client=4` (numbers 1–99
+are accepted). A custom `--config=/absolute/path/config.json` may also be supplied;
+use a different config file and local edge port for each profile.

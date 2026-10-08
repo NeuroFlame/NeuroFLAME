@@ -5,6 +5,7 @@ import {
   Box,
   CircularProgress,
   Container,
+  Divider,
 } from '@mui/material'
 import ReplayIcon from '@mui/icons-material/Replay'
 import {
@@ -16,6 +17,8 @@ import ConsortiumFilter, {
   DEFAULT_CONSORTIUM_FILTER,
 } from './ConsortiumFilter'
 import { useNavigate } from 'react-router-dom'
+import { useUserState } from '../../contexts/UserStateContext'
+import { filterConsortiumList } from './filterConsortiumList'
 
 interface ConsortiumListProps {
   consortiumList: ConsortiumListItemType[];
@@ -31,30 +34,27 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({
   onReload,
 }) => {
   const navigate = useNavigate()
+  const { userId } = useUserState()
   const [filter, setFilter] = useState<ConsortiumFilterType>(DEFAULT_CONSORTIUM_FILTER)
 
-  const filteredConsortiumList = useMemo(() => {
-    if (consortiumList.length === 0) {
-      return consortiumList
-    }
-
-    const searchTerm = filter.name.trim().toLowerCase()
-    const newestFirst = filter.sortOrder === 'newest'
-
-    const list = searchTerm
-      ? consortiumList.filter(({ title }) => (title || '').toLowerCase().includes(searchTerm))
-      : consortiumList
-
-    if (list.length <= 1) {
-      return list
-    }
-
-    const sortable = searchTerm ? list : list.slice()
-    return sortable.sort((a, b) => {
-      const dateDiff = +b.createdAt - +a.createdAt
-      return newestFirst ? dateDiff : -dateDiff
-    })
-  }, [consortiumList, filter.name, filter.sortOrder])
+  const filteredConsortiumList = useMemo(
+    () => filterConsortiumList(consortiumList, filter, userId),
+    [consortiumList, filter, userId],
+  )
+  const isMember = (consortium: ConsortiumListItemType) =>
+    Boolean(userId) && consortium.members.some((member) => member.id === userId)
+  const consortiumSections = [
+    {
+      title: 'Your Consortia',
+      items: filteredConsortiumList.filter(isMember),
+      emptyMessage: filter.name.trim() ? 'No consortia match your filter.' : 'You have not joined any consortia.',
+    },
+    {
+      title: 'Public Consortia',
+      items: filteredConsortiumList.filter((consortium) => !isMember(consortium)),
+      emptyMessage: filter.name.trim() ? 'No consortia match your filter.' : 'No other consortia available.',
+    },
+  ]
 
   // Loading state
   if (loading) {
@@ -130,12 +130,27 @@ const ConsortiumList: React.FC<ConsortiumListProps> = ({
               : 'No consortia match your filter.'}
           </Typography>
         ) : (
-          filteredConsortiumList.map((consortium) => (
-            <ConsortiumListItem
-              key={consortium.id}
-              consortium={consortium}
-              onReload={onReload}
-            />
+          consortiumSections.map(({ title, items, emptyMessage }) => (
+            <Box component='section' key={title} sx={{ mb: 4 }}>
+              <Divider textAlign='left' sx={{ mb: 2 }}>
+                <Typography variant='h6' component='h2' sx={{ color: 'text.secondary' }}>
+                  {title}
+                </Typography>
+              </Divider>
+              {items.length === 0 ? (
+                <Typography color='text.secondary' sx={{ py: 2 }}>
+                  {emptyMessage}
+                </Typography>
+              ) : (
+                items.map((consortium) => (
+                  <ConsortiumListItem
+                    key={consortium.id}
+                    consortium={consortium}
+                    onReload={onReload}
+                  />
+                ))
+              )}
+            </Box>
           ))
         )}
       </Box>
