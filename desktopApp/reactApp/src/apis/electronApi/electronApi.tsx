@@ -54,8 +54,8 @@ interface ElectronAPI {
     error: string | null,
   }>;
   restartApp: () => void;
-  spawnTerminal: () => void;
-  terminalOutput: (output: any) => Promise<{ output: any }>;
+  spawnTerminal: () => Promise<{ status: string; pid?: number }>;
+  terminalOutput: (callback: (event: unknown, data: string) => void) => void;
   terminalInput: (input: any) => Promise<{ input: any }>;
   removeTerminalOutputListener: () => void;
   getEdgeClientLogs: (options?: { maxBytes?: number; maxLines?: number }) => Promise<EdgeClientLogsResponse>;

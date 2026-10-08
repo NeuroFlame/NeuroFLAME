@@ -26,10 +26,21 @@ import {
   versionEndpoint,
 } from './versionCompatibility.js'
 import { initializeAutoUpdates } from './autoUpdate.js'
+import { configureProductionClient } from './productionClient.js'
 
 app.setName('NeuroFLAME')
+const productionClient = configureProductionClient(app, process.argv.slice(1))
+if (productionClient !== undefined && !app.requestSingleInstanceLock()) {
+  app.exit(0)
+}
 
 let mainWindow: BrowserWindow | null = null
+if (productionClient !== undefined) {
+  app.on('second-instance', () => {
+    if (mainWindow?.isMinimized()) mainWindow.restore()
+    mainWindow?.focus()
+  })
+}
 let terminalProcess: TerminalProcess | null = null
 let appInitializationPromise: Promise<void> | null = null
 let windowCreationPromise: Promise<void> | null = null
@@ -247,6 +258,14 @@ async function openMainWindow(): Promise<void> {
   if (!windowCreationPromise) {
     windowCreationPromise = (async () => {
       const window = await createMainWindow()
+      if (productionClient !== undefined) {
+        const title = `NeuroFLAME — Production client ${productionClient}`
+        window.setTitle(title)
+        window.on('page-title-updated', (event) => {
+          event.preventDefault()
+          window.setTitle(title)
+        })
+      }
       mainWindow = window
 
       window.webContents.setWindowOpenHandler(({ url }) => {

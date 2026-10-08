@@ -8,6 +8,7 @@ import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
 import { prepareComputationImage } from '../../computationImage.js'
 import { ensureLocalRuntimeError } from '../../terminalError.js'
+import { mountConfigurationErrorMessage } from './mountConfigurationError.js'
 
 export const RUN_START_SUBSCRIPTION = `
   subscription runStartSubscription {
@@ -127,7 +128,7 @@ export const runStartHandler = {
         })
       } catch (e) {
         logger.error(`Failed to read or parse mount configuration: ${e}`)
-        throw new Error('Failed to load mount configuration')
+        throw new Error(mountConfigurationErrorMessage(e))
       }
 
       // Launch the node
