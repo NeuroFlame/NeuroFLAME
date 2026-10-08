@@ -200,7 +200,7 @@ if [ "$BUILD_DESKTOP" = true ]; then
     (cd desktopApp/electronApp && NODE_ENV=production DEPLOY=true npm run dist)
   else
     echo "Creating Electron dist without GitHub publish..."
-    (cd desktopApp/electronApp && npm run dist)
+    (cd desktopApp/electronApp && NODE_ENV=production node ./scripts/build.cjs)
   fi
 
   echo

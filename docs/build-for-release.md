@@ -60,3 +60,38 @@ Linux auto-update works only when NeuroFLAME is launched from the AppImage and
 both the AppImage and its containing directory are writable by that user.
 Development, unpacked, system package, and read-only AppImage launches skip the
 automatic check; users can still install the latest release manually.
+
+### Production service updates
+
+The central production host checks GitHub's latest published stable release every
+five minutes using `neuroflame-release-deploy.timer`. A push to `main`, draft
+release, prerelease, or npm publication does not deploy production. Publish the
+GitHub release only after npm packages and all desktop assets are available.
+
+`scripts/deploy-published-release.py` fetches the release tag, verifies that its
+commit belongs to `main`, and advances production to that exact commit. It uses
+`npm ci` for the central API, central federated client, and file server, builds
+them, then invokes the host's existing `scripts/restart-prod-services.sh` for an
+ordered restart and readiness checks. Successful deployment records the tag and
+commit in `~/.local/state/neuroflame-release/deployed.json`. Failures leave that
+marker unchanged and are retried on the next check. Restarts interrupt active
+runs, so publish releases between runs.
+
+The updater refuses tracked local changes, non-forward updates, and older release
+versions. It preserves untracked configuration and data. The timer uses the
+verified Node 24 runtime installed under `/opt/neuroflame/node`; the three service
+units use that runtime on their next restart too.
+
+The installed controller is `/usr/local/lib/neuroflame/deploy-published-release.py`;
+its service and timer definitions are checked in under `scripts/`. Keep that
+installed copy in sync when changing the controller. Check status on production:
+
+```bash
+systemctl status neuroflame-release-deploy.timer
+journalctl -u neuroflame-release-deploy.service --since today
+cat ~/.local/state/neuroflame-release/deployed.json
+```
+
+After a release is published, trigger an immediate check with
+`sudo systemctl start neuroflame-release-deploy.service`. Pause automatic updates
+with `sudo systemctl stop neuroflame-release-deploy.timer`.
