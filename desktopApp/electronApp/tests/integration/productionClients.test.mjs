@@ -72,6 +72,20 @@ test('real Electron profiles isolate saved config and login storage across relau
     assert.equal(await two.evaluate(() => globalThis.fixtureConfig.startEdgeClientOnLaunch), false)
     const first = JSON.parse(await readFile(path.join(paths[0].userData, 'config.json'), 'utf8'))
     assert.equal(first.startEdgeClientOnLaunch, true)
+
+    await two.evaluate(() => globalThis.fixtureApplyDefaultConfig())
+    await two.close()
+    apps.delete(two)
+    two = await launch(2)
+    const resetConfig = await two.evaluate(() => globalThis.fixtureConfig)
+    assert.equal(resetConfig.startEdgeClientOnLaunch, true)
+    assert.equal(resetConfig.edgeClientConfig.hostingPort, 3004)
+    for (const endpoint of [
+      resetConfig.edgeClientQueryUrl, resetConfig.edgeClientSubscriptionUrl, resetConfig.edgeClientRunResultsUrl,
+    ]) assert.equal(new URL(endpoint).port, '3004')
+    assert.equal(resetConfig.edgeClientConfig.pathBaseDirectory, paths[1].config.edgeClientConfig.pathBaseDirectory)
+    assert.equal(resetConfig.logPath, paths[1].config.logPath)
+    assert.deepEqual(JSON.parse(await readFile(path.join(paths[0].userData, 'config.json'), 'utf8')), first)
     await promisify(execFile)(electronPath, launchArgs(1), { timeout: 10000 })
     assert.equal(await one.evaluate(({ app }) => app.hasSingleInstanceLock()), true)
   } finally {

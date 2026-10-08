@@ -68,7 +68,11 @@ export async function saveConfig(configString: string): Promise<void> {
 
 export async function applyDefaultConfig(): Promise<void> {
   const configPath = getConfigPath()
-  await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2))
+  const productionClient = getProductionClient(process.argv.slice(1))
+  const config = productionClient === undefined
+    ? defaultConfig
+    : productionClientConfig(productionClient)
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2))
 }
 
 export async function openConfig(): Promise<void> {
