@@ -137,9 +137,9 @@ export default function HealthPage() {
           padding={1.5}
           borderRadius={1.5}
           marginBottom={2}
-          border='1px solid #f5c2c7'
-          bgcolor='#fff5f5'
-          color='#842029'
+          border='1px solid var(--nf-border)'
+          bgcolor='var(--nf-error-bg)'
+          color='var(--nf-error)'
         >
           {error}
         </Box>

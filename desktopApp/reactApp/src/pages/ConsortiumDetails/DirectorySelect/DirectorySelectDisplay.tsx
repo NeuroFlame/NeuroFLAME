@@ -66,7 +66,7 @@ export function DirectorySelectDisplay({
 
   return (
     <>
-      <Box p={2} borderRadius={2} marginBottom={2} bgcolor='white'>
+      <Box p={2} borderRadius={2} marginBottom={2} bgcolor='var(--nf-surface)'>
         <Box
           display='flex'
           flexDirection='row'
@@ -95,7 +95,7 @@ export function DirectorySelectDisplay({
           variant='outlined'
           sx={{
             margin: '0.5rem 0',
-            backgroundColor: isEditing ? 'white' : '#eee',
+            backgroundColor: isEditing ? 'var(--nf-surface)' : 'var(--nf-subtle)',
             outline: 'none',
           }}
           InputProps={{
@@ -106,7 +106,7 @@ export function DirectorySelectDisplay({
               >
                 <Tooltip title='Edit Directory Path'>
                   <EditIcon
-                    sx={{ color: '#888', marginRight: '-5px' }}
+                    sx={{ color: 'var(--nf-muted)', marginRight: '-5px' }}
                     onClick={handleFocus}
                     aria-label='Edit directory'
                   />
@@ -131,7 +131,6 @@ export function DirectorySelectDisplay({
               style={{
                 whiteSpace: 'nowrap',
                 fontSize: '10px',
-                backgroundColor: '#0066FF',
               }}
             >
               Browse To Select Data Directory
@@ -142,7 +141,7 @@ export function DirectorySelectDisplay({
             <Button
               variant='contained'
               onClick={onCancelEdit}
-              style={{ fontSize: '10px', backgroundColor: '#888' }}
+              style={{ fontSize: '10px', backgroundColor: 'var(--nf-muted)', color: 'var(--nf-on-muted)' }}
             >
               Cancel
             </Button>
@@ -150,9 +149,9 @@ export function DirectorySelectDisplay({
           {isDifferent && (
             <Button
               variant='contained'
-              color='secondary'
+              color='success'
               onClick={onSaveDirectory}
-              style={{ fontSize: '10px', backgroundColor: '#2FA84F' }}
+              style={{ fontSize: '10px' }}
               disabled={!isDifferent} // Save only if canSave is true
             >
               Save
@@ -163,7 +162,7 @@ export function DirectorySelectDisplay({
             <FormControlLabel
               label='Ready'
               labelPlacement='start'
-              sx={{ color: '#333', margin: 0, marginLeft: 'auto' }}
+              sx={{ color: 'var(--nf-text)', margin: 0, marginLeft: 'auto' }}
               control={
                 <Switch
                   color='primary'

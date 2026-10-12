@@ -14,6 +14,7 @@ import { HashRouter as Router } from 'react-router-dom'
 import { UserStateProvider } from './contexts/UserStateContext'
 import interceptExternalLinks from './utils/interceptExternalLinks'
 import CompatibilityScreen from './CompatibilityScreen'
+import { AppThemeProvider } from './theme/AppThemeProvider'
 
 const startApp = async () => {
   console.log('Starting app...')
@@ -38,7 +39,7 @@ const startApp = async () => {
   const root = ReactDOM.createRoot(rootElement)
 
   if (compatibility.status !== 'compatible') {
-    root.render(<CompatibilityScreen compatibility={compatibility} />)
+    root.render(<AppThemeProvider><CompatibilityScreen compatibility={compatibility} /></AppThemeProvider>)
     return
   }
 

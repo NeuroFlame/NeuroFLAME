@@ -41,9 +41,9 @@ export function MembersStatusDisplay({
           {itsMe.isReady && (
             <CheckCircleIcon
               sx={{
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--nf-surface)',
                 borderRadius: '16px',
-                color: '#2FA84F',
+                color: 'var(--nf-success)',
                 width: '32px',
                 height: '32px',
                 top: '-2px',

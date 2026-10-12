@@ -7,6 +7,7 @@ import { Login } from './Login/Login'
 import { ChangePassword } from './ChangePassword/ChangePassword'
 import { ResetPasswordFlow } from './ResetPasswordFlow/ResetPasswordFlow'
 import { useLoginPage } from './useLoginPage'
+import ThemeControls from '../../theme/ThemeControls'
 import logo from '../../assets/neuroflame-logo.png'
 
 const LoginPage: React.FC = () => {
@@ -34,13 +35,15 @@ const LoginPage: React.FC = () => {
     <Box sx={{
       width: '100vw',
       height: '100vh',
-      background: '#001F70',
+      background: 'var(--nf-brand)',
+      color: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
     }}
     >
+      <Box sx={{ position: 'absolute', top: 8, right: 8 }}><ThemeControls /></Box>
       <Box sx={{
         display: 'flex',
         flexDirection: 'row',
@@ -67,7 +70,7 @@ const LoginPage: React.FC = () => {
         </Typography>
       </Box>
 
-      <Box sx={{ maxWidth: 'xs' }}>
+      <Box sx={{ maxWidth: 'xs', '& .MuiButton-text': { color: '#b8d2ff' } }}>
         {userCreated && (
           <Alert
             severity='success'
@@ -138,7 +141,7 @@ const LoginPage: React.FC = () => {
         )}
       </Box>
 
-      <Box sx={{ maxWidth: 'xs' }}>
+      <Box sx={{ maxWidth: 'xs', '& .MuiButton-text': { color: '#b8d2ff' } }}>
         <Button
           variant='text'
           color='primary'

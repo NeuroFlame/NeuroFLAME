@@ -190,7 +190,7 @@ export function ConsortiumDetailsPage() {
                 <LatestRun />
                 <Computation computation={studyConfiguration?.computation} />
                 {hasComputation && (
-                  <Box borderRadius={2} marginBottom={0} bgcolor='white'>
+                  <Box borderRadius={2} marginBottom={0} bgcolor='var(--nf-surface)'>
                     {supportsLocal ? (
                       <>
                         <Tabs
@@ -198,13 +198,13 @@ export function ConsortiumDetailsPage() {
                           onChange={(_e, v) => setTab(v)}
                           variant='fullWidth'
                           textColor='inherit'
-                          TabIndicatorProps={{ sx: { backgroundColor: '#0066ff' } }}
+                          TabIndicatorProps={{ sx: { backgroundColor: 'var(--nf-primary)' } }}
                           sx={{
-                            '& .MuiTab-root.Mui-selected': { color: '#0066ff' },
+                            '& .MuiTab-root.Mui-selected': { color: 'var(--nf-primary)' },
                             '& .MuiTab-root': {
                               color: 'inherit',
-                              '&:hover': { color: '#0066ff' },
-                              '&:focus': { color: '#0066ff' },
+                              '&:hover': { color: 'var(--nf-primary)' },
+                              '&:focus': { color: 'var(--nf-primary)' },
                             },
                           }}
                         >
@@ -262,7 +262,7 @@ export function ConsortiumDetailsPage() {
               <LatestRun />
               <Computation computation={studyConfiguration?.computation} />
               {hasComputation && (
-                <Box borderRadius={2} marginBottom={0} bgcolor='white'>
+                <Box borderRadius={2} marginBottom={0} bgcolor='var(--nf-surface)'>
                   {supportsLocal ? (
                     <>
                       <Tabs
@@ -270,13 +270,13 @@ export function ConsortiumDetailsPage() {
                         onChange={(_e, v) => setTab(v)}
                         variant='fullWidth'
                         textColor='inherit'
-                        TabIndicatorProps={{ sx: { backgroundColor: '#0066ff' } }}
+                        TabIndicatorProps={{ sx: { backgroundColor: 'var(--nf-primary)' } }}
                         sx={{
-                          '& .MuiTab-root.Mui-selected': { color: '#0066ff' },
+                          '& .MuiTab-root.Mui-selected': { color: 'var(--nf-primary)' },
                           '& .MuiTab-root': {
                             color: 'inherit',
-                            '&:hover': { color: '#0066ff' },
-                            '&:focus': { color: '#0066ff' },
+                            '&:hover': { color: 'var(--nf-primary)' },
+                            '&:focus': { color: 'var(--nf-primary)' },
                           },
                         }}
                       >

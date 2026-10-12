@@ -53,7 +53,7 @@ export function MembersDisplay({
           p={2}
           borderRadius={2}
           marginBottom={2}
-          bgcolor='white'
+          bgcolor='var(--nf-surface)'
         >
           <Box
             sx={{
@@ -78,7 +78,7 @@ export function MembersDisplay({
               <FormControlLabel
                 label='Active'
                 labelPlacement='start'
-                sx={{ color: '#333', margin: 0 }}
+                sx={{ color: 'var(--nf-text)', margin: 0 }}
                 control={
                   <Switch
                     checked={itsMe.isActive}
@@ -96,7 +96,7 @@ export function MembersDisplay({
         p={2}
         borderRadius={2}
         marginBottom={2}
-        bgcolor='white'
+        bgcolor='var(--nf-surface)'
       >
         <Box>
           <Box

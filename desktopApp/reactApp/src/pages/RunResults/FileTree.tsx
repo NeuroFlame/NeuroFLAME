@@ -177,7 +177,7 @@ function RenderTree({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#0066FF',
+                    color: 'var(--nf-primary)',
                     textDecoration: 'underline',
                     cursor: 'pointer',
                     padding: '0 0.25rem',
@@ -197,7 +197,7 @@ function RenderTree({
                     padding: '0 0 0 2px',
                     margin: 0,
                     fontSize: '0.6rem',
-                    color: '#666',
+                    color: 'var(--nf-muted)',
                   }}
                 >
                   ({formatBytes(file.size)}, {new Date(file.lastModified).toLocaleDateString()})

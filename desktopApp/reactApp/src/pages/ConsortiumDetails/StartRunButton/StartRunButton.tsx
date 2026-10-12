@@ -48,9 +48,9 @@ export default function StartRunButton() {
           variant='contained'
           onClick={handleStartRun}
           disabled={!hasActiveParticipants || runStarted}
+          color='success'
           sx={{
             marginBottom: '1rem',
-            backgroundColor: '#2FB600',
             borderRadius: '1.2rem',
           }}
           fullWidth

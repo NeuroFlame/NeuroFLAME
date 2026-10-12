@@ -58,7 +58,7 @@ export default function ComputationCreatePage() {
             Back to Computation List
           </Button>
         </Box>
-        <Box style={{ background: 'white', padding: '1rem' }}>
+        <Box style={{ background: 'var(--nf-surface)', padding: '1rem' }}>
           <input
             type='text'
             placeholder='Title'
@@ -106,7 +106,7 @@ export default function ComputationCreatePage() {
               {loading ? 'Saving...' : 'Save'}
             </Button>
           </Box>
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <p style={{ color: 'var(--nf-error)' }}>{error}</p>}
         </Box>
       </Box>
     </Container>

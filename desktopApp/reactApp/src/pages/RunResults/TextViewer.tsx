@@ -14,7 +14,7 @@ export default function TextViewer({ fileUrl }: { fileUrl: string }) {
   return (
     <pre
       style={{
-        background: '#f8f8f8',
+        background: 'var(--nf-subtle)',
         padding: '1rem',
         whiteSpace: 'pre-wrap',
       }}

@@ -8,6 +8,7 @@ import CSVViewer from './CSVViewer'
 import MatViewer from './MatViewer'
 import NiiVueViewer from './NiiVueViewer'
 import TextViewer from './TextViewer'
+import ResultReportViewer from './ResultReportViewer'
 import { useUserState } from '../../contexts/UserStateContext'
 import {
   LocalComputationError,
@@ -63,7 +64,7 @@ function RunErrorsDisplay({
       )}
       {sharedRunErrors.length > 0 && (
         <Grid size={{ sm: 12 }}>
-          <Box p={2} borderRadius={2} marginBottom={2} bgcolor='white'>
+          <Box p={2} borderRadius={2} marginBottom={2} bgcolor='var(--nf-surface)'>
             <Typography variant='h6' gutterBottom>
               Consortium run errors
             </Typography>
@@ -192,7 +193,7 @@ export default function RunResults() {
     <Grid container spacing={2} padding={2}>
       <Grid size={{ sm: 12 }}>
         <Box display='flex' justifyContent='space-between' alignItems='center'>
-          <h1>Run Results: <span style={{ color: 'black' }}>{runId}</span></h1>
+          <h1>Run Results: <span style={{ color: 'var(--nf-text)' }}>{runId}</span></h1>
           <Box textAlign='right'>
             <Button
               variant='contained'
@@ -255,7 +256,7 @@ export default function RunResults() {
           variant='text'
           size='small'
           onClick={handleShowFiles}
-          style={{ display: arrowForwardShow, background: 'white' }}
+          style={{ display: arrowForwardShow, background: 'var(--nf-surface)' }}
         >
           Show Result Files
         </Button>
@@ -263,7 +264,7 @@ export default function RunResults() {
           variant='text'
           size='small'
           onClick={handleHideFiles}
-          style={{ display: filesPanelShow, background: 'white' }}
+          style={{ display: filesPanelShow, background: 'var(--nf-surface)' }}
         >
           Expand Results Panel
         </Button>
@@ -272,21 +273,21 @@ export default function RunResults() {
             variant='outlined'
             size='small'
             onClick={() => { setFrameSrc(indexSrc); setCurrentFile('') }}
-            style={{ background: 'white' }}
+            style={{ background: 'var(--nf-surface)' }}
           >
             ← Back to Report
           </Button>
         )}
         <Box
           style={{
-            background: '#fff',
+            background: 'var(--nf-surface)',
             minHeight: 'calc(50vh)',
             padding: '0.25rem 1rem 1rem',
           }}
         >
           {currentFile && (
             <h3 style={{ padding: '1rem 0 0' }}>
-              <span style={{ color: 'black' }}>Viewing:</span> {currentFile}
+              <span style={{ color: 'var(--nf-text)' }}>Viewing:</span> {currentFile}
             </h3>
           )}
           {frameSrc ? (
@@ -299,22 +300,12 @@ export default function RunResults() {
             ) : frameSrc.includes('.m') ? (
               <TextViewer fileUrl={frameSrc} />
             ) : (
-              <iframe
-                src={frameSrc}
-                title='Run Result'
-                width='100%'
-                height='100%'
-                style={{
-                  border: 'none',
-                  background: 'white',
-                  height: 'calc(100vh - 170px)',
-                }}
-              />
+              <ResultReportViewer src={frameSrc} />
             )
           ) : (
             <div
               style={{
-                background: 'white',
+                background: 'var(--nf-surface)',
                 height: 'calc(100vh - 225px)',
                 padding: '1rem',
               }}

@@ -17,7 +17,7 @@ export default function StepViewRequirements({ onAcknowledged }: { onAcknowledge
 
   return (
     <>
-      <Box style={{ margin: '1rem 0', color: 'red' }}>
+      <Box style={{ margin: '1rem 0', color: 'var(--nf-error)' }}>
         Before you begin, please review both the Leader and{' '}
         Computation Notes for this Consortium and set up your data accordingly.
       </Box>
@@ -27,7 +27,7 @@ export default function StepViewRequirements({ onAcknowledged }: { onAcknowledge
           overflow: 'hidden',  // Allow vertical scrolling if content exceeds
           padding: 1,
           boxSizing: 'border-box',
-          border: '1px solid #eee',
+          border: '1px solid var(--nf-border)',
         }}
       >
         <Grid container spacing={2}>

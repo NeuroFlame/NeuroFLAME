@@ -129,7 +129,7 @@ const ConsortiumWizard = () => {
           style={{
             margin: '2rem 2rem 0',
             padding: '2rem 1rem',
-            background: 'white',
+            background: 'var(--nf-surface)',
             borderRadius: '1rem',
             minHeight: 'calc(100vh - 13rem)',
             display: 'flex',
@@ -142,7 +142,7 @@ const ConsortiumWizard = () => {
             handleStepNav={handleStepNav}
           />
           <Box style={{ margin: '2rem 1rem 1rem' }}>
-            <Typography variant='h6' gutterBottom color='black'>
+            <Typography variant='h6' gutterBottom color='var(--nf-text)'>
               {isLeader ? 'Consortium Setup Wizard' : `Consortium: ${data.title}`}
             </Typography>
             <Typography variant='h5' gutterBottom>

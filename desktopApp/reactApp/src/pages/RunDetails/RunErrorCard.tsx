@@ -17,7 +17,7 @@ export function RunErrorCard({
       borderLeft={4}
       borderColor='error.main'
       borderRadius={1}
-      bgcolor='#fff7f7'
+      bgcolor='var(--nf-error-bg)'
       padding={2}
       marginTop={1.5}
       minWidth={0}
@@ -28,13 +28,13 @@ export function RunErrorCard({
             {new Date(+timestamp).toLocaleString()}
           </Typography>
         )}
-        <Typography variant='caption' fontWeight={700} color='error.dark'>
+        <Typography variant='caption' fontWeight={700} color='error.main'>
           {source}
         </Typography>
       </Box>
       <Typography
         variant='body2'
-        color='error.dark'
+        color='error.main'
         sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
       >
         {summary}
@@ -44,7 +44,7 @@ export function RunErrorCard({
           component='pre'
           aria-label='Computation error details'
           sx={{
-            backgroundColor: 'grey.100',
+            backgroundColor: 'var(--nf-subtle)',
             borderRadius: 1,
             color: 'text.primary',
             fontFamily: 'monospace',

@@ -7,8 +7,8 @@ html {
 
 body {
   font-family: 'Arial', sans-serif;
-  background-color: #EFEFF0 !important; 
-  color: #333;
+  background-color: var(--nf-page);
+  color: var(--nf-text);
   line-height: 1.6;
 }
 
@@ -20,11 +20,11 @@ header {
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600 !important;
   margin: 0 0 0.5rem;
-  color: #0066FF;
+  color: var(--nf-heading);
 }
 
 h1 {
-  color: #0066FF;
+  color: var(--nf-heading);
 }
 
 h6 {
@@ -39,7 +39,7 @@ p {
 
 /* Links */
 a {
-  color: #007bff;
+  color: var(--nf-primary);
   text-decoration: none;
   cursor: pointer;
 }
@@ -61,23 +61,23 @@ li {
 }
 
 /* Buttons */
-button {
+button:not(.MuiButtonBase-root):not(.mdxeditor *) {
   display: inline-block;
   border: none;
-  background-color: #007bff;
-  color: #fff;
+  background-color: var(--nf-primary);
+  color: var(--nf-on-primary);
   padding: 10px 20px;
   cursor: pointer;
   border-radius: 1.5rem;
   font-size: 16px;
 }
 
-button a {
+button:not(.MuiButtonBase-root) a {
   color: white;
 }
 
-button:disabled {
-  background-color: #ccc;
+button:not(.MuiButtonBase-root):not(.mdxeditor *):disabled {
+  background-color: var(--nf-border);
   cursor: not-allowed;
 }
 
@@ -88,8 +88,8 @@ button.Mui-disabled.MuiStepButton-horizontal {
 .button {
   display: inline-block;
   border: none;
-  background-color: #007bff;
-  color: #fff;
+  background-color: var(--nf-primary);
+  color: var(--nf-on-primary);
   padding: 10px 20px;
   cursor: pointer;
   border-radius: 4px;
@@ -97,22 +97,24 @@ button.Mui-disabled.MuiStepButton-horizontal {
 }
 
 .button:disabled {
-  background-color: #ccc;
+  background-color: var(--nf-border);
   cursor: not-allowed;
 }
 
 /* Forms and Input fields */
 
-input[type="text"],
-input[type="password"],
-input[type="email"],
-select,
-textarea {
+input[type="text"]:not(.MuiInputBase-input),
+input[type="password"]:not(.MuiInputBase-input),
+input[type="email"]:not(.MuiInputBase-input),
+select:not(.MuiInputBase-input),
+textarea:not(.MuiInputBase-input) {
+  background-color: var(--nf-surface);
+  color: var(--nf-text);
   width: 100%;
   padding: 10px;
   margin: 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid var(--nf-border);
   border-radius: 4px;
 }
 
@@ -124,8 +126,8 @@ input.MuiInputBase-input {
 input[type="submit"],
 input[type="button"] {
   width: 100%;
-  background-color: #4CAF50;
-  color: white;
+  background-color: var(--nf-success);
+  color: var(--nf-on-success);
   padding: 14px 20px;
   margin: 8px 0;
   border: none;
@@ -135,7 +137,7 @@ input[type="button"] {
 
 input[type="submit"]:hover,
 input[type="button"]:hover {
-  background-color: #45a049;
+  filter: brightness(0.9);
 }
 
 /* Utility classes */
@@ -158,12 +160,12 @@ input[type="button"]:hover {
 
 pre, code, .pre {
   display: inline-block;
-  background-color: #eef2f2; /* Light grey background */
+  background-color: var(--nf-subtle); /* Secondary surface */
   border-radius: 8px; /* Rounded corners */
   padding: 1rem; /* Padding inside the code block */
   overflow-x: auto; /* Horizontal scroll for long lines */
   font-size: 0.9rem;
-  color: #000 !important;
+  color: var(--nf-text);
   margin: 0 0 0.25rem;
   height: auto;
   width: calc(100% - 2rem);
@@ -172,8 +174,8 @@ pre, code, .pre {
 pre.settings,
 .terminal {
   font-family: monospace;
-  background-color: #1A2948; /* Light grey background */   
-  color: #ffffff !important;
+  background-color: var(--nf-subtle);
+  color: var(--nf-text);
   padding: 1rem;
   border-radius: 8px; /* Rounded corners */
 }
@@ -189,8 +191,8 @@ pre.inline {
 
 .terminalWindow {
   font-family: monospace;
-  background-color: #1A2948; /* Light grey background */   
-  color: #ffffff !important;
+  background-color: var(--nf-subtle);
+  color: var(--nf-text);
   padding: 1rem;
   border-radius: 8px; /* Rounded corners */
   white-space: pre-wrap;
@@ -213,15 +215,15 @@ code {
 
 /* Additional styling for better readability */
 pre code {
-  color: #333; /* Darker text color for contrast */
+  color: var(--nf-text); /* Theme text color */
   line-height: 1.4; /* Slightly increased line height */
 }
 
-input[type="file"]::-webkit-file-upload-button {
+input[type="file"]::file-selector-button {
   display: inline-block;
   border: none;
-  background-color: #007bff;
-  color: #fff;
+  background-color: var(--nf-primary);
+  color: var(--nf-on-primary);
   padding: 10px 20px;
   cursor: pointer;
   border-radius: 4px;
@@ -229,22 +231,11 @@ input[type="file"]::-webkit-file-upload-button {
   margin: 8px 0;
 }
 
-input[type="file"]::-webkit-file-upload-button:hover {
-  background-color: #0066cc; /* Slightly darker blue for hover effect */
+input[type="file"]::file-selector-button:hover {
+  filter: brightness(0.9); /* Slightly darker blue for hover effect */
 }
 
-/* .markdown-wrapper h1, 
-.markdown-wrapper h2,
-.markdown-wrapper h3,
-.markdown-wrapper strong,
-.markdown-wrapper b {
-  color: black;
-}
 
-.markdown-wrapper h2 {
-  line-height: 1.2;
-  margin-bottom: 0.5rem;
-} */
 
 .markdown-wrapper code {
   width: auto;
@@ -270,21 +261,21 @@ input[type="file"]::-webkit-file-upload-button:hover {
 }
 
 .markdown-wrapper table td {
-    border-top: 1px solid #dcdcdc;
+    border-top: 1px solid var(--nf-border);
 }
 
-.markdown-wrapper table td, 
+.markdown-wrapper table td,
 .markdown-wrapper table th {
-    border-right: 1px solid #dcdcdc;
+    border-right: 1px solid var(--nf-border);
     padding: 8px 12px;
 }
 
-.markdown-wrapper table td:last-child, 
+.markdown-wrapper table td:last-child,
 .markdown-wrapper table th:last-child {
     border-right: 0;
 }
 
-.markdown-wrapper ul, 
+.markdown-wrapper ul,
 .markdown-wrapper ol {
   margin-left: 1.25rem;
 }
@@ -296,7 +287,7 @@ td[data-col="description"] {
 }
 
 .toast-container > div {
-  background-color: #001f70 !important; 
+  background-color: var(--nf-brand) !important;
 }
 
 .toast-container h2 {
@@ -306,7 +297,7 @@ td[data-col="description"] {
 a > div.MuiAvatar-root:hover {
   text-decoration: none;
   background-color: white;
-  color: #001f70;
+  color: var(--nf-brand);
 }
 
 a:hover > div.MuiAvatar-root {
@@ -434,4 +425,35 @@ textarea {
 #papaya {
   width: 100%;
   height: 600px;
+}
+
+/* Keep native controls and editor content legible in either palette. */
+:focus-visible {
+  outline: 2px solid var(--nf-primary);
+  outline-offset: 3px;
+}
+.mdxeditor {
+  color: var(--nf-text);
+  background: var(--nf-surface);
+}
+.mdxeditor [role="toolbar"] {
+  background: var(--nf-subtle);
+}
+.mdxeditor button {
+  color: inherit;
+}
+.mdxeditor .cm-editor, .mdxeditor .cm-gutters {
+  color: var(--nf-text);
+  background: var(--nf-surface);
+}
+.mdxeditor .cm-activeLine, .mdxeditor .cm-activeLineGutter {
+  background: var(--nf-subtle);
+}
+/* The source editor ships with fixed light syntax colors. */
+.mdxeditor .cm-line span { color: var(--nf-primary); }
+.mdxeditor .cm-cursor { border-left-color: var(--nf-text); }
+.mdxeditor .cm-selectionBackground { background: var(--nf-border) !important; }
+
+@media (max-width: 599px) {
+  .header-logo { display: none; }
 }

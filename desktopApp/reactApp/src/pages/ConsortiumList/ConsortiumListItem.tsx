@@ -58,7 +58,7 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
       display='flex'
       flexDirection='row'
       alignItems='center'
-      style={{ background: 'white', padding: '1rem', marginBottom: '1rem' }}
+      style={{ background: 'var(--nf-surface)', padding: '1rem', marginBottom: '1rem' }}
     >
       <Box flex={1}>
         <Box flex={1} gap={1} display='flex' alignItems='center'>

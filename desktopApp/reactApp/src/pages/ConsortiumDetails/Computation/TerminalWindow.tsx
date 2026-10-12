@@ -181,7 +181,6 @@ const TerminalWindow: React.FC<{
           variant='contained'
           size='small'
           onClick={() => handleButtonPress(command)}
-          style={{ backgroundColor: '#0066FF' }}
           disabled={isPulling || isSingularity === null || (!isSingularity && !isTerminalReady)}
         >
           {isSingularity ? 'Run Singularity Pull' : 'Run Docker Pull'}
@@ -215,7 +214,7 @@ const TerminalWindow: React.FC<{
       <Box display='flex' justifyContent='space-between' alignContent='center'>
         {imageExists && (
           <Box display='flex' justifyContent='flex-start' alignContent='center'>
-            <CheckCircleIcon sx={{ color: '#2FB600' }} />
+            <CheckCircleIcon sx={{ color: 'var(--nf-success)' }} />
             <Typography
               style={{
                 fontSize: '0.8rem',

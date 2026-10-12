@@ -32,10 +32,10 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { backgroundColor: '#001f70', color: 'white' },
+        sx: { backgroundColor: 'var(--nf-surface)', color: 'var(--nf-text)' },
       }}
     >
-      <List sx={{ '& a': { textDecoration: 'none', color: 'white' } }}>
+      <List sx={{ '& a': { textDecoration: 'none', color: 'var(--nf-text)' } }}>
         <ListItem
           onClick={() => { navSetDrawerOpen(false) }}
           component={Link}
@@ -77,11 +77,11 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
         style={{
           position: 'absolute',
           bottom: 0,
-          borderTop: '1px solid white',
+          borderTop: '1px solid var(--nf-border)',
           width: '100%',
-          background: '#efefef',
+          background: 'var(--nf-subtle)',
         }}
-        sx={{ '& a': { textDecoration: 'none', color: '#001f70' } }}
+        sx={{ '& a': { textDecoration: 'none', color: 'var(--nf-primary)' } }}
       >
         {isAdmin && (
           <ListItem
@@ -111,7 +111,7 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
           onClick={() => { handleLogout() }}
           style={{ cursor: 'pointer' }}
         >
-          <ListItemText primary='Logout' sx={{ color: '#001f70' }} />
+          <ListItemText primary='Logout' sx={{ color: 'var(--nf-primary)' }} />
         </ListItem>
       </List>
     </Drawer>

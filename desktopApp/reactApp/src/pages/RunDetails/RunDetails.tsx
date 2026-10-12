@@ -175,7 +175,7 @@ export function RunDetails() {
           </Box>
           <Grid container spacing={2} padding={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Box p={2} borderRadius={2} bgcolor='white'>
+              <Box p={2} borderRadius={2} bgcolor='var(--nf-surface)'>
                 <Typography variant='body1'>
                   <strong>Consortium:</strong>{' '}
                   {runDetails.consortium.title} ({runDetails.consortium.id})
@@ -214,7 +214,7 @@ export function RunDetails() {
             {/* Errors */}
             {(runDetails.runErrors.length > 0 || localComputationError) && (
               <Grid size={{ sm: 12 }}>
-                <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
+                <Box p={2} borderRadius={2} marginBottom={0} bgcolor='var(--nf-surface)'>
                   <Typography variant='h6' gutterBottom>
                     Errors
                   </Typography>
@@ -246,7 +246,7 @@ export function RunDetails() {
               </Grid>
             )}
             <Grid size={{ sm: 12 }}>
-              <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
+              <Box p={2} borderRadius={2} marginBottom={0} bgcolor='var(--nf-surface)'>
                 {/* Study Configuration */}
                 <Typography variant='h6' gutterBottom>
                   Study Configuration
@@ -283,7 +283,7 @@ export function RunDetails() {
                     <Box marginTop={1}>
                       <div
                         style={{
-                          background: '#EEF2F2',
+                          background: 'var(--nf-subtle)',
                           padding: '1rem 1rem 0.5rem',
                         }}
                       >
