@@ -1,6 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+
+const require = createRequire(import.meta.url)
+const fontDirectories = ['@fontsource/inter', '@fontsource/lato'].map((font) =>
+  path.join(path.dirname(require.resolve(`${font}/400.css`)), 'files'),
+)
 
 export default defineConfig({
   plugins: [react()],
@@ -22,7 +29,8 @@ export default defineConfig({
     fs: {
       strict: true,
       // The workspace root also contains private run files and local configuration.
-      allow: [fileURLToPath(new URL('.', import.meta.url))],
+      // Hoisted font assets are outside the renderer; allow only their files.
+      allow: [fileURLToPath(new URL('.', import.meta.url)), ...fontDirectories],
     },
   },
   preview: {

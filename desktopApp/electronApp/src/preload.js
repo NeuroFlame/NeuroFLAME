@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('ElectronAPI', {
+  setLandingPageTheme: async (theme) => ipcRenderer.invoke('setLandingPageTheme', theme),
+  setResultReportTheme: async (theme) => ipcRenderer.invoke('setResultReportTheme', theme),
   getConfig: async () => ipcRenderer.invoke('getConfig'),
   getCompatibilityStatus: async () => ipcRenderer.invoke('getCompatibilityStatus'),
   openLatestRelease: async () => ipcRenderer.invoke('openLatestRelease'),

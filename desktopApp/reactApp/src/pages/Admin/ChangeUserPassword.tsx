@@ -62,7 +62,7 @@ export default function ChangeUserPassword() {
         onChange={(e) => setUsername(e.target.value)}
         disabled={loading}
         sx={{
-          '& .MuiInputBase-root': { backgroundColor: 'white' },
+          '& .MuiInputBase-root': { backgroundColor: 'var(--nf-surface)' },
           marginBottom: '1rem',
         }}
       />
@@ -77,7 +77,7 @@ export default function ChangeUserPassword() {
         onChange={(e) => setNewPassword(e.target.value)}
         disabled={loading}
         sx={{
-          '& .MuiInputBase-root': { backgroundColor: 'white' },
+          '& .MuiInputBase-root': { backgroundColor: 'var(--nf-surface)' },
           marginBottom: '1rem',
         }}
       />

@@ -138,7 +138,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ onClose }) => {
         <Box
           sx={{
             flex: '0 0 48%',
-            borderRight: '1px solid grey',
+            borderRight: '1px solid var(--nf-border)',
             padding: '0 1rem 1rem 0',
             overflow: 'auto',
             height: 'calc(380px - 4rem)',

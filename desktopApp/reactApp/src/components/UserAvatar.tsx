@@ -9,6 +9,7 @@ export default function UserAvatar(props: any) {
       <Avatar
         sx={{
           bgcolor: '#FF007A',
+          color: (theme) => theme.palette.getContrastText('#FF007A'),
           width: '32px',
           height: '32px',
           marginLeft: '1rem',

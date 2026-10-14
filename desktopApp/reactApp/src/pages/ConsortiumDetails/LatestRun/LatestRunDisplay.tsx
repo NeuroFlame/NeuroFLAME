@@ -15,14 +15,14 @@ export function LatestRunDisplay({
       {loading ? (
         <CircularProgress />
       ) : (latestRun &&
-        <Box p={2} borderRadius={2} bgcolor='white' marginBottom={2}>
+        <Box p={2} borderRadius={2} bgcolor='var(--nf-surface)' marginBottom={2}>
           <Typography variant='h6' gutterBottom>
             Latest Run
           </Typography>
           <Box
             p={2}
             borderRadius={2}
-            bgcolor='#EEF2F2'
+            bgcolor='var(--nf-subtle)'
             display='flex'
             justifyContent='space-between'
             alignItems='center'
@@ -31,20 +31,20 @@ export function LatestRunDisplay({
             <Box>
               <Typography
                 variant='body1'
-                style={{ fontWeight: 'bold', color: '#0066FF' }}
+                style={{ fontWeight: 'bold', color: 'var(--nf-primary)' }}
               >
                 {latestRun.consortiumTitle}
               </Typography>
               <Typography variant='body2' color='textSecondary' fontSize='11px'>
                 <strong>Status:</strong>{' '}
-                <strong style={{ color: '#2FB600' }}>
+                <strong style={{ color: 'var(--nf-success)' }}>
                   {latestRun.status}
                 </strong><br />
                 <strong>Created At:</strong>{' '}
                 {new Date(Number(latestRun.createdAt)).toLocaleString()}<br />
                 <strong>Last Updated:</strong>{' '}
                 {new Date(Number(latestRun.lastUpdated)).toLocaleString()}<br />
-                <span style={{ fontSize: '11px', color: '#aaa' }}>
+                <span style={{ fontSize: '11px', color: 'var(--nf-muted)' }}>
                   {latestRun.runId}
                 </span>
               </Typography>

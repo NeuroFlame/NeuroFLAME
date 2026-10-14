@@ -65,7 +65,7 @@ export default function ConsortiumCreate() {
             Back to Consortium List
           </Button>
         </Box>
-        <Box style={{ background: 'white', padding: '1rem' }}>
+        <Box style={{ background: 'var(--nf-surface)', padding: '1rem' }}>
           <input
             type='text'
             placeholder='Title'
@@ -108,7 +108,7 @@ export default function ConsortiumCreate() {
               {loading ? 'Creating...' : 'Create and View Detail'}
             </Button>
           </Box>
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <p style={{ color: 'var(--nf-error)' }}>{error}</p>}
         </Box>
       </Box>
     </Container>

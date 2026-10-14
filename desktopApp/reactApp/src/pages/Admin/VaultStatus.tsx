@@ -634,8 +634,8 @@ function VaultServerRow({
     <>
       <TableRow
         sx={{
-          '&:hover': { backgroundColor: '#f5f5f5' },
-          backgroundColor: online ? 'inherit' : '#ffebee',
+          '&:hover': { backgroundColor: 'var(--nf-subtle)' },
+          backgroundColor: online ? 'inherit' : 'var(--nf-error-bg)',
         }}
       >
         <TableCell>
@@ -1418,7 +1418,7 @@ export default function VaultStatus() {
         <TableContainer component={Paper} variant='outlined'>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+              <TableRow sx={{ backgroundColor: 'var(--nf-subtle)' }}>
                 <TableCell />
                 <TableCell>Vault</TableCell>
                 <TableCell>Status</TableCell>

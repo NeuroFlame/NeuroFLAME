@@ -49,7 +49,7 @@ export default function AdminPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'var(--nf-page)', py: 4 }}>
       <Container maxWidth='lg'>
         <Typography variant='h4' sx={{ mb: 4, fontWeight: 'bold' }}>
           Admin Panel

@@ -6,7 +6,7 @@ export default function StepSelectData({ onDirectorySet }: { onDirectorySet?: (i
     <Box
       style={{
         maxWidth: '400px',
-        border: '1px solid #eee',
+        border: '1px solid var(--nf-border)',
       }}
     >
       <DirectorySelect showReadyToggle={false} onDirectorySet={onDirectorySet} />

@@ -41,6 +41,18 @@ export type CompatibilityStatus = {
 }
 
 interface ElectronAPI {
+  setResultReportTheme?: (theme: { url: string; mode: 'light' | 'dark' } | null) => Promise<void>;
+  setLandingPageTheme?: (theme: {
+    mode: 'light' | 'dark';
+    page: string;
+    surface: string;
+    text: string;
+    muted: string;
+    border: string;
+    primary: string;
+    error: string;
+    warning: string;
+  }) => Promise<void>;
   getConfigPath: () => Promise<string>;
   getConfig: () => Promise<Config>;
   getCompatibilityStatus: () => Promise<CompatibilityStatus>;

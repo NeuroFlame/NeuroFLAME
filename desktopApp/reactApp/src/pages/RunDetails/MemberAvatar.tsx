@@ -18,10 +18,11 @@ const GetUserColor = (index: number): string => {
   return UserColor[valkeyIndex]
 }
 
-const UserAvatar = styled(Avatar)<{ index: number }>(({ index }) => ({
+const UserAvatar = styled(Avatar)<{ index: number }>(({ index, theme }) => ({
   width: '45px',
   height: '45px',
   background: GetUserColor(index),
+  color: theme.palette.getContrastText(GetUserColor(index)),
 }))
 
 interface MemberAvatarProps {
@@ -70,14 +71,14 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
           </span>
         </UserAvatar>
       </Tooltip>
-      <span className='username' style={{ color: '#000' }}>{username}</span>
+      <span className='username' style={{ color: 'var(--nf-text)' }}>{username}</span>
       {showId && (
         <span
           className='username'
           style={{
-            color: '#000',
+            color: 'var(--nf-text)',
             padding: '0.25rem 0.5rem',
-            background: '#EEF2F2',
+            background: 'var(--nf-subtle)',
             borderRadius: '0.25rem',
           }}
         >

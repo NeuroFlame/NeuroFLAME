@@ -20,7 +20,7 @@ export function ChangePassword() {
         disabled={loading}
         sx={{
           '& .MuiInputBase-root': {
-            backgroundColor: 'white',
+            backgroundColor: 'var(--nf-surface)',
           },
           '& .MuiInputBase-root input': {
             margin: '0',

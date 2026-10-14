@@ -1,6 +1,10 @@
 import { BrowserWindow, session, app } from 'electron'
 import path from 'path'
 import url from 'url'
+import { installLandingPageTheme } from './landingPageTheme.js'
+import { installResultReportTheme } from './resultReportTheme.js'
+import { getConfig } from './config.js'
+import { logger } from './logger.js'
 
 export async function createMainWindow(): Promise<BrowserWindow> {
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
@@ -34,6 +38,13 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   // Choose the appropriate start URL
   const startUrl = app.isPackaged ? productionUrl : developmentUrl
 
+  installLandingPageTheme(mainWindow.webContents, startUrl, () => {
+    logger.warn('Unable to apply the home iframe theme.')
+  })
+  installResultReportTheme(
+    mainWindow.webContents, startUrl, async () => (await getConfig()).edgeClientRunResultsUrl,
+    () => { logger.warn('Unable to synchronize the result report theme.') },
+  )
   await mainWindow.loadURL(startUrl)
   return mainWindow
 }
