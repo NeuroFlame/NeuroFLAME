@@ -5,6 +5,7 @@ import path from 'path'
 import { BASE_DIR } from '../config.js'
 import { logger } from '../logger.js'
 import calculateChecksum from '../utils/calculateChecksum.js'
+import { ConsortiumRunParams } from '../types.js'
 
 export const INCOMING_DIR = path.join(BASE_DIR, '.incoming')
 
@@ -21,7 +22,7 @@ const upload = multer({
 }).single('file')
 
 export const uploadFile = (
-  req: Request,
+  req: Request<ConsortiumRunParams>,
   res: Response,
   next: NextFunction,
 ) => {
