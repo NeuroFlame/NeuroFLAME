@@ -32,9 +32,10 @@ import {
 } from './generated/graphql.js'
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { COMPUTATION_API_VERSION } from '../versions.js'
 import { disclosedRunErrorMessage } from './runErrorDisclosure.js'
+import { revokeUserSessions } from '../authentication/sessionRevocation.js'
 
 interface Context {
   userId: string
@@ -66,6 +67,21 @@ const toObjectIdString = (value: unknown): string | null => {
 
   return null
 }
+
+const canViewConsortiumUsers = (
+  consortium: { leader?: unknown; members?: unknown[] },
+  context: Context,
+): boolean =>
+  Boolean(context.userId) && (
+    context.roles?.includes('admin') === true ||
+    toObjectIdString(consortium.leader) === context.userId ||
+    consortium.members?.some((member: unknown) => toObjectIdString(member) === context.userId) === true
+  )
+
+const dummyLoginHash = hashPassword(randomBytes(32).toString('hex'))
+
+const resetTokenDigest = (token: string): string =>
+  createHash('sha256').update(token).digest('hex')
 
 const resend = new Resend(RESEND_API_KEY)
 const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
@@ -488,26 +504,29 @@ export default {
       })()
 
       const consortiums = await Consortium.find(filter)
-        .populate('leader')
-        .populate('members')
+        .populate('leader', 'username')
+        .populate('members', 'username vault')
         .lean() // Use lean() for better performance and to get plain JavaScript objects
 
-      return consortiums.map((consortium) => ({
-        id: consortium._id.toString(),
-        title: consortium.title,
-        description: consortium.description,
-        leader: {
-          id: (consortium.leader as any)._id.toString(),
-          username: (consortium.leader as any).username,
-        },
-        members: (consortium.members as any[]).map((member) => ({
-          id: member._id.toString(),
-          username: member.username,
-          vault: mapVault(member.vault),
-        })),
-        isPrivate: consortium.isPrivate ?? false,
-        createdAt: new mongoose.Types.ObjectId(consortium._id.toString()).getTimestamp().getTime().toString(),
-      }))
+      return consortiums.map((consortium) => {
+        const discloseUsers = canViewConsortiumUsers(consortium, context)
+        const id = consortium._id.toString()
+        return {
+          id,
+          title: consortium.title,
+          description: consortium.description,
+          leader: discloseUsers
+            ? { id: (consortium.leader as any)._id.toString(), username: (consortium.leader as any).username }
+            : { id: `public-${id}-leader`, username: 'Consortium leader' },
+          members: discloseUsers
+            ? (consortium.members as any[]).map((member) => ({
+                id: member._id.toString(), username: member.username, vault: mapVault(member.vault),
+              }))
+            : [],
+          isPrivate: consortium.isPrivate ?? false,
+          createdAt: new mongoose.Types.ObjectId(id).getTimestamp().getTime().toString(),
+        }
+      })
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
       const computations = await Computation.find().lean()
@@ -668,28 +687,30 @@ export default {
           throw new Error('Consortium not found or inaccessible')
         }
 
-        if (consortium.isPrivate) {
-          const { userId, roles } = context
-          const isAdmin = roles?.includes('admin')
+        const vaultServerAccess = context.userId && consortium.vaultMembers.length > 0
+          ? await VaultServer.exists({
+            user: context.userId,
+            _id: { $in: (consortium.vaultMembers as any[]).map((vault) => vault.server) },
+          })
+          : null
+        const discloseUsers = canViewConsortiumUsers(consortium, context) || Boolean(vaultServerAccess)
+        if (consortium.isPrivate && !discloseUsers) throw new Error('Consortium not found or inaccessible')
 
-          if (!isAdmin) {
-            if (!userId) throw new Error('Consortium not found or inaccessible')
-            const leaderId = consortium.leader._id.toString()
-            const isLeader = leaderId === userId
-            const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
-            const vaultServers = await VaultServer.find({
-              _id: {
-                $in: (consortium.vaultMembers as any[]).map((vault) => vault.server),
-              },
-            })
-              .select('user')
-              .lean()
-            const isVaultServerMember = vaultServers.some(
-              (server: any) => server.user.toString() === userId,
-            )
-            if (!isLeader && !isMember && !isVaultServerMember) {
-              throw new Error('Consortium not found or inaccessible')
-            }
+        if (!discloseUsers) {
+          // Keep the existing non-null GraphQL shape without exposing study internals.
+          return {
+            id: consortium.id,
+            title: consortium.title,
+            description: consortium.description || '',
+            isPrivate: false,
+            leader: { id: `public-${consortium.id}-leader`, username: 'Consortium leader' },
+            members: [],
+            activeMembers: [],
+            readyMembers: [],
+            vaultMembers: [],
+            activeVaultMembers: [],
+            readyVaultMembers: [],
+            studyConfiguration: { consortiumLeaderNotes: null, computationParameters: '', computation: null },
           }
         }
 
@@ -712,9 +733,7 @@ export default {
         } = consortium
 
         const transformUser = (user: any): PublicUser => ({
-          id: user.id,
-          username: user.username,
-          vault: mapVault(user.vault),
+          id: user.id, username: user.username, vault: mapVault(user.vault),
         })
 
         if (!leader) {
@@ -1015,8 +1034,10 @@ export default {
         throw new Error('Failed to fetch run details')
       }
     },
-    getVaultUserList: async (): Promise<PublicUser[]> => {
+    getVaultUserList: async (_: unknown, __: unknown, context: Context): Promise<PublicUser[]> => {
+      if (!context?.userId) throw new Error('User not authenticated')
       const users = await User.find({ roles: 'vault' })
+        .select('_id username vault vaultStatus')
         .populate('vault.allowedComputations', 'title imageName')
         .exec()
 
@@ -1039,7 +1060,9 @@ export default {
 
       return users.map((user) => ({
         id: user._id.toString(),
-        username: user.username,
+        username: context.roles?.includes('admin') || user._id.toString() === context.userId
+          ? user.username
+          : user.vault?.name || 'Vault user',
         vault: mapVault(user.vault),
         vaultStatus: mapVaultStatus(user.vaultStatus, consortiumMap),
       }))
@@ -1239,11 +1262,8 @@ export default {
       const user = await User
         .findOne({ username: normalizeUsername(username) })
         .collation({ locale: 'en', strength: 2 })
-      if (!user) {
-        throw new Error('User not found')
-      }
-      // compare the password
-      if (!(await compare(validatePassword(password), user.hash))) {
+      const passwordMatches = await compare(validatePassword(password), user?.hash ?? await dummyLoginHash)
+      if (!user || !passwordMatches) {
         throw new Error('Invalid username or password')
       }
 
@@ -1277,73 +1297,60 @@ export default {
       }
 
       const resetToken = randomBytes(32).toString('hex')
-      user.resetToken = resetToken
-      user.resetTokenExpiry = Date.now() + 1000 * 60 * 60 * 24 // 24 hours
-      await user.save()
-
-      const email = user.username
-      const msg = {
-        from: RESEND_FROM,
-        to: [email],
-        subject: 'Password Reset Request',
-        html: `We received your password reset request. <br/>
-            Please use this token for password reset. <br/>
-            Username: <strong>${username}</strong> <br/>
-            Token: <strong>${resetToken}</strong>`,
-      }
+      const saved = await User.updateOne({
+        _id: user._id, username: user.username, hash: user.hash,
+      }, {
+        $set: {
+          resetToken: resetTokenDigest(resetToken),
+          resetEmail: user.username,
+          resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        },
+      })
+      if (saved.matchedCount !== 1) return true
 
       try {
-        const { error } = await resend.emails.send(msg)
-        if (error) {
-          throw new Error(error.message)
-        }
-      } catch (error: any) {
-        throw new Error(`Failed to send email: ${error.message}`)
+        const { error } = await resend.emails.send({
+          from: RESEND_FROM,
+          to: [user.username],
+          subject: 'Password Reset Request',
+          html: `We received your password reset request. <br/>
+            Please use this token for password reset. <br/>
+            Token: <strong>${resetToken}</strong>`,
+        })
+        if (error) logger.error('Password reset email delivery failed')
+      } catch {
+        // Never expose account existence, token contents, or provider details.
+        logger.error('Password reset email delivery failed')
       }
-
       return true
     },
     resetPassword: async (
       _: unknown,
       { token, newPassword }: { token: string; newPassword: string },
-    ): Promise<{
-      accessToken: string
-      userId: string
-      username: string
-      roles: string[]
-    }> => {
-      try {
-        const user = await User.findOne({
-          resetToken: token,
-          resetTokenExpiry: { $gt: Date.now() },
-        })
-
-        if (!user) {
-          throw new Error('Invalid or expired token')
-        }
-
-        const hashedPassword = await hashPassword(validatePassword(newPassword))
-        user.hash = hashedPassword
-        user.resetToken = undefined
-        user.resetTokenExpiry = undefined
-        await user.save()
-
-        const tokens = generateTokens({
-          userId: user._id,
-          roles: user.roles,
-          tokenVersion: user.tokenVersion,
-        })
-        const { accessToken } = tokens as { accessToken: string }
-
-        return {
-          accessToken,
-          userId: user._id.toString(),
-          username: user.username,
-          roles: user.roles,
-        }
-      } catch (error: any) {
-        logger.error('Error resetting password:', error.message)
-        throw new Error(error.message)
+    ): Promise<LoginOutput> => {
+      const hashedPassword = await hashPassword(validatePassword(newPassword))
+      if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('Invalid or expired token')
+      // Token consumption, email binding, password update and session revocation are atomic.
+      const user = await User.findOneAndUpdate({
+        resetToken: resetTokenDigest(token),
+        resetTokenExpiry: { $gt: new Date() },
+        resetEmail: { $type: 'string' },
+        $expr: { $eq: ['$username', '$resetEmail'] },
+      }, {
+        $set: { hash: hashedPassword },
+        $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
+        $inc: { tokenVersion: 1 },
+      }, { new: true })
+      if (!user) throw new Error('Invalid or expired token')
+      revokeUserSessions(user._id.toString(), user.tokenVersion)
+      const { accessToken } = generateTokens({
+        userId: user._id, roles: user.roles, tokenVersion: user.tokenVersion,
+      })
+      return {
+        accessToken,
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
       }
     },
     startRun: async (
@@ -2425,22 +2432,26 @@ export default {
 
     userChangePassword: async (
       _: unknown,
-      { password }: { userId: string; password: string },
-      context: any,
+      { currentPassword, password }: { currentPassword: string; password: string },
+      context: Context,
     ): Promise<boolean> => {
       const { userId } = context
-      if (!userId) {
-        throw new Error('User not authenticated')
+      if (!userId) throw new Error('User not authenticated')
+      const user = await User.findById(userId).select('hash').exec()
+      if (!user) throw new Error('User not authenticated')
+      if (typeof currentPassword !== 'string' || !currentPassword ||
+        !(await compare(currentPassword, user.hash))) {
+        throw new Error('Current password is incorrect')
       }
-
-      try {
-        const hashedPassword = await hashPassword(validatePassword(password))
-        await User.updateOne({ _id: userId }, { hash: hashedPassword })
-        return true
-      } catch (error) {
-        logger.error('Error changing password:', error)
-        throw new Error('Failed to change password')
-      }
+      const hashedPassword = await hashPassword(validatePassword(password))
+      const updatedUser = await User.findOneAndUpdate({ _id: userId, hash: user.hash }, {
+        $set: { hash: hashedPassword },
+        $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
+        $inc: { tokenVersion: 1 },
+      }, { new: true }).select('tokenVersion').exec()
+      if (!updatedUser) throw new Error('Password changed. Please sign in again.')
+      revokeUserSessions(userId, updatedUser.tokenVersion)
+      return true
     },
     adminChangeUserPassword: async (
       _: unknown,
@@ -2458,9 +2469,16 @@ export default {
 
       try {
         const hashedPassword = await hashPassword(validatePassword(password))
-        await User
-          .updateOne({ username: normalizeUsername(username) }, { hash: hashedPassword })
+        const updatedUser = await User
+          .findOneAndUpdate({ username: normalizeUsername(username) }, {
+            $set: { hash: hashedPassword },
+            $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
+            $inc: { tokenVersion: 1 },
+          }, { new: true })
+          .select('_id tokenVersion')
           .collation({ locale: 'en', strength: 2 })
+        if (!updatedUser) throw new Error('User not found')
+        revokeUserSessions(updatedUser._id.toString(), updatedUser.tokenVersion)
         return true
       } catch (error) {
         logger.error('Error changing password:', error)
@@ -2937,6 +2955,7 @@ export default {
         throw new Error('Vault service account not found')
       }
 
+      revokeUserSessions(user._id.toString(), user.tokenVersion)
       const { accessToken } = generateTokens(
         {
           userId: user._id,

@@ -312,7 +312,7 @@ type Mutation {
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, password: String!): LoginOutput!
-  userChangePassword(password: String!): Boolean!
+  userChangePassword(currentPassword: String!, password: String!): Boolean!
   adminCreateVaultUser(username: String!, password: String!): LoginOutput!
   adminChangeUserRoles(username: String!, roles: [String!]!): Boolean!
   adminChangeUserPassword(username: String!, password: String!): Boolean!

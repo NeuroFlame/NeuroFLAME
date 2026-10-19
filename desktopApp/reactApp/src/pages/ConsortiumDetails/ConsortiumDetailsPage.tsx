@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Grid from '@mui/material/Grid2'
-import { Box, Button, Tabs, Tab, Switch, FormControlLabel } from '@mui/material'
+import { Alert, Box, Button, Tabs, Tab, Switch, FormControlLabel } from '@mui/material'
 import { Members } from './Members/Members'
 import { TitleAndDescription } from './TitleAndDescription/TitleAndDescription'
 import DirectorySelect from './DirectorySelect/DirectorySelect'
@@ -118,7 +118,7 @@ export function ConsortiumDetailsPage() {
     updateConsortiumPrivacy,
   } = useConsortiumDetailsContext()
 
-  const { userId } = useUserState()
+  const { userId, roles } = useUserState()
   const navigate = useNavigate()
   const isActive = activeMembers.some((member) => member.id === userId)
 
@@ -138,6 +138,19 @@ export function ConsortiumDetailsPage() {
 
   const handlePrivacyChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
     updateConsortiumPrivacy(checked).catch(() => {})
+  }
+
+  const canViewStudy = isLeader || roles.includes('admin') || members.some((member) => member.id === userId)
+  if (status.loading) return <Box p={2}>Loading consortium…</Box>
+  if (status.error) return <Alert severity='error'>{status.error}</Alert>
+  if (!canViewStudy) {
+    return (
+      <Box p={2}>
+        <TitleAndDescription title={title} description={description} />
+        <p>Join this consortium from the consortia list to view its study details.</p>
+        <Button variant='contained' onClick={() => navigate('/consortium/list')}>Browse consortia</Button>
+      </Box>
+    )
   }
 
   return (
