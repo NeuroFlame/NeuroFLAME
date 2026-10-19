@@ -1,20 +1,24 @@
 import { validateAccessToken } from './authentication/authentication.js'
 import { IncomingHttpHeaders } from 'http'
 import User from './database/models/User.js'
+import { getClientAddress, ClientAddressRequest } from './authentication/clientAddress.js'
 
-interface ServerContext {
+export interface ServerContext {
   userId?: string
   roles?: string[]
   error?: string
+  tokenVersion?: number
+  clientAddress?: string
 }
 
 interface WebSocketContext {
+  extra?: { request: ClientAddressRequest }
   connectionParams: {
     accessToken: string
   }
 }
 
-interface HttpRequest {
+interface HttpRequest extends ClientAddressRequest {
   headers: IncomingHttpHeaders
 }
 
@@ -25,7 +29,7 @@ interface HttpContext {
   res: HttpResponse
 }
 
-const validateServerAccessToken = async (accessToken: string): Promise<ServerContext> => {
+export const validateServerAccessToken = async (accessToken: string): Promise<ServerContext> => {
   const context = validateAccessToken(accessToken)
   if (!context.userId) {
     return { ...context }
@@ -49,10 +53,11 @@ const wsServerContext = async (
 ): Promise<ServerContext> => {
   try {
     const { accessToken } = ctx.connectionParams
-    return await validateServerAccessToken(accessToken)
+    return { ...await validateServerAccessToken(accessToken), clientAddress: getClientAddress(ctx.extra?.request) }
   } catch (e) {
     return {
       error: (e as Error).message,
+      clientAddress: getClientAddress(ctx.extra?.request),
     }
   }
 }
@@ -67,10 +72,11 @@ const httpServerContext = async ({
         ? req.headers['x-access-token'][0]
         : req.headers['x-access-token']
       )?.replace(/^null$/, '') || ''
-    return await validateServerAccessToken(accessToken)
+    return { ...await validateServerAccessToken(accessToken), clientAddress: getClientAddress(req) }
   } catch (e) {
     return {
       error: (e as Error).message,
+      clientAddress: getClientAddress(req),
     }
   }
 }

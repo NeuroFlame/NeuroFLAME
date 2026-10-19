@@ -16,10 +16,13 @@ import { logger, logToPath } from './logger.js'
 import { typeDefs } from './graphql/generated/typeDefs.js'
 import resolvers from './graphql/resolvers.js'
 
-import { httpServerContext, wsServerContext } from './serverContexts.js'
+import { httpServerContext } from './serverContexts.js'
 import { validateAccessToken } from './authentication/authentication.js'
 import { APOLLO_PORT, DATABASE_URI, LOG_PATH } from './config.js'
 import { APPLICATION_API_VERSION } from './versions.js'
+import { installAccountRateLimits } from './authentication/accountRateLimit.js'
+import { createSessionWebSocketOptions } from './authentication/sessionWebSockets.js'
+import { backfillUserTokenVersion } from './database/backfillUserTokenVersion.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -43,10 +46,17 @@ export async function start({
     authSource: 'admin',
   })
 
+  // Complete the idempotent backfill before accepting HTTP or WebSocket requests.
+  const backfilledAccounts = await backfillUserTokenVersion()
+  if (backfilledAccounts > 0) {
+    logger.info(`Initialized tokenVersion for ${backfilledAccounts} existing accounts`)
+  }
+
   const PORT = port
   // Create schema, which will be used separately by ApolloServer and
   // the WebSocket server.
   const schema = makeExecutableSchema({ typeDefs, resolvers })
+  installAccountRateLimits(schema)
 
   // Create an Express app and HTTP server; we will attach the WebSocket
   // server and the ApolloServer to this HTTP server.
@@ -59,13 +69,8 @@ export async function start({
     path: '/graphql',
   })
 
-  const serverCleanup = useServer(
-    {
-      schema,
-      context: wsServerContext,
-    },
-    wsServer,
-  )
+  const sessionSockets = createSessionWebSocketOptions(schema)
+  const serverCleanup = useServer(sessionSockets.options, wsServer)
 
   // Set up ApolloServer.
   const server = new ApolloServer({
@@ -79,7 +84,11 @@ export async function start({
         async serverWillStart() {
           return {
             async drainServer() {
-              await serverCleanup.dispose()
+              try {
+                await serverCleanup.dispose()
+              } finally {
+                sessionSockets.dispose()
+              }
             },
           }
         },
@@ -87,7 +96,18 @@ export async function start({
     ],
   })
 
-  await server.start()
+  try {
+    await server.start()
+  } catch (error) {
+    try {
+      await serverCleanup.dispose()
+    } catch {
+      logger.error('Failed to clean up WebSocket server after startup failure')
+    } finally {
+      sessionSockets.dispose()
+    }
+    throw error
+  }
 
   app.use(cors())
   app.use(bodyParser.json())

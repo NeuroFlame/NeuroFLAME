@@ -65,7 +65,9 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
           <a onClick={() => navigate(`/consortium/details/${consortium.id}`)}>
             <Typography variant='h6'>{consortium.title || 'No Title'}</Typography>
           </a>
-          <Chip label={consortium.leader.username} color='primary' size='small' variant='outlined' />
+          {!consortium.leader.id.startsWith('public-') && (
+            <Chip label={consortium.leader.username} color='primary' size='small' variant='outlined' />
+          )}
         </Box>
         {consortium.description && (
           <Typography>{consortium.description}</Typography>
