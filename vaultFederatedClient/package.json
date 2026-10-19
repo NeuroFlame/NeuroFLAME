@@ -43,6 +43,6 @@
     "@types/dockerode": "^4.0.1",
     "@types/unzipper": "^0.10.9",
     "@types/ws": "^8.5.10",
-    "typescript": "^5.4.5"
+    "typescript": "^7.0.2"
   }
 }

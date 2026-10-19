@@ -44,7 +44,7 @@
     "electron": "^30.5.1",
     "electron-builder": "^24.13.3",
     "ts-loader": "^9.5.1",
-    "typescript": "^5.4.5",
+    "typescript": "^7.0.2",
     "uuid": "^11.1.0"
   },
   "optionalDependencies": {
