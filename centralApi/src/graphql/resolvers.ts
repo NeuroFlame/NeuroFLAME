@@ -1398,8 +1398,8 @@ export default {
         vaultMembers: consortium.activeVaultMembers ?? [],
         status: 'Provisioning',
         runErrors: [],
-        createdAt: Date.now(),
-        lastUpdated: Date.now(),
+        createdAt: Date.now().toString(),
+        lastUpdated: Date.now().toString(),
       })
 
       const populatedConsortium = await Consortium.findById(consortium._id)
@@ -1497,7 +1497,7 @@ export default {
         {
           status: 'In Progress',
           resolvedComputationImage: resolvedImage,
-          lastUpdated: Date.now(),
+          lastUpdated: Date.now().toString(),
         },
       )
       const imageName = resolvedImage.reference
@@ -1708,7 +1708,7 @@ export default {
       }
       await Run.updateOne(
         { _id: runId },
-        { status: 'Complete', lastUpdated: Date.now() },
+        { status: 'Complete', lastUpdated: Date.now().toString() },
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -2359,7 +2359,7 @@ export default {
           consortium: consortiumId,
           email: normalizedEmail,
           token,
-          createdAt: Date.now(),
+          createdAt: new Date(),
         })
       }
 
@@ -2931,7 +2931,7 @@ export default {
       const user = await User.findOneAndUpdate(
         { _id: server.user, roles: 'vault' },
         { $inc: { tokenVersion: 1 } },
-        { new: true },
+        { returnDocument: 'after' },
       ).select('_id roles tokenVersion').exec()
       if (!user) {
         throw new Error('Vault service account not found')
