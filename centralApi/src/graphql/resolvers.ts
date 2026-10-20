@@ -1449,8 +1449,8 @@ export default {
         vaultMembers: consortium.activeVaultMembers ?? [],
         status: 'Provisioning',
         runErrors: [],
-        createdAt: Date.now(),
-        lastUpdated: Date.now(),
+        createdAt: Date.now().toString(),
+        lastUpdated: Date.now().toString(),
       })
 
       const populatedConsortium = await Consortium.findById(consortium._id)
@@ -1550,7 +1550,7 @@ export default {
         {
           status: 'In Progress',
           resolvedComputationImage: resolvedImage,
-          lastUpdated: Date.now(),
+          lastUpdated: Date.now().toString(),
         },
       )
       if (started.matchedCount !== 1) {
@@ -1766,7 +1766,7 @@ export default {
       // A run that already failed, or never started, cannot be reported complete.
       const completed = await Run.updateOne(
         { _id: runId, status: 'In Progress' },
-        { status: 'Complete', lastUpdated: Date.now() },
+        { status: 'Complete', lastUpdated: Date.now().toString() },
       )
       if (completed.matchedCount !== 1) {
         logger.warn('Ignoring run complete report for a run that is not in progress', { runId })
@@ -2468,7 +2468,7 @@ export default {
           consortium: consortiumId,
           email: normalizedEmail,
           tokenDigest: inviteTokenDigest(token),
-          createdAt: Date.now(),
+          createdAt: new Date(),
         })
       }
 
@@ -3051,7 +3051,7 @@ export default {
       const user = await User.findOneAndUpdate(
         { _id: server.user, roles: 'vault' },
         { $inc: { tokenVersion: 1 } },
-        { new: true },
+        { returnDocument: 'after' },
       ).select('_id roles tokenVersion').exec()
       if (!user) {
         throw new Error('Vault service account not found')
