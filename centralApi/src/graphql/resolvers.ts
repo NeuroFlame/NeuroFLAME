@@ -3589,13 +3589,18 @@ export default {
       subscribe: withFilter(
         () => {
           logger.info('Subscription attempt for runStartCentral')
-          return pubsub.asyncIterator(['RUN_START_CENTRAL'])
+          return pubsub.asyncIterableIterator(['RUN_START_CENTRAL'])
         },
         (
-          payload: RunStartCentralPayload,
+          payload: RunStartCentralPayload | undefined,
           variables: unknown,
-          context: Context,
-        ) => context.roles.includes('central'),
+          context: Context | undefined,
+        ) => {
+          if (!context) {
+            return false
+          }
+          return context.roles.includes('central')
+        },
       ),
     },
     runStartEdge: {
@@ -3636,12 +3641,19 @@ export default {
         return output
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_START_EDGE']),
+        () => pubsub.asyncIterableIterator(['RUN_START_EDGE']),
         async (
-          payload: RunStartEdgePayload & { participantId: string; targetUserId: string; vaultId?: string | null },
+          payload: (RunStartEdgePayload & {
+            participantId: string;
+            targetUserId: string;
+            vaultId?: string | null;
+          }) | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           const { targetUserId } = payload
           const { userId } = context
           return userId === targetUserId
@@ -3651,12 +3663,15 @@ export default {
     runEvent: {
       resolve: (payload: RunEventPayload): RunEventPayload => payload,
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_EVENT']),
+        () => pubsub.asyncIterableIterator(['RUN_EVENT']),
         async (
-          payload: RunEventPayload,
+          payload: RunEventPayload | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           logger.info('Run event emitted', { payload, context })
 
           if (context.error) {
@@ -3687,37 +3702,47 @@ export default {
     consortiumLatestRunChanged: {
       resolve: (): string => 'Consortium latest run changed',
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
+        () => pubsub.asyncIterableIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
         async (
-          payload: ConsortiumEventPayload,
+          payload: ConsortiumEventPayload | undefined,
           variables: unknown,
-          context: Context,
-        ) => isConsortiumEventRecipient(payload, context.userId),
+          context: Context | undefined,
+        ) => {
+          if (!payload || !context) {
+            return false
+          }
+          return isConsortiumEventRecipient(payload, context.userId)
+        },
       ),
     },
 
     consortiumDetailsChanged: {
       resolve: (): string => 'Consortium details changed',
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
+        () => pubsub.asyncIterableIterator(['CONSORTIUM_DETAILS_CHANGED']),
         async (
-          payload: ConsortiumEventPayload,
+          payload: ConsortiumEventPayload | undefined,
           variables: unknown,
-          context: Context,
-        ) => isConsortiumEventRecipient(payload, context.userId),
+          context: Context | undefined,
+        ) => {
+          if (!payload || !context) {
+            return false
+          }
+          return isConsortiumEventRecipient(payload, context.userId)
+        },
       ),
     },
 
     runDetailsChanged: {
       resolve: (payload: { runId: string }): string => 'Run details changed',
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_DETAILS_CHANGED']),
+        () => pubsub.asyncIterableIterator(['RUN_DETAILS_CHANGED']),
         async (
-          payload: { runId: string; memberIds?: string[] },
+          payload: { runId: string; memberIds?: string[] } | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
-          if (!context.userId) return false
+          if (!payload || !context?.userId) return false
           if (payload.memberIds) return payload.memberIds.includes(context.userId)
           const run = await Run.findById(payload.runId).select('consortium').lean()
           if (!run) return false
