@@ -21,14 +21,14 @@
     "js-yaml": "^4.1.0",
     "node-fetch": "^3.3.2",
     "winston": "^3.19.0",
-    "ws": "^8.16.0"
+    "ws": "^8.22.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.4",
+    "@types/node": "^24.19.2",
     "@types/archiver": "^6.0.2",
     "@types/dockerode": "^4.0.1",
     "@types/js-yaml": "^4.0.9",
-    "@types/ws": "^8.5.10",
+    "@types/ws": "^8.18.2",
     "typescript": "^7.0.2"
   }
 }
