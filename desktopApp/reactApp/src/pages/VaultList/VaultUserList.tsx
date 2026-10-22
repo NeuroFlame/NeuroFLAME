@@ -160,7 +160,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
                       Add
                     </Button> */}
                     </Box>
-                }
+                  }
                 >
                   <ListItemText
                     primary={vault?.name || 'No Vault Assigned'}

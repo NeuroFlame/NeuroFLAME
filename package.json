@@ -14,9 +14,9 @@
         "vaultFederatedClient"
     ],
     "devDependencies": {
-        "@changesets/cli": "^2.29.2",
-        "eslint": "^9.33.0",
-        "neostandard": "^0.12.2"
+        "@changesets/cli": "^3.0.3",
+        "eslint": "^10.13.0",
+        "neostandard": "^0.14.1"
     },
     "scripts": {
         "db:start": "docker compose --env-file _devCentralDatabase/.env -f _devCentralDatabase/docker-compose.yaml up -d",
