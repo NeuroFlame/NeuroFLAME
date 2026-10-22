@@ -1,17 +1,22 @@
 const neostandard = require('neostandard')
+const { globalIgnores } = require('eslint/config')
 
 module.exports = [
+  globalIgnores([
+    ...neostandard.resolveIgnoresFromGitignore(),
+    '**/*/*.cjs',
+    '**/generated/*.*',
+    'edgeFederatedClient/static/niivue.umd.js',
+  ]),
   ...neostandard({
     ts: true,
-    ignores: [
-      ...neostandard.resolveIgnoresFromGitignore(),
-      '**/*/*.cjs',
-      '**/generated/*.*',
-      'edgeFederatedClient/static/niivue.umd.js',
-    ],
     semi: false,
   }),
   {
+    plugins: {
+      '@stylistic': neostandard.plugins['@stylistic'],
+      n: neostandard.plugins.n,
+    },
     rules: {
       'arrow-body-style': ['error', 'as-needed'],
       'arrow-parens': ['error', 'always'],

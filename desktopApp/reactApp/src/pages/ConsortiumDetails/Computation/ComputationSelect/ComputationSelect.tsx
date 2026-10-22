@@ -14,7 +14,7 @@ import { useConsortiumDetailsContext } from '../../ConsortiumDetailsContext'
 export default function ComputationSelect({
   computation,
   refetch,
-}: { computation: any, refetch: ()=>void }) {
+}: { computation: any, refetch: () => void }) {
   const {
     data: { members },
   } = useConsortiumDetailsContext()
