@@ -41,7 +41,7 @@ function RunErrorsDisplay({
     <>
       {localComputationError && (
         <Grid size={{ sm: 12 }}>
-          <Alert severity='error'>
+          <Alert severity='error' sx={{ borderRadius: 2 }}>
             <AlertTitle>Local computation failed</AlertTitle>
             {localComputationError.scope && (
               <strong>[{localComputationError.scope}] </strong>

@@ -1,13 +1,15 @@
-import { Box, Typography } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 
 export function RunErrorCard({
   source,
   timestamp,
   message,
+  onViewResults,
 }: {
   source: string;
   timestamp?: string;
   message: string;
+  onViewResults?: () => void;
 }) {
   const [summary, ...detailLines] = message.split('\n')
   const details = detailLines.join('\n').trim()
@@ -60,6 +62,13 @@ export function RunErrorCard({
           }}
         >
           {details}
+        </Box>
+      )}
+      {onViewResults && (
+        <Box marginTop={1.5}>
+          <Button size='small' variant='outlined' color='error' onClick={onViewResults}>
+            View Results &amp; Logs
+          </Button>
         </Box>
       )}
     </Box>

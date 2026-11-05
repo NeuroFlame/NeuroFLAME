@@ -1,5 +1,23 @@
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
+import WarningIcon from '@mui/icons-material/Warning'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { useLatestRun } from './useLatestRun' // Import the custom hook
+
+function RunStatusIcon({ status }: { status: string }) {
+  if (status === 'Complete') {
+    return <CheckCircleIcon sx={{ color: '#2FA84F', fontSize: 18, verticalAlign: 'middle' }} />
+  }
+  if (status === 'Error') {
+    return <WarningIcon color='warning' sx={{ fontSize: 18, verticalAlign: 'middle' }} />
+  }
+  return <CircularProgress size={14} sx={{ verticalAlign: 'middle' }} />
+}
+
+function runStatusColor(status: string) {
+  if (status === 'Complete') return '#2FA84F'
+  if (status === 'Error') return '#D32F2F'
+  return '#0066FF'
+}
 
 export function LatestRunDisplay({
   latestRun,
@@ -20,6 +38,7 @@ export function LatestRunDisplay({
             Latest Run
           </Typography>
           <Box
+            position='relative'
             p={2}
             borderRadius={2}
             bgcolor='#EEF2F2'
@@ -28,6 +47,9 @@ export function LatestRunDisplay({
             alignItems='center'
             style={{ animation: 'fadeIn 2s' }}
           >
+            <Box position='absolute' top='1rem' right='1rem'>
+              <RunStatusIcon status={latestRun.status} />
+            </Box>
             <Box>
               <Typography
                 variant='body1'
@@ -37,7 +59,7 @@ export function LatestRunDisplay({
               </Typography>
               <Typography variant='body2' color='textSecondary' fontSize='11px'>
                 <strong>Status:</strong>{' '}
-                <strong style={{ color: '#2FB600' }}>
+                <strong style={{ color: runStatusColor(latestRun.status) }}>
                   {latestRun.status}
                 </strong><br />
                 <strong>Created At:</strong>{' '}
