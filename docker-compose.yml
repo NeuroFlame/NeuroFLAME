@@ -107,8 +107,13 @@ services:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
-      # Apptainer needs unprivileged user namespaces for the Singularity e2e run.
+      # The Singularity e2e run: Apptainer needs user namespaces, and an unmasked
+      # /proc so it can mount a fresh /proc inside the container.
       - apparmor:unconfined
+      - systempaths=unconfined
+    devices:
+      # Apptainer mounts SIF images with squashfuse; without FUSE the run fails.
+      - /dev/fuse
     extra_hosts:
       # Singularity nodes share this container's network, so they reach the central node like Docker nodes do.
       - host.docker.internal:host-gateway

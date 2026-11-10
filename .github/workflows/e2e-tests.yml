@@ -63,6 +63,13 @@ jobs:
             neuroflame-ui-1:/tmp/neuroflame/logs/. \
             edge_client_logs/ 2>/dev/null || true
 
+          # Site failures are only logged locally, so show the tail of each edge log here.
+          find edge_client_logs -type f -name '*.log' | while read -r log; do
+            echo "::group::$log"
+            tail -n 80 "$log"
+            echo "::endgroup::"
+          done
+
       - name: Make test artifacts readable by the runner
         if: always()
         run: |

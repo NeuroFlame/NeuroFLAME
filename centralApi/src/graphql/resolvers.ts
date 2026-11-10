@@ -3573,13 +3573,8 @@ export default {
   Subscription: {
     runStartCentral: {
       resolve: (payload: RunStartCentralPayload): RunStartCentralPayload => {
-        logger.info(
-          `Event emitted for runStartCentral: \n${JSON.stringify(
-            payload,
-            null,
-            2,
-          )}`,
-        )
+        // Parameters and participant names stay out of the log.
+        logger.info(`Event emitted for runStartCentral: run ${payload.runId}`)
         return payload
       },
       subscribe: withFilter(
@@ -3591,16 +3586,7 @@ export default {
           payload: RunStartCentralPayload,
           variables: unknown,
           context: Context,
-        ) => {
-          logger.info(
-            `Subscription attempt for runStartCentral: context: \n${JSON.stringify(
-              context,
-              null,
-              2,
-            )}`,
-          )
-          return context.roles.includes('central')
-        },
+        ) => context.roles.includes('central'),
       ),
     },
     runStartEdge: {
