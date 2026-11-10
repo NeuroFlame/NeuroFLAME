@@ -2,6 +2,7 @@
 import { Router, Request, Response } from 'express'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
 import isCentralUser from '../middleware/isCentralUser.js'
+import { requireObjectIdParams } from '../runKitIds.js'
 import { uploadFile } from '../middleware/uploadFile.js'
 import { unzipFile } from '../middleware/unzipFile.js'
 
@@ -9,6 +10,7 @@ const router = Router()
 
 router.post(
   '/upload/:consortiumId/:runId',
+  requireObjectIdParams,
   decodeAndValidateJWT,
   isCentralUser,
   uploadFile,

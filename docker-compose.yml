@@ -40,7 +40,7 @@ services:
       - RESEND_API_KEY=test-resend-api-key
       - RESEND_BASE_URL=http://resend-mock:3005
       - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:-access-token-secret-example}
-      - ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION:-24h}
+      - ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION:-48h}
       - CONSORTIUM_INVITE_URL=${CONSORTIUM_INVITE_URL:-http://localhost:3001}
 
   centralFederatedClient:

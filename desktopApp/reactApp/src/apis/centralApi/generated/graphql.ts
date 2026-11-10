@@ -293,6 +293,7 @@ export type MutationConsortiumJoinByInviteArgs = {
 
 export type MutationConsortiumLeaveArgs = {
   consortiumId: Scalars['String']['input'];
+  newLeaderId?: InputMaybe<Scalars['String']['input']>;
 };
 
 

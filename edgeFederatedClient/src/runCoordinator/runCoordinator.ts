@@ -42,6 +42,16 @@ export async function subscribeToCentralApi({
   subscribe(client, RUN_START_SUBSCRIPTION, runStartHandler)
 }
 
+// graphql-ws ignores the promise a handler returns; a rejection would be unhandled
+// and would stop this service. Log handler failures instead.
+export const guardEventHandler = (next: Function) => (data: unknown): void => {
+  Promise.resolve()
+    .then(() => next(data))
+    .catch((handlerError: unknown) => {
+      logger.error('Subscription event handler failed', { error: handlerError })
+    })
+}
+
 function subscribe(
   client: any,
   subscriptionQuery: string,
@@ -50,6 +60,6 @@ function subscribe(
   const { next, error, complete } = eventHandlers
   return client.subscribe(
     { query: subscriptionQuery },
-    { next, error, complete },
+    { next: guardEventHandler(next), error, complete },
   )
 }

@@ -17,12 +17,13 @@ import { typeDefs } from './graphql/generated/typeDefs.js'
 import resolvers from './graphql/resolvers.js'
 
 import { httpServerContext } from './serverContexts.js'
-import { validateAccessToken } from './authentication/authentication.js'
+import { authenticateToken } from './authentication/authenticateTokenRoute.js'
 import { APOLLO_PORT, DATABASE_URI, LOG_PATH } from './config.js'
 import { APPLICATION_API_VERSION } from './versions.js'
 import { installAccountRateLimits } from './authentication/accountRateLimit.js'
 import { createSessionWebSocketOptions } from './authentication/sessionWebSockets.js'
 import { backfillUserTokenVersion } from './database/backfillUserTokenVersion.js'
+import { backfillInviteTokenDigests } from './database/backfillInviteTokenDigests.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -50,6 +51,10 @@ export async function start({
   const backfilledAccounts = await backfillUserTokenVersion()
   if (backfilledAccounts > 0) {
     logger.info(`Initialized tokenVersion for ${backfilledAccounts} existing accounts`)
+  }
+  const hashedInvites = await backfillInviteTokenDigests()
+  if (hashedInvites > 0) {
+    logger.info(`Replaced ${hashedInvites} stored invite tokens with digests`)
   }
 
   const PORT = port
@@ -129,24 +134,7 @@ export async function start({
     res.sendFile(inviteSiteIndex)
   })
 
-  app.post('/authenticateToken', (req, res) => {
-    const token = req.body.token // assuming the token is sent in the request body
-    if (!token) {
-      res.status(400).send('Token is required')
-      return
-    }
-
-    try {
-      const decodedAccessToken = validateAccessToken(token)
-      if (decodedAccessToken) {
-        res.status(200).json({ decodedAccessToken })
-      } else {
-        res.status(401).send('Token is invalid')
-      }
-    } catch (e) {
-      res.status(401).send('Failed to decode token') // More specific error message
-    }
-  })
+  app.post('/authenticateToken', authenticateToken)
 
   // Now that our HTTP server is fully set up, actually listen.
   httpServer.listen(PORT, () => {

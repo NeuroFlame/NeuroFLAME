@@ -1,4 +1,5 @@
 import Docker from 'dockerode'
+import { dockerMounts, singularityBindArgs } from './mounts.js'
 import { spawn, spawnSync } from 'child_process'
 import { promises as fs } from 'fs'
 import * as path from 'path'
@@ -82,10 +83,6 @@ const launchDockerNode = async ({
     `Attempting to launch Docker container from imageName: ${imageName}`,
   )
 
-  const binds = directoriesToMount.map(
-    (mount) =>
-      `${mount.hostDirectory}:${mount.containerDirectory}:${mount.readOnly ? 'ro' : 'rw'}`,
-  )
   const exposedPorts: ExposedPorts = {}
   const portBindingsFormatted: PortBindings = {}
 
@@ -114,7 +111,7 @@ const launchDockerNode = async ({
       ),
       ExposedPorts: exposedPorts,
       HostConfig: {
-        Binds: binds,
+        Mounts: dockerMounts(directoriesToMount),
         CapDrop: ['ALL'],
         SecurityOpt: ['no-new-privileges:true'],
         PortBindings: portBindingsFormatted,
@@ -344,14 +341,7 @@ const launchSingularityNode = async ({
       await fs.rm(failureLogPath, { force: true })
     }
 
-    // Build mount bindings for Singularity (-B flag)
-    const bindMounts: string[] = directoriesToMount.map(
-      (mount) =>
-        `${mount.hostDirectory}:${mount.containerDirectory}:${mount.readOnly ? 'ro' : 'rw'}`,
-    )
-
-    // Add /tmp mount for compatibility
-    // bindMounts.push('/tmp:/tmp:rw')
+    const bindArgs = singularityBindArgs(directoriesToMount)
 
     // Build environment variables
     const envVars: string[] = []
@@ -377,10 +367,7 @@ const launchSingularityNode = async ({
       singularityArgs.push('--env', envVars.join(','))
     }
 
-    // Add bind mounts
-    if (bindMounts.length > 0) {
-      singularityArgs.push('-B', bindMounts.join(','))
-    }
+    singularityArgs.push(...bindArgs)
 
     // Add image path
     singularityArgs.push(imagePath)
@@ -537,68 +524,22 @@ const detectSingularityOrApptainer = async (): Promise<string> => {
   )
 }
 
+// Only images prepared into the private cache (pulled by digest and label-checked)
+// may run; never pick up a look-alike .sif from /tmp or the working directory.
 const findSingularityImage = async (imageName: string): Promise<string> => {
-  const config = getConfig()
-  const singularityImagesDir = path.join(
-    config.pathBaseDirectory,
-    'singularityImages',
-  )
-
-  // If imageName is already a full path to a .sif file, use it directly
-  if (path.isAbsolute(imageName) && imageName.endsWith('.sif')) {
-    try {
-      await fs.access(imageName)
-      return imageName
-    } catch {
-      throw new Error(`Singularity image not found at path: ${imageName}`)
-    }
+  const singularityImagesDir = path.resolve(getConfig().pathBaseDirectory, 'singularityImages')
+  const imagePath = path.resolve(imageName)
+  if (
+    !path.isAbsolute(imageName) ||
+    !imagePath.endsWith('.sif') ||
+    path.dirname(imagePath) !== singularityImagesDir
+  ) {
+    throw new Error('Singularity image is not a prepared image in the private image cache')
   }
-
-  // If it's a relative path ending with .sif, check it
-  if (imageName.endsWith('.sif')) {
-    try {
-      await fs.access(imageName)
-      return path.resolve(imageName)
-    } catch {
-      // Continue to search
-    }
+  try {
+    await fs.access(imagePath)
+  } catch {
+    throw new Error(`Singularity image not found at path: ${imagePath}`)
   }
-
-  // Otherwise, convert Docker image name format to Singularity pattern
-  // e.g., "user/repo:tag" -> "user_repo"
-  const localImagePattern = imageName
-    .replace(/:latest$/, '')
-    .replace(/[:@]/g, '_') // Replace : and @ with _
-    .replace(/\//g, '_') // Replace / with _
-    .toLowerCase()
-
-  // Search for images in singularityImages directory first, then fallback locations
-  const searchPaths = [
-    singularityImagesDir,
-    process.cwd(),
-    path.join(process.cwd(), 'images'),
-    '/tmp',
-  ]
-
-  for (const searchPath of searchPaths) {
-    try {
-      const files = await fs.readdir(searchPath)
-      const matchingFile = files.find(
-        (file) =>
-          file.endsWith('.sif') && file.includes(localImagePattern),
-      )
-      if (matchingFile) {
-        const imagePath = path.join(searchPath, matchingFile)
-        logger.info(`Found Singularity image at: ${imagePath}`)
-        return imagePath
-      }
-    } catch {
-      // Directory doesn't exist or can't be read, continue
-      continue
-    }
-  }
-
-  throw new Error(
-    `No Singularity image found matching "${imageName}". Searched for pattern "${localImagePattern}.sif" in: ${searchPaths.join(', ')}`,
-  )
+  return imagePath
 }

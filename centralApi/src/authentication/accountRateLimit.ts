@@ -3,7 +3,17 @@ import { GraphQLError, GraphQLSchema, defaultFieldResolver } from 'graphql'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
-const policies: Record<string, { limit: number; windowMs: number; accountLimit?: number }> = {
+interface Policy {
+  limit: number
+  windowMs: number
+  // Lower limit per client for one target account (taken from accountArg).
+  accountLimit?: number
+  accountArg?: string
+  // Also limit the signed-in caller across every client address.
+  perUser?: boolean
+}
+
+const policies: Record<string, Policy> = {
   login: { limit: 30, windowMs: 15 * MINUTE, accountLimit: 10 },
   userCreate: { limit: 5, windowMs: HOUR },
   requestPasswordReset: { limit: 5, windowMs: HOUR, accountLimit: 3 },
@@ -11,6 +21,7 @@ const policies: Record<string, { limit: number; windowMs: number; accountLimit?:
   userChangePassword: { limit: 10, windowMs: 15 * MINUTE },
   adminChangeUserPassword: { limit: 20, windowMs: 15 * MINUTE },
   adminCreateVaultUser: { limit: 20, windowMs: 15 * MINUTE },
+  consortiumInvite: { limit: 30, windowMs: HOUR, accountLimit: 3, accountArg: 'email', perUser: true },
 }
 
 const limited = (retryAfterSeconds: number): GraphQLError => new GraphQLError(
@@ -22,7 +33,7 @@ export const createAccountRateLimiter = ({ now = Date.now, maxBuckets = 20_000 }
   const buckets = new Map<string, { count: number; expiresAt: number }>()
   let nextSweep = 0
   return {
-    check(operation: string, clientAddress: string, account?: string): void {
+    check(operation: string, clientAddress: string, account?: string, userId?: string): void {
       const policy = policies[operation]
       if (!policy) return
       const time = now()
@@ -36,9 +47,13 @@ export const createAccountRateLimiter = ({ now = Date.now, maxBuckets = 20_000 }
         { key: `all:${client}`, limit: 60, windowMs: 15 * MINUTE },
         { key: `${operation}:${client}`, ...policy },
       ]
-      if (account && policy.accountLimit) {
+      if (typeof account === 'string' && policy.accountLimit) {
         const target = createHash('sha256').update(account.trim().toLowerCase()).digest('hex')
         checks.push({ key: `${operation}:${client}:${target}`, ...policy, limit: policy.accountLimit })
+      }
+      if (userId && policy.perUser) {
+        const user = createHash('sha256').update(userId).digest('hex')
+        checks.push({ key: `${operation}:user:${user}`, ...policy })
       }
       for (const check of checks) {
         const bucket = buckets.get(check.key)
@@ -69,7 +84,13 @@ export const installAccountRateLimits = (
     if (!field) continue
     const resolve = field.resolve ?? defaultFieldResolver
     field.resolve = (source, args, context, info) => {
-      limiter.check(operation, context?.clientAddress ?? 'unknown', args.username)
+      const policy = policies[operation]
+      limiter.check(
+        operation,
+        context?.clientAddress ?? 'unknown',
+        args[policy.accountArg ?? 'username'],
+        context?.userId,
+      )
       return resolve(source, args, context, info)
     }
   }

@@ -6,6 +6,7 @@ import {
 import { useCentralApi } from '../../apis/centralApi/centralApi'
 import { useNavigate } from 'react-router-dom'
 import { useUserState } from '../../contexts/UserStateContext'
+import LeaveConsortiumDialog from '../../components/LeaveConsortiumDialog'
 
 interface ConsortiumListItemProps {
   consortium: ConsortiumListItemType;
@@ -23,6 +24,8 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
   const { userId } = useUserState()
 
   const isMember = consortium.members.some((member) => member.id === userId)
+  const isLeader = consortium.leader.id === userId
+  const [leaveOpen, setLeaveOpen] = useState(false)
 
   const { consortiumJoin, consortiumLeave } = useCentralApi()
 
@@ -39,18 +42,10 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
     }
   }
 
-  // Handle leaving the consortium
-  const handleLeave = async () => {
-    setLoading(true)
-    try {
-      await consortiumLeave({ consortiumId: consortium.id })
-      // You can refetch or update the UI state to reflect the change
-    } catch (error) {
-      console.error('Failed to leave the consortium:', error)
-    } finally {
-      setLoading(false)
-      onReload()
-    }
+  // Errors reach the leave dialog, which shows them; a leader must name a successor.
+  const handleLeave = async (newLeaderId?: string) => {
+    await consortiumLeave({ consortiumId: consortium.id, newLeaderId })
+    onReload()
   }
 
   return (
@@ -88,13 +83,21 @@ const ConsortiumListItem: React.FC<ConsortiumListItemProps> = ({
         <Button
           variant={isMember ? 'outlined' : 'contained'}
           color='primary'
-          onClick={isMember ? handleLeave : handleJoin}
+          onClick={isMember ? () => setLeaveOpen(true) : handleJoin}
           disabled={loading}
           sx={{ ml: 2 }}
         >
           {loading ? 'Loading...' : isMember ? 'Leave' : 'Join'}
         </Button>
       </Box>
+      <LeaveConsortiumDialog
+        open={leaveOpen}
+        consortiumTitle={consortium.title}
+        isLeader={isLeader}
+        leaderCandidates={consortium.members.filter((member) => member.id !== userId && !member.vault)}
+        onClose={() => setLeaveOpen(false)}
+        onLeave={handleLeave}
+      />
     </Box>
   )
 }

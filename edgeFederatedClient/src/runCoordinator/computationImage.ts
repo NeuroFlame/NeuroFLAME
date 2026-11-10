@@ -94,15 +94,50 @@ async function prepareDockerImage(
       }
     }
   }
-  const labels = inspection.Config?.Labels ?? {}
+  assertImageLabels(inspection.Config?.Labels ?? {}, resolvedImage.metadata)
+  return resolvedImage.reference
+}
+
+function assertImageLabels(
+  labels: Record<string, unknown>,
+  metadata: ComputationImageMetadata,
+): void {
   for (const [field, label] of Object.entries(LABELS) as Array<
     [keyof ComputationImageMetadata, string]
   >) {
-    if (labels[label] !== resolvedImage.metadata[field]) {
+    // Central records trimmed label values, so compare them the same way.
+    const value = labels[label]
+    if (typeof value !== 'string' || value.trim() !== metadata[field]) {
       throw new Error(`Computation image label "${label}" does not match the run`)
     }
   }
-  return resolvedImage.reference
+}
+
+/** OCI labels of a Docker image are carried into the SIF built from it. */
+export async function readSingularityLabels(
+  binary: string,
+  imagePath: string,
+): Promise<Record<string, unknown>> {
+  const stdout = await new Promise<string>((resolve, reject) => {
+    execFile(
+      binary,
+      ['inspect', '--labels', '--json', imagePath],
+      { maxBuffer: 1024 * 1024, timeout: 120_000 },
+      (error, output) => (error ? reject(error) : resolve(output)),
+    )
+  })
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(stdout)
+  } catch {
+    throw new Error('Singularity returned unreadable image labels')
+  }
+  const labels = (parsed as { data?: { attributes?: { labels?: unknown } } })
+    ?.data?.attributes?.labels
+  if (!labels || typeof labels !== 'object' || Array.isArray(labels)) {
+    throw new Error('Singularity did not report image labels')
+  }
+  return labels as Record<string, unknown>
 }
 
 function getSingularityBinary(): Promise<string> {
@@ -137,16 +172,19 @@ async function prepareSingularityImage(
     imageDirectory,
     `${pattern}-${resolvedImage.digest.slice('sha256:'.length, 19)}.sif`,
   )
+  const binary = await getSingularityBinary()
   try {
     await fs.access(imagePath)
+    // A cached image is only trusted after the same label check as a fresh pull.
+    assertImageLabels(await readSingularityLabels(binary, imagePath), resolvedImage.metadata)
     return imagePath
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     // Pull the exact content-addressed image below.
   }
 
   const temporaryPath = `${imagePath}.tmp`
   await fs.rm(temporaryPath, { force: true })
-  const binary = await getSingularityBinary()
   await new Promise<void>((resolve, reject) => {
     const processHandle = spawn(binary, [
       'pull',
@@ -166,6 +204,12 @@ async function prepareSingularityImage(
       }
     })
   })
+  try {
+    assertImageLabels(await readSingularityLabels(binary, temporaryPath), resolvedImage.metadata)
+  } catch (error) {
+    await fs.rm(temporaryPath, { force: true })
+    throw error
+  }
   await fs.rename(temporaryPath, imagePath)
   return imagePath
 }

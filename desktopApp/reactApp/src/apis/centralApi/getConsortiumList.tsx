@@ -15,6 +15,9 @@ const GET_CONSORTIUM_LIST_QUERY = gql`
       members {
         id
         username
+        vault {
+          name
+        }
       }
       isPrivate
       createdAt

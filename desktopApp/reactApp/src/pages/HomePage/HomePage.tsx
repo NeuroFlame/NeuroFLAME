@@ -50,6 +50,7 @@ const HomePage: React.FC = () => {
       </Box>
       <iframe
         src='https://coinstac.org/app-landing-page/'
+        sandbox='allow-scripts allow-same-origin allow-popups'
         style={{
           width: 'calc(100vw - 2rem)',
           height: '80vh',

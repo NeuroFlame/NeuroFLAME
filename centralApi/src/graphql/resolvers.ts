@@ -35,6 +35,7 @@ import { logger } from '../logger.js'
 import { createHash, randomBytes } from 'crypto'
 import { COMPUTATION_API_VERSION } from '../versions.js'
 import { disclosedRunErrorMessage } from './runErrorDisclosure.js'
+import { buildInviteEmail, inviteTokenDigest, isInviteToken } from './inviteEmail.js'
 import { revokeUserSessions } from '../authentication/sessionRevocation.js'
 
 interface Context {
@@ -42,6 +43,9 @@ interface Context {
   roles: string[]
   error: string
 }
+
+// Runs in these states have not finished; Complete and Error are terminal.
+const ACTIVE_RUN_STATUSES = ['Pending', 'Provisioning', 'In Progress']
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
@@ -435,19 +439,42 @@ const sendInviteEmail = async ({
   consortiumTitle: string
   token: string
 }): Promise<void> => {
-  const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
-      Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
+  const { subject, html } = buildInviteEmail({
+    leaderName,
+    consortiumTitle,
+    inviteUrl: getInviteUrl(token),
+  })
 
   const { error } = await resend.emails.send({
     from: RESEND_FROM,
     to: [email],
-    subject: `Invitation to join ${consortiumTitle}`,
+    subject,
     html,
   })
 
   if (error) {
     throw new Error(`Failed to send invite email: ${error.message}`)
   }
+}
+
+// Events about a consortium that no longer exists, or about a member who has
+// just left, carry the member list from before the change.
+interface ConsortiumEventPayload {
+  consortiumId: string
+  memberIds?: string[]
+}
+
+const memberIdsOf = (consortium: { members: Array<{ toString: () => string }> }): string[] =>
+  consortium.members.map((member) => member.toString())
+
+const isConsortiumEventRecipient = async (
+  payload: ConsortiumEventPayload,
+  userId?: string,
+): Promise<boolean> => {
+  if (!userId) return false
+  if (payload.memberIds) return payload.memberIds.includes(userId)
+  const consortium = await Consortium.findById(payload.consortiumId).select('members').lean()
+  return consortium ? memberIdsOf(consortium).includes(userId) : false
 }
 
 export default {
@@ -1041,31 +1068,48 @@ export default {
         .populate('vault.allowedComputations', 'title imageName')
         .exec()
 
-      // Get consortium titles for any running computations
+      // The public vault directory shows each vault's name, description and allowed
+      // computations. Operational details (host dataset paths, running runs, consortium
+      // titles, dataset mappings) stay with admins and the vault's own account.
+      const isAdmin = context.roles?.includes('admin') === true
+      const canViewDetails = (user: { _id: { toString(): string } }): boolean =>
+        isAdmin || user._id.toString() === context.userId
+
       const consortiumIds = new Set<string>()
-      users.forEach((user) => {
+      users.filter(canViewDetails).forEach((user) => {
         user.vaultStatus?.runningComputations?.forEach((comp) => {
           consortiumIds.add(comp.consortiumId)
         })
       })
 
-      const consortiums = await Consortium.find({
-        _id: { $in: Array.from(consortiumIds) },
-      })
-        .select('_id title')
-        .lean()
+      const consortiums = consortiumIds.size > 0
+        ? await Consortium.find({
+          _id: { $in: Array.from(consortiumIds) },
+        })
+          .select('_id title')
+          .lean()
+        : []
       const consortiumMap = new Map(
         consortiums.map((c) => [c._id.toString(), c.title]),
       )
 
-      return users.map((user) => ({
-        id: user._id.toString(),
-        username: context.roles?.includes('admin') || user._id.toString() === context.userId
-          ? user.username
-          : user.vault?.name || 'Vault user',
-        vault: mapVault(user.vault),
-        vaultStatus: mapVaultStatus(user.vaultStatus, consortiumMap),
-      }))
+      return users.map((user) => {
+        const vault = mapVault(user.vault)
+        if (!canViewDetails(user)) {
+          return {
+            id: user._id.toString(),
+            username: user.vault?.name || 'Vault user',
+            vault: vault && { ...vault, datasetMappings: [] },
+            vaultStatus: null,
+          }
+        }
+        return {
+          id: user._id.toString(),
+          username: user.username,
+          vault,
+          vaultStatus: mapVaultStatus(user.vaultStatus, consortiumMap),
+        }
+      })
     },
     getVaultServerList: async (
       _: unknown,
@@ -1148,7 +1192,10 @@ export default {
       _: unknown,
       { inviteToken }: { inviteToken: string },
     ): Promise<InviteInfo> => {
-      const invite = await Invite.findOne({ token: inviteToken })
+      if (!isInviteToken(inviteToken)) {
+        throw new Error('Invalid invite link')
+      }
+      const invite = await Invite.findOne({ tokenDigest: inviteTokenDigest(inviteToken) })
         .populate('leader')
         .populate('consortium')
         .lean()
@@ -1267,15 +1314,12 @@ export default {
         throw new Error('Invalid username or password')
       }
 
-      // create a token
-      const tokens = generateTokens(
-        {
-          userId: user._id,
-          roles: user.roles,
-          tokenVersion: user.tokenVersion,
-        },
-        { shouldExpire: false },
-      )
+      // Sign-in sessions expire; vault service tokens are issued separately.
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+        tokenVersion: user.tokenVersion,
+      })
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -1499,14 +1543,20 @@ export default {
       ) {
         throw new Error('Resolved computation image digest is invalid')
       }
-      await Run.updateOne(
-        { _id: runId },
+      // Only a provisioning run can start. A duplicate or late ready report (for example
+      // after the central node already failed) must not revive the run or re-notify sites.
+      const started = await Run.updateOne(
+        { _id: runId, status: 'Provisioning' },
         {
           status: 'In Progress',
           resolvedComputationImage: resolvedImage,
           lastUpdated: Date.now(),
         },
       )
+      if (started.matchedCount !== 1) {
+        logger.warn('Ignoring run ready report for a run that is no longer provisioning', { runId })
+        return false
+      }
       const imageName = resolvedImage.reference
       const computationId = run.studyConfiguration.computation._id.toString()
       const consortiumId = run.consortium._id
@@ -1652,19 +1702,19 @@ export default {
         runError.vault = reportingVault._id
       }
 
-      const runUpdate: Record<string, unknown> = {
-        status: 'Error',
-        lastUpdated: Date.now().toString(),
-        $push: {
-          runErrors: runError,
-        },
-      }
-
       // Ordinary participants are always redacted. Only an authorized hosted
       // vault server may apply its operator-controlled disclosure decision.
+      // Every error is recorded, but a finished run keeps its terminal status.
       await Run.updateOne(
         { _id: runId },
-        runUpdate,
+        {
+          $set: { lastUpdated: Date.now().toString() },
+          $push: { runErrors: runError },
+        },
+      )
+      await Run.updateOne(
+        { _id: runId, status: { $in: ACTIVE_RUN_STATUSES } },
+        { $set: { status: 'Error' } },
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -1713,10 +1763,15 @@ export default {
       if (!run) {
         throw new Error(`Run with id ${runId} not found`)
       }
-      await Run.updateOne(
-        { _id: runId },
+      // A run that already failed, or never started, cannot be reported complete.
+      const completed = await Run.updateOne(
+        { _id: runId, status: 'In Progress' },
         { status: 'Complete', lastUpdated: Date.now() },
       )
+      if (completed.matchedCount !== 1) {
+        logger.warn('Ignoring run complete report for a run that is not in progress', { runId })
+        return false
+      }
 
       const consortium = await Consortium.findById(run.consortium._id)
       if (!consortium) {
@@ -1927,6 +1982,15 @@ export default {
       },
       context: Context,
     ): Promise<boolean> => {
+      // Vault allowlists trust computations by ID, so only admins may define them.
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles?.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
       if (!title || !imageName || !imageDownloadUrl || !notes) {
         throw new Error(
           'Title, imageName, imageDownloadUrl, and notes are required',
@@ -1969,15 +2033,19 @@ export default {
       },
       context: Context,
     ): Promise<boolean> => {
+      // Changing a computation changes what every allowing vault will run.
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
+      if (!context.roles?.includes('admin')) {
+        throw new Error('Unauthorized')
+      }
+
       // Ensure the computation exists
       const computation = await Computation.findById(computationId)
       if (!computation) {
         throw new Error('Computation not found')
-      }
-
-      // Verify that the user is the owner of the computation
-      if (computation.owner.toString() !== context.userId) {
-        throw new Error('User not authorized to edit this computation')
       }
 
       // Ensure at least one field is provided for update
@@ -2016,7 +2084,7 @@ export default {
       // Perform the update operation
       try {
         await Computation.updateOne(
-          { _id: computationId, owner: context.userId },
+          { _id: computationId },
           { $set: updatePayload },
         )
         return true
@@ -2058,14 +2126,14 @@ export default {
       }
 
       // Ensure at least one field is provided for update
-      if (!title && !description && isPrivate === undefined) {
+      if (!title && description === undefined && isPrivate === undefined) {
         throw new Error('No fields provided to update')
       }
 
-      // Prepare the update payload
+      // Prepare the update payload. An empty description clears it.
       const updatePayload: { [key: string]: string | boolean } = {}
       if (title) updatePayload.title = title
-      if (description) updatePayload.description = description
+      if (description !== undefined) updatePayload.description = description
       if (isPrivate !== undefined) updatePayload.isPrivate = isPrivate
 
       // Perform the update operation
@@ -2123,7 +2191,10 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      const invite = await Invite.findOne({ token: inviteToken })
+      if (!isInviteToken(inviteToken)) {
+        throw new Error('Invalid invite link')
+      }
+      const invite = await Invite.findOne({ tokenDigest: inviteTokenDigest(inviteToken) })
         .populate('leader', 'id username')
         .populate('consortium', 'id members') as any
 
@@ -2195,15 +2266,17 @@ export default {
 
       await Consortium.findByIdAndDelete(consortiumId)
 
+      // The consortium no longer exists, so name its former members here.
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
+        memberIds: memberIdsOf(consortium),
       })
 
       return true
     },
     consortiumLeave: async (
       _: unknown,
-      { consortiumId }: { consortiumId: string },
+      { consortiumId, newLeaderId }: { consortiumId: string; newLeaderId?: string | null },
       context: Context,
     ): Promise<boolean> => {
       const { userId } = context
@@ -2211,13 +2284,38 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      await Consortium.findByIdAndUpdate(consortiumId, {
-        $pull: { members: userId, activeMembers: userId, readyMembers: userId },
-      })
+      const consortium = await Consortium.findById(consortiumId).select('leader members').lean()
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+      const memberIds = memberIdsOf(consortium)
+      const leave = { $pull: { members: userId, activeMembers: userId, readyMembers: userId } }
 
-      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId,
-      })
+      if (consortium.leader.toString() !== userId) {
+        await Consortium.updateOne({ _id: consortiumId }, leave)
+      } else {
+        // A consortium always has a leader: the leader hands over before leaving.
+        if (!newLeaderId) {
+          throw new Error('Choose a new leader before leaving this consortium')
+        }
+        if (newLeaderId === userId || !memberIds.includes(newLeaderId)) {
+          throw new Error('The new leader must be another member of this consortium')
+        }
+        const newLeader = await User.findById(newLeaderId).select('roles').lean()
+        if (!newLeader || newLeader.roles.includes('vault')) {
+          throw new Error('The new leader must be a member account, not a vault')
+        }
+        const result = await Consortium.updateOne(
+          { _id: consortiumId, leader: userId, members: newLeaderId },
+          { $set: { leader: newLeaderId }, ...leave },
+        )
+        if (result.matchedCount !== 1) {
+          throw new Error('The consortium changed while leaving. Please try again.')
+        }
+      }
+
+      // Include the member who left so their other windows update too.
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', { consortiumId, memberIds })
 
       return true
     },
@@ -2357,7 +2455,7 @@ export default {
 
       if (invite) {
         invite.email = normalizedEmail
-        invite.token = token
+        invite.tokenDigest = inviteTokenDigest(token)
         invite.createdAt = new Date()
         await invite.save()
       } else {
@@ -2365,7 +2463,7 @@ export default {
           leader: context.userId,
           consortium: consortiumId,
           email: normalizedEmail,
-          token,
+          tokenDigest: inviteTokenDigest(token),
           createdAt: Date.now(),
         })
       }
@@ -3348,14 +3446,19 @@ export default {
       if (consortium.leader.toString() !== context.userId) {
         throw new Error('User not authorized')
       }
+      if (userId === context.userId) {
+        throw new Error('The leader cannot be removed. Choose a new leader by leaving the consortium.')
+      }
 
       // remove from the members, active members, and ready members
       await consortium.updateOne({
         $pull: { members: userId, activeMembers: userId, readyMembers: userId },
       })
 
+      // Include the removed member so their view updates too.
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
+        memberIds: memberIdsOf(consortium),
       })
 
       return true
@@ -3449,6 +3552,7 @@ export default {
       }
 
       const consortiumId = (run as any).consortium._id.toString()
+      const consortium = await Consortium.findById(consortiumId).select('members').lean()
 
       await Run.findByIdAndDelete(runId)
 
@@ -3456,8 +3560,10 @@ export default {
         consortiumId,
       })
 
+      // The run no longer exists, so name the consortium members here.
       pubsub.publish('RUN_DETAILS_CHANGED', {
         runId,
+        memberIds: consortium ? memberIdsOf(consortium) : [],
       })
 
       return true
@@ -3588,26 +3694,10 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
         async (
-          payload: { consortiumId: string },
+          payload: ConsortiumEventPayload,
           variables: unknown,
           context: Context,
-        ) => {
-          const { userId } = context
-          const { consortiumId } = payload
-
-          // Check if the user is part of the consortium's active members
-          const consortium = await Consortium.findById(consortiumId).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          const isMember = consortium.members.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
-          )
-
-          return isMember
-        },
+        ) => isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
@@ -3616,26 +3706,10 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
         async (
-          payload: { consortiumId: string },
+          payload: ConsortiumEventPayload,
           variables: unknown,
           context: Context,
-        ) => {
-          const { userId } = context
-          const { consortiumId } = payload
-
-          // Check if the user is part of the consortium's active members
-          const consortium = await Consortium.findById(consortiumId).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          const isMember = consortium.members.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
-          )
-
-          return isMember
-        },
+        ) => isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
@@ -3644,35 +3718,21 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['RUN_DETAILS_CHANGED']),
         async (
-          payload: { runId: string },
+          payload: { runId: string; memberIds?: string[] },
           variables: unknown,
           context: Context,
         ) => {
-          const { userId } = context
-          const { runId } = payload
-
-          // Find the run by its ID
-          const run = await Run.findById(runId).lean()
-          if (!run) {
-            logger.error('Run not found')
-            throw new Error('Run not found')
-          }
-
-          // Check if the user is a member of the run's consortium
-          const consortium = await Consortium.findById(run.consortium).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          // Verify if the user is part of the consortium's members
-          const isMember = consortium.members.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
+          if (!context.userId) return false
+          if (payload.memberIds) return payload.memberIds.includes(context.userId)
+          const run = await Run.findById(payload.runId).select('consortium').lean()
+          if (!run) return false
+          return isConsortiumEventRecipient(
+            { consortiumId: run.consortium.toString() },
+            context.userId,
           )
-
-          return isMember
         },
       ),
     },
+
   },
 }

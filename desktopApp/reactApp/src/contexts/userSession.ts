@@ -8,6 +8,26 @@ export interface UserSession {
 type SessionStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 const USER_KEYS = ['accessToken', 'userId', 'username', 'roles'] as const
 
+// Reads the token's expiry so the app can sign out on time. The server still
+// decides whether a token is valid; this payload is not verified here.
+export const accessTokenExpiresAt = (accessToken: string): number | null => {
+  const payload = accessToken.split('.')[1]
+  if (!payload) return null
+  try {
+    const { exp } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof exp === 'number' ? exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+// Sign-in tokens always carry an expiry; one without (issued before sessions
+// expired) is no longer accepted by the server either.
+const isExpired = (user: UserSession, now: number): boolean => {
+  const expiresAt = accessTokenExpiresAt(user.accessToken)
+  return expiresAt === null || expiresAt <= now
+}
+
 const clearUserFields = (storage: SessionStorage) => {
   for (const key of USER_KEYS) storage.removeItem(key)
 }
@@ -57,13 +77,17 @@ export const saveUserSession = (
   }
 }
 
-export const restoreUserSession = (local: SessionStorage, session: SessionStorage): UserSession | null => {
+export const restoreUserSession = (
+  local: SessionStorage,
+  session: SessionStorage,
+  now = Date.now(),
+): UserSession | null => {
   const currentUser = readUserFields(session)
-  if (currentUser) return currentUser
+  if (currentUser && !isExpired(currentUser, now)) return currentUser
 
-  if (local.getItem('keepLoggedIn') === 'true') {
+  if (!currentUser && local.getItem('keepLoggedIn') === 'true') {
     const rememberedUser = readUserFields(local)
-    if (rememberedUser) {
+    if (rememberedUser && !isExpired(rememberedUser, now)) {
       writeUserFields(session, rememberedUser)
       return rememberedUser
     }

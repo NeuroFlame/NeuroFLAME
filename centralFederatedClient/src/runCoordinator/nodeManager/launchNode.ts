@@ -1,4 +1,5 @@
 import Docker from 'dockerode'
+import { dockerMounts } from './mounts.js'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import { logger } from '../../logger.js'
@@ -71,13 +72,13 @@ export async function launchNode({
   failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
-}: LaunchNodeArgs) {
+}: LaunchNodeArgs): Promise<string> {
   // Central client only supports Docker
   if (containerService !== 'docker') {
     throw new Error(`Central client only supports Docker, not ${containerService}`)
   }
 
-  await launchDockerNode({
+  return launchDockerNode({
     imageName,
     directoriesToMount,
     portBindings,
@@ -88,6 +89,26 @@ export async function launchNode({
   })
 }
 
+// Containers the orchestrator stopped on purpose; their exit is not a run outcome.
+const intentionallyStopped = new Set<string>()
+
+/**
+ * Stop a node whose run was abandoned (for example, the central API did not accept
+ * readiness). Exit callbacks are skipped so the stop is not reported as a run result.
+ */
+export const stopDockerNode = async (containerId: string): Promise<void> => {
+  intentionallyStopped.add(containerId)
+  try {
+    await docker.getContainer(containerId).stop({ t: 10 })
+  } catch (error) {
+    const statusCode = (error as { statusCode?: number }).statusCode
+    // 304: already stopped, its exit handler may still be running. 404: already
+    // removed, so its exit handler has finished and will not read the marker.
+    if (statusCode !== 304) intentionallyStopped.delete(containerId)
+    if (statusCode !== 304 && statusCode !== 404) throw error
+  }
+}
+
 const launchDockerNode = async ({
   imageName,
   directoriesToMount,
@@ -96,15 +117,11 @@ const launchDockerNode = async ({
   failureLogPath,
   onContainerExitSuccess,
   onContainerExitError,
-}: Omit<LaunchNodeArgs, 'containerService'>) => {
+}: Omit<LaunchNodeArgs, 'containerService'>): Promise<string> => {
   logger.info(
     `Attempting to launch Docker container from imageName: ${imageName}`,
   )
 
-  const binds = directoriesToMount.map(
-    (mount) =>
-      `${mount.hostDirectory}:${mount.containerDirectory}:${mount.readOnly ? 'ro' : 'rw'}`,
-  )
   const exposedPorts: ExposedPorts = {}
   const portBindingsFormatted: PortBindings = {}
 
@@ -126,7 +143,7 @@ const launchDockerNode = async ({
       Cmd: commandsToRun,
       ExposedPorts: exposedPorts,
       HostConfig: {
-        Binds: binds,
+        Mounts: dockerMounts(directoriesToMount),
         CapDrop: ['ALL'],
         SecurityOpt: ['no-new-privileges:true'],
         PortBindings: portBindingsFormatted,
@@ -191,6 +208,11 @@ const attachDockerEventHandlers = async ({
       return
     }
 
+    if (intentionallyStopped.has(containerId)) {
+      logger.info(`Container ${containerId} was stopped by the orchestrator (exit code ${statusCode})`)
+      return
+    }
+
     if (statusCode !== 0) {
       logger.error(
         `Container ${containerId} exited with error code ${statusCode}`,
@@ -214,6 +236,7 @@ const attachDockerEventHandlers = async ({
       error: handlerError,
     })
   } finally {
+    intentionallyStopped.delete(containerId)
     try {
       await container.remove()
       logger.info(`Removed completed container ${containerId}`)

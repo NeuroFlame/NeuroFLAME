@@ -4,6 +4,8 @@ export interface edgeClientLaunchConfiguration {
   pathBaseDirectory: string
   authenticationEndpoint: string
   hostingPort: number
+  // Per-launch secret supplied by the desktop host; never persisted to config files.
+  localApiKey: string
   logPath?: string
   containerService?: string
 }

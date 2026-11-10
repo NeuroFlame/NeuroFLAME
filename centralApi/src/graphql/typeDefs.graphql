@@ -305,7 +305,7 @@ type Mutation {
   consortiumJoin(consortiumId: String!): Boolean!
   consortiumJoinByInvite(inviteToken: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!
-  consortiumLeave(consortiumId: String!): Boolean!
+  consortiumLeave(consortiumId: String!, newLeaderId: String): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
   consortiumInvite(consortiumId: String!, email: String!): Boolean!

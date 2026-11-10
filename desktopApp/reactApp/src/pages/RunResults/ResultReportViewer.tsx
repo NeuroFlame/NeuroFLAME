@@ -16,6 +16,8 @@ export default function ResultReportViewer({ src }: { src: string }) {
     <iframe
       src={src}
       title='Run Result'
+      // Reports are computation output: no top navigation, and popups go through the app's window policy.
+      sandbox='allow-scripts allow-same-origin allow-popups allow-downloads'
       width='100%'
       height='100%'
       style={{ border: 'none', background: 'white', colorScheme: 'normal', height: 'calc(100vh - 170px)' }}

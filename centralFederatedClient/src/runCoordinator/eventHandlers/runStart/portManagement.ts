@@ -12,7 +12,36 @@ interface ReservePortOptions {
 
 interface ReservePortResult {
   port: number
+  /** Free the Docker host port so the node can bind it; the port stays claimed in this process. */
+  releaseHold: () => Promise<void>
+  /** Free the host port (if still held) and the in-process claim. */
   release: () => Promise<void>
+}
+
+// Ports handed to a run in this process. Docker cannot see a port between the
+// reservation being removed and the node binding it, so concurrent runs check here.
+const claimedPorts = new Set<number>()
+
+/**
+ * Remove reservation containers left by a previous process (for example after a
+ * crash); they would otherwise hold host ports for a day. Assumes one central
+ * client per Docker host.
+ */
+export async function removeStaleReservations(
+  dockerClient: Pick<Docker, 'listContainers' | 'getContainer'> = docker,
+): Promise<number> {
+  const stale = await dockerClient.listContainers({
+    all: true,
+    filters: { label: [`${RESERVATION_LABEL}=true`] },
+  })
+  for (const { Id } of stale) {
+    try {
+      await dockerClient.getContainer(Id).remove({ force: true })
+    } catch (error) {
+      if ((error as { statusCode?: number }).statusCode !== 404) throw error
+    }
+  }
+  return stale.length
 }
 
 export async function reservePort(
@@ -26,6 +55,7 @@ export async function reservePort(
   }
 
   for (let port = start; port <= end; port++) {
+    if (claimedPorts.has(port)) continue
     const portWithProtocol = `${port}/tcp`
     const container = await dockerClient.createContainer({
       Image: imageName,
@@ -47,20 +77,29 @@ export async function reservePort(
     try {
       await container.start()
       logger.info(`Reserved Docker host port ${port}`)
+      claimedPorts.add(port)
 
-      let released = false
+      let held = true
+      const releaseHold = async () => {
+        if (!held) return
+        try {
+          await container.remove({ force: true })
+        } catch (error) {
+          if ((error as { statusCode?: number }).statusCode !== 404) {
+            throw error
+          }
+        }
+        held = false
+      }
       return {
         port,
+        releaseHold,
         release: async () => {
-          if (released) return
           try {
-            await container.remove({ force: true })
-          } catch (error) {
-            if ((error as { statusCode?: number }).statusCode !== 404) {
-              throw error
-            }
+            await releaseHold()
+          } finally {
+            claimedPorts.delete(port)
           }
-          released = true
         },
       }
     } catch (error) {

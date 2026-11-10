@@ -4,6 +4,23 @@ import path from 'path'
 import fs from 'fs/promises'
 import { logger } from '../../logger.js'
 import inMemoryStore from '../../inMemoryStore.js'
+import { isRunPathSegment } from '../runPathSegment.js'
+
+const requireUserId = (context: any): string => {
+  const userId = context?.tokenPayload?.userId
+  if (typeof userId !== 'string' || !userId) {
+    throw new Error('Not authorized')
+  }
+  return userId
+}
+
+// Consortium IDs become directory names under the base directory.
+const consortiumDirectory = (consortiumId: unknown): string => {
+  if (!isRunPathSegment(consortiumId)) {
+    throw new Error('Invalid consortium id')
+  }
+  return path.join(getConfig().pathBaseDirectory, consortiumId)
+}
 
 export const resolvers = {
   Query: {
@@ -12,15 +29,8 @@ export const resolvers = {
       { consortiumId }: { consortiumId: string },
       context: any,
     ): Promise<string> => {
-      // Check if the caller is authorized
-      const { tokenPayload } = context
-      const { userId } = tokenPayload
-      if (!tokenPayload || !userId) {
-        throw new Error('Not authorized')
-      }
-
-      const { pathBaseDirectory } = getConfig()
-      const consortiumDir = path.join(pathBaseDirectory, consortiumId)
+      requireUserId(context)
+      const consortiumDir = consortiumDirectory(consortiumId)
 
       try {
         // Read the mount_config.json file
@@ -39,12 +49,7 @@ export const resolvers = {
       { consortiumId, mountDir }: { consortiumId: string; mountDir: string },
       context: any,
     ): Promise<string> => {
-      // Auth check
-      const { tokenPayload } = context
-      const { userId } = tokenPayload || {}
-      if (!userId) {
-        throw new Error('Not authorized')
-      }
+      const userId = requireUserId(context)
 
       const configPath = path.join(mountDir, 'local_parameters.json')
 
@@ -71,6 +76,7 @@ export const resolvers = {
   Mutation: {
     connectAsUser: async (_: any, args: any, context: any): Promise<string> => {
       logger.info('connectAsUser')
+      requireUserId(context)
       try {
         // Make the runCoordinator connect to the centralApi
         inMemoryStore.set('accessToken', context.accessToken)
@@ -80,7 +86,7 @@ export const resolvers = {
           wsUrl,
           accessToken: context.accessToken,
         })
-        return JSON.stringify(context)
+        return 'connected'
       } catch (error) {
         logger.error('Error in connectAsUser:', error)
         throw new Error('Failed to connect as user')
@@ -91,10 +97,9 @@ export const resolvers = {
       { consortiumId, mountDir }: { consortiumId: string; mountDir: string },
       context: any,
     ): Promise<boolean> => {
+      requireUserId(context)
+      const consortiumDir = consortiumDirectory(consortiumId)
       try {
-        const { pathBaseDirectory } = getConfig()
-        const consortiumDir = path.join(pathBaseDirectory, consortiumId)
-
         // Ensure the consortium directory exists
         await fs.mkdir(consortiumDir, { recursive: true })
 
@@ -116,6 +121,7 @@ export const resolvers = {
       { consortiumId, mountDir, localParams }: { consortiumId: string; mountDir: string, localParams: string },
       context: any,
     ): Promise<boolean> => {
+      requireUserId(context)
       try {
         // Validate JSON format before writing
         JSON.parse(localParams)

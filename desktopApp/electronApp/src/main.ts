@@ -1,8 +1,18 @@
 // main.ts
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  session,
+  shell,
+  type WebFrameMain,
+} from 'electron'
 import { start as startEdgeFederatedClient } from 'edge-federated-client'
 import { logger, logToPath } from './logger.js'
-import { createMainWindow } from './window.js'
+import { appStartUrl, createMainWindow, MAIN_SESSION_PARTITION } from './window.js'
+import { createAppIpc, isAppRendererFrame } from './appRenderer.js'
+import { createEdgeLocalApiKey, installEdgeLocalApiKey } from './edgeLocalApiKey.js'
 import {
   getConfigPath,
   getConfig,
@@ -42,6 +52,12 @@ if (productionClient !== undefined) {
   })
 }
 let terminalProcess: TerminalProcess | null = null
+
+const isTrustedAppFrame = (frame: WebFrameMain | null | undefined): boolean =>
+  isAppRendererFrame(appStartUrl(), frame)
+const appIpc = createAppIpc(ipcMain, isTrustedAppFrame, (channel) => {
+  logger.warn(`Rejected ${channel} IPC from outside the app renderer`)
+})
 let appInitializationPromise: Promise<void> | null = null
 let windowCreationPromise: Promise<void> | null = null
 let compatibilityStatus: CompatibilityStatus = {
@@ -241,7 +257,18 @@ function initializeApp(): Promise<void> {
           compatibilityStatus.status === 'compatible' &&
           config.startEdgeClientOnLaunch
         ) {
-          startEdgeFederatedClient(config.edgeClientConfig)
+          const localApiKey = createEdgeLocalApiKey()
+          startEdgeFederatedClient({ ...config.edgeClientConfig, localApiKey })
+          installEdgeLocalApiKey(
+            session.fromPartition(MAIN_SESSION_PARTITION),
+            [
+              config.edgeClientQueryUrl,
+              config.edgeClientSubscriptionUrl,
+              config.edgeClientRunResultsUrl,
+            ],
+            localApiKey,
+            isTrustedAppFrame,
+          )
         }
       } catch (error) {
         showInitializationError(error as Error)
@@ -268,32 +295,6 @@ async function openMainWindow(): Promise<void> {
       }
       mainWindow = window
 
-      window.webContents.setWindowOpenHandler(({ url }) => {
-        const parsedUrl = new URL(url)
-
-        if (parsedUrl.pathname === '/nii-viewer') {
-          const niiUrl = parsedUrl.searchParams.get('url')
-          if (niiUrl) {
-            window.webContents.executeJavaScript(
-              `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niiUrl)} } }))`,
-            ).catch(() => {})
-          }
-          return { action: 'deny' }
-        }
-
-        if (parsedUrl.pathname.includes('/zip/')) {
-          window.webContents.downloadURL(url)
-          return { action: 'deny' }
-        }
-
-        const openInSelf = parsedUrl.searchParams.get('window') === 'self'
-        if (openInSelf) {
-          window.loadURL(url)
-          return { action: 'deny' }
-        }
-        return { action: 'allow' }
-      })
-
       window.on('closed', () => {
         logger.info('Main window closed')
         if (mainWindow === window) mainWindow = null
@@ -316,7 +317,7 @@ async function appOnReady(): Promise<void> {
 
 // ---- Terminal IPC -----------------------------------------------------------
 
-ipcMain.handle('spawnTerminal', () => {
+appIpc.handle('spawnTerminal', () => {
   // Clean up any previous instance
   if (terminalProcess && terminalProcess.isRunning()) {
     terminalProcess.kill()
@@ -350,10 +351,16 @@ ipcMain.handle('spawnTerminal', () => {
   return { status: 'terminalStarted', pid: terminalProcess.process.pid }
 })
 
-ipcMain.on('terminalInput', (_event, input: string) => {
+appIpc.on('terminalInput', (_event, input: string) => {
   if (!terminalProcess || !terminalProcess.isRunning()) return
   // Append newline unless you intend to send raw control sequences
   terminalProcess.send(input.endsWith('\n') ? input : input + '\n')
+})
+
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('will-attach-webview', (attachEvent) => {
+    attachEvent.preventDefault()
+  })
 })
 
 app.on('ready', () => {
@@ -371,18 +378,18 @@ app.on('activate', () => {
 
 // ---- Misc IPC ---------------------------------------------------------------
 
-ipcMain.handle('getConfigPath', () => getConfigPath())
-ipcMain.handle('getConfig', getConfig)
-ipcMain.handle('getCompatibilityStatus', () => compatibilityStatus)
-ipcMain.handle('openLatestRelease', () =>
+appIpc.handle('getConfigPath', () => getConfigPath())
+appIpc.handle('getConfig', getConfig)
+appIpc.handle('getCompatibilityStatus', () => compatibilityStatus)
+appIpc.handle('openLatestRelease', () =>
   shell.openExternal('https://github.com/NeuroFlame/NeuroFLAME/releases/latest'),
 )
-ipcMain.handle('openConfig', openConfig)
-ipcMain.handle('saveConfig', async (_e, configString) => await saveConfig(configString))
-ipcMain.handle('applyDefaultConfig', applyDefaultConfig)
-ipcMain.handle('getEdgeClientLogs', (_event, options) => getEdgeClientLogLines(options))
+appIpc.handle('openConfig', openConfig)
+appIpc.handle('saveConfig', async (_e, configString) => await saveConfig(configString))
+appIpc.handle('applyDefaultConfig', applyDefaultConfig)
+appIpc.handle('getEdgeClientLogs', (_event, options) => getEdgeClientLogLines(options))
 
-ipcMain.handle('pullSingularityImage', async (_event, dockerImageName: string) => {
+appIpc.handle('pullSingularityImage', async (_event, dockerImageName: string) => {
   try {
     // Stream output to UI via terminalOutput channel (reusing existing mechanism)
     const onOutput = (output: string) => {
@@ -395,7 +402,7 @@ ipcMain.handle('pullSingularityImage', async (_event, dockerImageName: string) =
   }
 })
 
-ipcMain.handle('checkSingularityImageExists', async (_event, dockerImageName: string) => {
+appIpc.handle('checkSingularityImageExists', async (_event, dockerImageName: string) => {
   try {
     return await checkSingularityImageExists(dockerImageName)
   } catch (error) {
@@ -404,12 +411,12 @@ ipcMain.handle('checkSingularityImageExists', async (_event, dockerImageName: st
   }
 })
 
-ipcMain.handle('getSingularityImagesPath', async () => {
+appIpc.handle('getSingularityImagesPath', async () => {
   const config = await getConfig()
   return path.join(config.edgeClientConfig.pathBaseDirectory, 'singularityImages')
 })
 
-ipcMain.handle('useDirectoryDialog', (_e, pathString) => {
+appIpc.handle('useDirectoryDialog', (_e, pathString) => {
   if (mainWindow) return useDirectoryDialog({ mainWindow, pathString })
   return {
     directoryPath: undefined,
@@ -418,7 +425,7 @@ ipcMain.handle('useDirectoryDialog', (_e, pathString) => {
   }
 })
 
-ipcMain.handle('restartApp', () => {
+appIpc.handle('restartApp', () => {
   app.relaunch()
   app.exit(0)
 })

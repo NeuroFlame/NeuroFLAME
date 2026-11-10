@@ -3,6 +3,8 @@ import { IncomingHttpHeaders } from 'http'
 import User from './database/models/User.js'
 import { getClientAddress, ClientAddressRequest } from './authentication/clientAddress.js'
 
+const SERVICE_ROLES = ['vault', 'central']
+
 export interface ServerContext {
   userId?: string
   roles?: string[]
@@ -41,6 +43,11 @@ export const validateServerAccessToken = async (accessToken: string): Promise<Se
     .exec()
   if (!user || (context.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
     throw new Error('Access token has been revoked')
+  }
+  // Sign-in sessions must expire. Only service accounts hold long-lived tokens,
+  // so this also retires sign-in tokens issued before sessions expired.
+  if (context.exp === undefined && !user.roles?.some((role) => SERVICE_ROLES.includes(role))) {
+    throw new Error('Access token has expired')
   }
 
   return { ...context, roles: user.roles }
