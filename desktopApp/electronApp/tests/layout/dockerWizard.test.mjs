@@ -32,7 +32,7 @@ test('Docker success enables wizard progression without relying on chunk boundar
     plugins: [{
       name: 'synthetic-wizard-services',
       setup(builder) {
-        const mocks = /ConsortiumDetailsContext|UserStateContext|ConsortiumWizardNavBar|ComputationSelect|\/steps\/Step/
+        const mocks = /ConsortiumDetailsContext|UserStateContext|ConsortiumWizardNavBar|ComputationSelect|edgeApi\/edgeApi|\/steps\/Step/
         builder.onResolve({ filter: mocks }, ({ path }) => path.endsWith('/StepDownloadImage') ? undefined : {
           path: path.endsWith('ConsortiumDetailsContext') ? 'ConsortiumDetailsContext' : path,
           namespace: 'fixture',
@@ -53,6 +53,17 @@ test('Docker success enables wizard progression without relying on chunk boundar
                 } }}>{children}</Context.Provider>;
               }
               export const useConsortiumDetailsContext = () => useContext(Context);
+            `
+          } else if (path.endsWith('edgeApi/edgeApi')) {
+            // The edge client owns Singularity pulls; the UI only asks it.
+            contents = `
+              export const useEdgeApi = () => ({
+                singularityImageCached: async () => false,
+                pullSingularityImage: (imageName) => new Promise((resolve) => {
+                  window.singularityPullRequests.push(imageName);
+                  window.completeSingularityPull = resolve;
+                }),
+              });
             `
           } else if (path.endsWith('UserStateContext')) {
             contents = 'export const useUserState = () => ({ userId: "synthetic-user" });'
@@ -82,16 +93,13 @@ test('Docker success enables wizard progression without relying on chunk boundar
       window.outputListeners = []
       window.startRequests = []
       window.testRuntime = 'docker'
+      window.singularityPullRequests = []
       window.ElectronAPI = {
         getConfig: async () => ({ edgeClientConfig: { containerService: window.testRuntime } }),
         spawnTerminal: () => new Promise((resolve, reject) => window.startRequests.push({ resolve, reject })),
         terminalInput: (input) => window.inputs.push(input),
         terminalOutput: (callback) => window.outputListeners.push(callback),
         removeTerminalOutputListener: () => { window.outputListeners = [] },
-        checkSingularityImageExists: async () => false,
-        pullSingularityImage: () => new Promise((resolve) => { window.completeSingularityPull = resolve }),
-        singularityPullOutput: () => {},
-        removeSingularityPullOutputListener: () => {},
       }
       window.emitOutput = (chunk) => window.outputListeners.forEach((callback) => callback(null, chunk))
     })
@@ -157,10 +165,8 @@ test('Docker success enables wizard progression without relying on chunk boundar
     await expect(next).toHaveCount(0)
     await page.getByRole('button', { name: 'Run Singularity Pull', exact: true }).click()
     assert.equal(await page.evaluate(() => window.startRequests.length), terminalCount)
-    await page.evaluate(() => window.completeSingularityPull({
-      alreadyExists: false,
-      imagePath: '/synthetic/image.sif',
-    }))
+    assert.deepEqual(await page.evaluate(() => window.singularityPullRequests), ['example/another'])
+    await page.evaluate(() => window.completeSingularityPull())
     await expect(next).toBeVisible()
 
     // Startup failures must keep progression blocked and report the problem.

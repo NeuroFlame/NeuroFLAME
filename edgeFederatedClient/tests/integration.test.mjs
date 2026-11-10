@@ -7,9 +7,10 @@ import { crc32 } from 'node:zlib'
 import { after, before, test } from 'node:test'
 import Docker from 'dockerode'
 import { WebSocket } from 'ws'
-import { setConfig } from '../dist/config/config.js'
+import { getConfig, setConfig } from '../dist/config/config.js'
 import { start } from '../dist/api/index.js'
 import { prepareComputationImage } from '../dist/runCoordinator/computationImage.js'
+import { parseImageReference } from '../dist/runCoordinator/singularityImageCache.js'
 import { launchNode } from '../dist/runCoordinator/nodeManager/launchNode.js'
 import { ensureLocalRuntimeError } from '../dist/runCoordinator/terminalError.js'
 import downloadFile from '../dist/runCoordinator/eventHandlers/runStart/downloadFile.js'
@@ -55,7 +56,7 @@ before(async () => {
   await writeFile(path.join(bin, 'singularity'), `#!/bin/sh
 case "$1" in
   inspect) cat "${labelsFile}" ;;
-  pull) printf 'sif' > "$2" ;;
+  pull) echo "$3" >> "\${PULL_LOG:-/dev/null}"; sleep 0.2; printf 'sif' > "$2" ;;
   *) exit 1 ;;
 esac
 `)
@@ -234,7 +235,7 @@ const labels = (overrides = {}) => ({
 const setLabels = (value) => writeFile(labelsFile, JSON.stringify({ data: { attributes: { labels: value } } }))
 
 test('Singularity images are label-checked, cached privately, and only launched from the cache', async () => {
-  const cached = path.join(base, 'singularityImages', `example_computation_1-${'e'.repeat(12)}.sif`)
+  const cached = path.join(base, 'singularityImages', `docker.io_example_computation-${'e'.repeat(64)}.sif`)
   await setLabels(labels({ 'org.opencontainers.image.revision': 'different' }))
   await assert.rejects(prepareComputationImage(resolvedImage, 'singularity', base), /revision.*does not match/)
   await assert.rejects(access(cached), { code: 'ENOENT' })
@@ -255,6 +256,48 @@ test('Singularity images are label-checked, cached privately, and only launched 
     }), /not a prepared image in the private image cache/)
   } finally {
     await rm(lookalike, { force: true })
+  }
+})
+
+test('a UI pull through the local API fills the same cache entry the run uses, with one pull', async () => {
+  // A digest reference needs no registry lookup, so this runs offline.
+  const imageName = `example/computation@${digest}`
+  const cached = path.join(base, 'singularityImages', `docker.io_example_computation-${'e'.repeat(64)}.sif`)
+  await rm(cached, { force: true })
+  const pullLog = path.join(base, 'pulls.log')
+  process.env.PULL_LOG = pullLog
+  await setLabels(labels())
+  try {
+    const ask = (query) => graphql(query, withKey({ 'x-access-token': 'user' })).then((r) => r.json())
+    assert.match((await ask(`{ singularityImageCached(imageName: "${imageName}") }`)).errors[0].message,
+      /not configured for Singularity/)
+
+    setConfig({ ...getConfig(), containerService: 'singularity' })
+    assert.equal((await ask(`{ singularityImageCached(imageName: "${imageName}") }`)).data.singularityImageCached, false)
+    assert.ok((await ask('{ singularityImageCached(imageName: "Bad Image") }')).errors)
+
+    // The button and a run starting at the same time share one pull.
+    const [pulled, prepared] = await Promise.all([
+      ask(`mutation { pullSingularityImage(imageName: "${imageName}") }`),
+      prepareComputationImage(resolvedImage, 'singularity', base),
+    ])
+    assert.equal(pulled.data.pullSingularityImage, true)
+    assert.equal(prepared, cached)
+    assert.deepEqual((await readFile(pullLog, 'utf8')).trim().split('\n'), [`docker://docker.io/example/computation@${digest}`])
+    assert.equal((await ask(`{ singularityImageCached(imageName: "${imageName}") }`)).data.singularityImageCached, true)
+    assert.deepEqual((await readdir(path.dirname(cached))).filter((file) => file.endsWith('.tmp')), [])
+
+    // Without a run there is nothing pinned, so a bare name means :latest on Docker Hub.
+    assert.deepEqual(parseImageReference('example/computation'),
+      { domain: 'docker.io', repository: 'example/computation', tag: 'latest', digest: undefined })
+    assert.deepEqual(parseImageReference('ubuntu').repository, 'library/ubuntu')
+    assert.equal(parseImageReference('ghcr.io/org/image:1.2').domain, 'ghcr.io')
+    for (const invalid of ['Example/Upper', 'a/../b', 'image@sha256:short', 'image:bad tag', '-image']) {
+      assert.throws(() => parseImageReference(invalid), /Invalid image reference/, invalid)
+    }
+  } finally {
+    delete process.env.PULL_LOG
+    setConfig({ ...getConfig(), containerService: 'docker' })
   }
 })
 

@@ -34,8 +34,13 @@ export default defineConfig({
     },
     {
       name: 'computation',
-      testMatch: '**/computation/**/*.test.ts',
+      testMatch: '**/computation/computation-srr-freesurfer.test.ts',
       dependencies: ['auth-reset-password'],
+    },
+    {
+      name: 'computation-singularity',
+      testMatch: '**/computation/computation-srr-freesurfer-singularity.test.ts',
+      dependencies: ['computation'],
     },
     {
       name: 'admin',

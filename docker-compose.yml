@@ -107,6 +107,11 @@ services:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
+      # Apptainer needs unprivileged user namespaces for the Singularity e2e run.
+      - apparmor:unconfined
+    extra_hosts:
+      # Singularity nodes share this container's network, so they reach the central node like Docker nodes do.
+      - host.docker.internal:host-gateway
     environment:
       - CI=true
       - CI_DATA_DIR=${HOST_PROJECT_DIR}/desktopApp/electronApp/tests/data/freesurfer-site1

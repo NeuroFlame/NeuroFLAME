@@ -1,7 +1,13 @@
 import Docker from 'dockerode'
-import { execFile, spawn } from 'child_process'
+import { execFile } from 'child_process'
 import { promises as fs } from 'fs'
-import path from 'path'
+import {
+  ensureSingularityImage,
+  getSingularityBinary,
+  parseImageReference,
+  pinnedReference,
+  singularityImagePath,
+} from './singularityImageCache.js'
 
 const docker = new Docker()
 
@@ -140,77 +146,25 @@ export async function readSingularityLabels(
   return labels as Record<string, unknown>
 }
 
-function getSingularityBinary(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    execFile('which', ['singularity'], (singularityError) => {
-      if (!singularityError) {
-        resolve('singularity')
-        return
-      }
-      execFile('which', ['apptainer'], (apptainerError) => {
-        if (!apptainerError) {
-          resolve('apptainer')
-          return
-        }
-        reject(new Error('Neither Singularity nor Apptainer is installed'))
-      })
-    })
-  })
-}
-
 async function prepareSingularityImage(
   resolvedImage: ResolvedComputationImage,
   baseDirectory: string,
 ): Promise<string> {
-  const imageDirectory = path.join(baseDirectory, 'singularityImages')
-  await fs.mkdir(imageDirectory, { recursive: true, mode: 0o700 })
-  const pattern = resolvedImage.sourceImage
-    .replace(/:latest$/, '')
-    .replace(/[:@/]/g, '_')
-    .toLowerCase()
-  const imagePath = path.join(
-    imageDirectory,
-    `${pattern}-${resolvedImage.digest.slice('sha256:'.length, 19)}.sif`,
-  )
+  const reference = parseImageReference(resolvedImage.reference)
+  const imagePath = singularityImagePath(baseDirectory, reference, resolvedImage.digest)
   const binary = await getSingularityBinary()
+  const alreadyCached = await ensureSingularityImage(
+    binary,
+    pinnedReference(reference, resolvedImage.digest),
+    imagePath,
+  )
+  // Cached images, including ones pulled from the UI, get the same label check as a fresh pull.
   try {
-    await fs.access(imagePath)
-    // A cached image is only trusted after the same label check as a fresh pull.
     assertImageLabels(await readSingularityLabels(binary, imagePath), resolvedImage.metadata)
-    return imagePath
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-    // Pull the exact content-addressed image below.
-  }
-
-  const temporaryPath = `${imagePath}.tmp`
-  await fs.rm(temporaryPath, { force: true })
-  await new Promise<void>((resolve, reject) => {
-    const processHandle = spawn(binary, [
-      'pull',
-      temporaryPath,
-      `docker://${resolvedImage.reference}`,
-    ])
-    let stderr = ''
-    processHandle.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
-    })
-    processHandle.on('error', reject)
-    processHandle.on('close', (code) => {
-      if (code === 0) {
-        resolve()
-      } else {
-        reject(new Error(stderr || `Singularity pull exited with code ${code}`))
-      }
-    })
-  })
-  try {
-    assertImageLabels(await readSingularityLabels(binary, temporaryPath), resolvedImage.metadata)
-  } catch (error) {
-    await fs.rm(temporaryPath, { force: true })
+    if (!alreadyCached) await fs.rm(imagePath, { force: true })
     throw error
   }
-  await fs.rename(temporaryPath, imagePath)
   return imagePath
 }
 

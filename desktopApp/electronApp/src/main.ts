@@ -27,10 +27,6 @@ import os from 'os'
 import path from 'path'
 import { promises as fs } from 'fs'
 import {
-  pullSingularityImage,
-  checkSingularityImageExists,
-} from './singularityImageManager.js'
-import {
   compareAppAndApiVersions,
   CompatibilityStatus,
   versionEndpoint,
@@ -388,33 +384,6 @@ appIpc.handle('openConfig', openConfig)
 appIpc.handle('saveConfig', async (_e, configString) => await saveConfig(configString))
 appIpc.handle('applyDefaultConfig', applyDefaultConfig)
 appIpc.handle('getEdgeClientLogs', (_event, options) => getEdgeClientLogLines(options))
-
-appIpc.handle('pullSingularityImage', async (_event, dockerImageName: string) => {
-  try {
-    // Stream output to UI via terminalOutput channel (reusing existing mechanism)
-    const onOutput = (output: string) => {
-      mainWindow?.webContents.send('singularityPullOutput', output)
-    }
-    return await pullSingularityImage(dockerImageName, onOutput)
-  } catch (error) {
-    logger.error(`Error pulling Singularity image: ${error}`)
-    throw error
-  }
-})
-
-appIpc.handle('checkSingularityImageExists', async (_event, dockerImageName: string) => {
-  try {
-    return await checkSingularityImageExists(dockerImageName)
-  } catch (error) {
-    logger.error(`Error checking Singularity image: ${error}`)
-    return false
-  }
-})
-
-appIpc.handle('getSingularityImagesPath', async () => {
-  const config = await getConfig()
-  return path.join(config.edgeClientConfig.pathBaseDirectory, 'singularityImages')
-})
 
 appIpc.handle('useDirectoryDialog', (_e, pathString) => {
   if (mainWindow) return useDirectoryDialog({ mainWindow, pathString })

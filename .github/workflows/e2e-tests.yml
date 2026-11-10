@@ -25,6 +25,13 @@ jobs:
           echo "Host UID: $HOST_UID, GID: $HOST_GID"
           sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
 
+      - name: Allow unprivileged user namespaces for Apptainer
+        run: |
+          # Ubuntu 24.04 runners restrict them through AppArmor by default.
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+
       - name: Build docker
         run: ./scripts/dockerbuild-for-ci.sh
 

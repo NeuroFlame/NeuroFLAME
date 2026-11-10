@@ -22,6 +22,20 @@ RUN apt-get update
 
 RUN apt-get install --no-install-recommends -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Apptainer lets CI run the edge client's Singularity runtime. Releases only ship amd64 packages.
+ARG APPTAINER_VERSION=1.4.1
+ARG APPTAINER_SHA256=9a0663f6e680d270dd3675f94cabf35dc324bb8673f5c6b645005e5aa1bd6d88
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+      curl -fsSL -o /tmp/apptainer.deb \
+        "https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb" && \
+      echo "${APPTAINER_SHA256}  /tmp/apptainer.deb" | sha256sum -c - && \
+      apt-get install --no-install-recommends -y /tmp/apptainer.deb && \
+      rm /tmp/apptainer.deb && \
+      rm -rf /var/lib/apt/lists/*; \
+    else \
+      echo "Skipping Apptainer: no package for $(dpkg --print-architecture)"; \
+    fi
+
 RUN mkdir -p /nf
 
 WORKDIR /nf

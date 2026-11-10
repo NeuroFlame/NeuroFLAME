@@ -5,6 +5,10 @@ import fs from 'fs/promises'
 import { logger } from '../../logger.js'
 import inMemoryStore from '../../inMemoryStore.js'
 import { isRunPathSegment } from '../runPathSegment.js'
+import {
+  isSingularityImageCached,
+  pullSingularityImage,
+} from '../../runCoordinator/singularityImageCache.js'
 
 const requireUserId = (context: any): string => {
   const userId = context?.tokenPayload?.userId
@@ -20,6 +24,14 @@ const consortiumDirectory = (consortiumId: unknown): string => {
     throw new Error('Invalid consortium id')
   }
   return path.join(getConfig().pathBaseDirectory, consortiumId)
+}
+
+const requireSingularity = (): string => {
+  const { containerService = 'docker', pathBaseDirectory } = getConfig()
+  if (containerService !== 'singularity') {
+    throw new Error('This site is not configured for Singularity')
+  }
+  return pathBaseDirectory
 }
 
 export const resolvers = {
@@ -69,6 +81,20 @@ export const resolvers = {
         // Anything else is a real error (permissions, I/O, etc.)
         logger.error(`Error reading ${configPath}:`, err)
         throw new Error('Failed to read local parameters from mount directory')
+      }
+    },
+    singularityImageCached: async (
+      _: any,
+      { imageName }: { imageName: string },
+      context: any,
+    ): Promise<boolean> => {
+      requireUserId(context)
+      const baseDirectory = requireSingularity()
+      try {
+        return await isSingularityImageCached(imageName, baseDirectory)
+      } catch (error) {
+        logger.error('Error checking Singularity image cache:', error)
+        throw new Error('Unable to check the Singularity image. See the edge client log.')
       }
     },
   },
@@ -139,6 +165,24 @@ export const resolvers = {
 
         logger.error('Error in setLocalParams:', error)
         throw new Error('Failed to set/save local parameters')
+      }
+    },
+    pullSingularityImage: async (
+      _: any,
+      { imageName }: { imageName: string },
+      context: any,
+    ): Promise<boolean> => {
+      requireUserId(context)
+      const baseDirectory = requireSingularity()
+      try {
+        const { alreadyExists } = await pullSingularityImage(imageName, baseDirectory)
+        logger.info(alreadyExists
+          ? `Singularity image already cached: ${imageName}`
+          : `Singularity image pulled: ${imageName}`)
+        return true
+      } catch (error) {
+        logger.error('Error pulling Singularity image:', error)
+        throw new Error('Failed to pull the Singularity image. See the edge client log.')
       }
     },
   },
