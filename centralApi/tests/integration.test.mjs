@@ -133,33 +133,37 @@ integration('vault directory hides operational vault details from non-admin call
   }
 })
 
-integration('only admins can create or change computations that vault allowlists trust', async () => {
+integration('signed-in users create computations and only the owner can change one', async () => {
   const Computation = mongoose.model('Computation')
   const fields = {
-    title: 'Trusted computation', imageName: 'example/trusted:1', imageDownloadUrl: 'https://example.test', notes: 'n',
+    title: 'Owned computation', imageName: 'example/owned:1', imageDownloadUrl: 'https://example.test', notes: 'n',
   }
   const create = (contextValue, title) => server.executeOperation({
-    query: `mutation { computationCreate(title: "${title}", imageName: "example/evil:1",
+    query: `mutation { computationCreate(title: "${title}", imageName: "example/any:1",
       imageDownloadUrl: "https://example.test", notes: "n", hasLocalParameters: false) }`,
   }, { contextValue })
   assert.match((await create({}, 'Anonymous')).body.singleResult.errors[0].message, /not authenticated/)
-  assert.match((await create(context(caller), 'Caller')).body.singleResult.errors[0].message, /Unauthorized/)
   assert.equal(await Computation.countDocuments(), 0)
-  assert.equal(await resolvers.Mutation.computationCreate(null, fields, context(admin)), true)
+  assert.equal(await resolvers.Mutation.computationCreate(null, fields, context(caller)), true)
   const computation = await Computation.findOne({ title: fields.title })
+  assert.equal(String(computation.owner), String(caller._id))
 
-  // A former admin who created the computation cannot repoint it after losing the role.
-  const demotedOwner = { userId: String(admin._id), roles: ['user'] }
-  for (const contextValue of [{}, context(caller), demotedOwner]) {
+  // Being an admin does not make someone the owner.
+  for (const contextValue of [{}, context(victim), context(admin)]) {
     await assert.rejects(resolvers.Mutation.computationEdit(null, {
       computationId: computation.id, imageName: 'example/evil:1',
-    }, contextValue), /not authenticated|Unauthorized/)
+    }, contextValue), /not authenticated|not authorized/)
   }
-  assert.equal((await Computation.findById(computation.id)).imageName, 'example/trusted:1')
+  assert.equal((await Computation.findById(computation.id)).imageName, 'example/owned:1')
   assert.equal(await resolvers.Mutation.computationEdit(null, {
-    computationId: computation.id, imageName: 'example/trusted:2',
-  }, context(admin)), true)
-  assert.equal((await Computation.findById(computation.id)).imageName, 'example/trusted:2')
+    computationId: computation.id, imageName: 'example/owned:2',
+  }, context(caller)), true)
+  assert.equal((await Computation.findById(computation.id)).imageName, 'example/owned:2')
+  // An edit that only changes the local-parameters flag is a real edit.
+  assert.equal(await resolvers.Mutation.computationEdit(null, {
+    computationId: computation.id, hasLocalParameters: true,
+  }, context(caller)), true)
+  assert.equal((await Computation.findById(computation.id)).hasLocalParameters, true)
 })
 
 integration('the token check used by the file server and edge clients refuses revoked tokens', async () => {

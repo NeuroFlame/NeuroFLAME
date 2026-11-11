@@ -1982,13 +1982,9 @@ export default {
       },
       context: Context,
     ): Promise<boolean> => {
-      // Vault allowlists trust computations by ID, so only admins may define them.
+      // The creator becomes the owner, so there must be one.
       if (!context.userId) {
         throw new Error('User not authenticated')
-      }
-
-      if (!context.roles?.includes('admin')) {
-        throw new Error('Unauthorized')
       }
 
       if (!title || !imageName || !imageDownloadUrl || !notes) {
@@ -2033,13 +2029,8 @@ export default {
       },
       context: Context,
     ): Promise<boolean> => {
-      // Changing a computation changes what every allowing vault will run.
       if (!context.userId) {
         throw new Error('User not authenticated')
-      }
-
-      if (!context.roles?.includes('admin')) {
-        throw new Error('Unauthorized')
       }
 
       // Ensure the computation exists
@@ -2048,8 +2039,13 @@ export default {
         throw new Error('Computation not found')
       }
 
+      // Verify that the user is the owner of the computation
+      if (computation.owner.toString() !== context.userId) {
+        throw new Error('User not authorized to edit this computation')
+      }
+
       // Ensure at least one field is provided for update
-      if (!title && !imageName && !imageDownloadUrl && !notes) {
+      if (!title && !imageName && !imageDownloadUrl && !notes && hasLocalParameters === undefined) {
         throw new Error('No fields provided to update')
       }
 
@@ -2084,7 +2080,7 @@ export default {
       // Perform the update operation
       try {
         await Computation.updateOne(
-          { _id: computationId },
+          { _id: computationId, owner: context.userId },
           { $set: updatePayload },
         )
         return true
