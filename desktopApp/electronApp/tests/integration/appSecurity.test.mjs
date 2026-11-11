@@ -11,6 +11,7 @@ import { build } from 'esbuild'
 import { setConfig } from 'edge-federated-client/dist/config/config.js'
 import { start } from 'edge-federated-client/dist/api/index.js'
 import { createEdgeLocalApiKey } from '../../build/edgeLocalApiKey.js'
+import { decideWindowOpen, isAllowedNavigation, isEdgeResultsUrl } from '../../build/windowPolicy.js'
 
 const consortiumId = 'a'.repeat(24)
 const runId = 'b'.repeat(24)
@@ -40,6 +41,19 @@ const attack = async ({ edge, run }) => {
     result: await (await fetch(`${run}/summary.txt`)).text(),
   }
 }
+
+test('a results URL without a subpath scopes to nothing rather than the whole edge origin', () => {
+  const run = 'http://localhost:3003/run-results/a/b/c/report.html'
+  assert.equal(isEdgeResultsUrl('http://localhost:3003/run-results', run), true)
+  assert.equal(isEdgeResultsUrl('http://localhost:3003/run-results/', run), true)
+  assert.equal(isEdgeResultsUrl('http://localhost:3003/run-results', 'http://localhost:3003/graphql'), false)
+  for (const rootBase of ['http://localhost:3003', 'http://localhost:3003/', 'http://localhost:3003//']) {
+    assert.equal(isEdgeResultsUrl(rootBase, run), false, rootBase)
+    assert.equal(isEdgeResultsUrl(rootBase, 'http://localhost:3003/graphql'), false, rootBase)
+    assert.deepEqual(decideWindowOpen(run, rootBase), { action: 'deny' }, rootBase)
+    assert.equal(isAllowedNavigation('http://localhost:3003/graphql', { edgeResultsUrl: rootBase }), false)
+  }
+})
 
 test('result reports cannot reach the app bridge, the edge API or app navigation',
   { timeout: 90000 }, async () => {

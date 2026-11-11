@@ -26,7 +26,11 @@ export const isEdgeResultsUrl = (edgeResultsUrl: string, value: string): boolean
   const base = parse(edgeResultsUrl)
   const url = parse(value)
   if (!base || !url || url.origin !== base.origin) return false
-  return url.pathname.startsWith(`${base.pathname.replace(/\/+$/, '')}/`)
+  // A results URL without a subpath would scope to the whole origin, including the
+  // edge API, so it matches nothing instead.
+  const prefix = base.pathname.replace(/\/+$/, '')
+  if (!prefix) return false
+  return url.pathname.startsWith(`${prefix}/`)
 }
 
 const isExternalWebUrl = (url: URL): boolean => url.protocol === 'https:' || url.protocol === 'http:'
