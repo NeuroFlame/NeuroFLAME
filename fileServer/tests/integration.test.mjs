@@ -177,6 +177,21 @@ test('uploads are central-only, path-checked, and refuse archives that are not a
     assert.ok(!existsSync(escaped), escaped)
   }
   assert.deepEqual(await readdir(path.join(baseDir, '.incoming')), [])
+
+  // Published kits are never replaced, so downloads never see a gap or a mix.
+  const published = path.join(baseDir, consortium, runId, `${participants[0]}.zip`)
+  const replacement = makeZip([[`${participants[0]}.zip`, 'replacement']])
+  assert.equal((await upload(`${consortium}/${runId}`, replacement)).status, 409)
+  assert.equal(await readFile(published, 'utf8'), 'kit')
+
+  // Of two concurrent first uploads, exactly one publishes.
+  const raceRun = 'e'.repeat(24)
+  const statuses = await Promise.all(['first', 'second'].map((content) =>
+    upload(`${consortium}/${raceRun}`, makeZip([[`${participants[0]}.zip`, content]])).then((r) => r.status)))
+  assert.deepEqual(statuses.sort(), [200, 409])
+  const winner = await readFile(path.join(baseDir, consortium, raceRun, `${participants[0]}.zip`), 'utf8')
+  assert.ok(['first', 'second'].includes(winner))
+  assert.deepEqual((await readdir(path.join(baseDir, consortium))).filter((name) => name.startsWith('.staging-')), [])
 })
 
 test('expired run kits, staging directories and incoming uploads are removed', async () => {

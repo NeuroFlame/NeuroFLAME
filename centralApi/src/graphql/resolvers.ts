@@ -2288,7 +2288,15 @@ export default {
       const leave = { $pull: { members: userId, activeMembers: userId, readyMembers: userId } }
 
       if (consortium.leader.toString() !== userId) {
-        await Consortium.updateOne({ _id: consortiumId }, leave)
+        // Leadership may be handed to this member after the read above; a leader
+        // must never leave without handing over, so the update re-checks it.
+        const result = await Consortium.updateOne(
+          { _id: consortiumId, leader: { $ne: userId } },
+          leave,
+        )
+        if (result.matchedCount !== 1) {
+          throw new Error('The consortium changed while leaving. Please try again.')
+        }
       } else {
         // A consortium always has a leader: the leader hands over before leaving.
         if (!newLeaderId) {
@@ -3446,10 +3454,15 @@ export default {
         throw new Error('The leader cannot be removed. Choose a new leader by leaving the consortium.')
       }
 
-      // remove from the members, active members, and ready members
-      await consortium.updateOne({
-        $pull: { members: userId, activeMembers: userId, readyMembers: userId },
-      })
+      // Remove from the members, active members, and ready members. The filter
+      // re-checks leadership, which may have been handed over since the read.
+      const result = await Consortium.updateOne(
+        { _id: consortiumId, leader: { $eq: context.userId, $ne: userId } },
+        { $pull: { members: userId, activeMembers: userId, readyMembers: userId } },
+      )
+      if (result.matchedCount !== 1) {
+        throw new Error('The consortium changed while removing this member. Please try again.')
+      }
 
       // Include the removed member so their view updates too.
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {

@@ -11,6 +11,7 @@ import { logger } from '../logger.js'
 const KIT_ENTRY = /^[A-Za-z0-9_-]{1,128}\.zip$/
 
 export class InvalidRunKitArchive extends Error {}
+export class RunKitsAlreadyPublished extends Error {}
 
 export async function extractRunKits(zipPath: string, targetDir: string): Promise<void> {
   const archive = await unzipper.Open.file(zipPath)
@@ -23,8 +24,9 @@ export async function extractRunKits(zipPath: string, targetDir: string): Promis
   }
   if (names.size === 0) throw new InvalidRunKitArchive('Run kit archive is empty')
 
-  // Extract beside the target and swap it in, so a failed or repeated upload
-  // never leaves participants with a partial set of kits.
+  // Extract beside the target and publish with one rename. Central uploads each
+  // run's kits once, so kits already published are never replaced: participants
+  // may be downloading them, and the first of two concurrent uploads wins.
   const parent = path.dirname(targetDir)
   await fs.mkdir(parent, { recursive: true, mode: 0o700 })
   const staging = await fs.mkdtemp(path.join(parent, '.staging-'))
@@ -35,8 +37,15 @@ export async function extractRunKits(zipPath: string, targetDir: string): Promis
         createWriteStream(path.join(staging, entry.path), { flags: 'wx', mode: 0o600 }),
       )
     }
-    await fs.rm(targetDir, { recursive: true, force: true })
-    await fs.rename(staging, targetDir)
+    try {
+      await fs.rename(staging, targetDir)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'ENOTEMPTY' || code === 'EEXIST') {
+        throw new RunKitsAlreadyPublished('Run kits for this run are already published')
+      }
+      throw error
+    }
   } catch (error) {
     await fs.rm(staging, { recursive: true, force: true })
     throw error
@@ -71,6 +80,8 @@ export const unzipFile = async (
   logger.error(`Error extracting run kits for run ${runId}: ${(failure as Error).message}`)
   if (failure instanceof InvalidRunKitArchive) {
     res.status(400).send('Invalid run kit archive')
+  } else if (failure instanceof RunKitsAlreadyPublished) {
+    res.status(409).send('Run kits for this run are already published')
   } else {
     res.status(500).send('Failed to store run kits')
   }

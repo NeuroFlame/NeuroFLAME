@@ -377,6 +377,42 @@ integration('a leader hands over to a current member before leaving, and cannot 
   assert.equal((await Consortium.findById(consortium.id)).description, '')
 })
 
+integration('a handover that lands between read and write never leaves a leader outside the consortium', async () => {
+  // Runs `interleave` just before the resolver's write, as a concurrent request would.
+  const racing = (interleave) => {
+    const original = Consortium.updateOne
+    mock.method(Consortium, 'updateOne', async function (...args) {
+      Consortium.updateOne.mock.restore()
+      await interleave()
+      return original.apply(this, args)
+    })
+  }
+  const handOver = (consortium, from, to) => Consortium.collection.updateOne(
+    { _id: consortium._id },
+    { $set: { leader: to._id }, $pull: { members: from._id, activeMembers: from._id, readyMembers: from._id } },
+  )
+  const isMember = async (consortium, user) =>
+    (await Consortium.findById(consortium.id)).members.some((id) => id.toString() === user.id)
+
+  // The member leaving is made leader mid-request, so the leave is refused.
+  let consortium = await membershipConsortium()
+  racing(() => handOver(consortium, victim, caller))
+  await assert.rejects(resolvers.Mutation.consortiumLeave(null, {
+    consortiumId: consortium.id,
+  }, context(caller)), /changed while leaving/)
+  assert.equal((await Consortium.findById(consortium.id)).leader.toString(), caller.id)
+  assert.ok(await isMember(consortium, caller))
+
+  // The leader hands over to the member they are removing, so the removal is refused.
+  await Consortium.deleteMany({})
+  consortium = await membershipConsortium()
+  racing(() => handOver(consortium, victim, caller))
+  await assert.rejects(resolvers.Mutation.leaderRemoveMember(null, {
+    consortiumId: consortium.id, userId: caller.id,
+  }, context(victim)), /changed while removing/)
+  assert.ok(await isMember(consortium, caller))
+})
+
 // Resolves with the next event payload delivered to this user, or 'none' after a pause.
 const nextEvent = async (subscription, args, user) => {
   const iterator = await subscription.subscribe(null, args, context(user), {})
