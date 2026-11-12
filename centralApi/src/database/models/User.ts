@@ -45,6 +45,7 @@ export interface IUser extends Document {
   tokenVersion: number
   vault?: IVault // Optional embedded Vault object
   vaultStatus?: IVaultStatus // Optional vault status (for vault users)
+  resetEmail?: string
   resetToken?: string
   resetTokenExpiry?: number
 }
@@ -95,6 +96,7 @@ const userSchema: Schema = new Schema({
   tokenVersion: { type: Number, required: true, default: 0 },
   vault: { type: vaultSchema, required: false }, // Optional embedded Vault
   vaultStatus: { type: vaultStatusSchema, required: false }, // Optional vault status
+  resetEmail: { type: String, required: false },
   resetToken: { type: String, required: false },
   resetTokenExpiry: { type: Date, required: false },
 })

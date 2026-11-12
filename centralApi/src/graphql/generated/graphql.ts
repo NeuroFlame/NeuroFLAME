@@ -293,6 +293,7 @@ export type MutationConsortiumJoinByInviteArgs = {
 
 export type MutationConsortiumLeaveArgs = {
   consortiumId: Scalars['String']['input'];
+  newLeaderId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -417,6 +418,7 @@ export type MutationStudySetParametersArgs = {
 
 
 export type MutationUserChangePasswordArgs = {
+  currentPassword: Scalars['String']['input'];
   password: Scalars['String']['input'];
 };
 

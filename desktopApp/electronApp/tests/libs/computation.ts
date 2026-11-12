@@ -45,10 +45,22 @@ const expectRunResults = async (page: Page) => {
   ).toBeVisible({ timeout: EXIST_TIMEOUT })
 }
 
-const selectComputation = async ({ name }, page: Page) => {
+const selectComputation = async (
+  { name },
+  page: Page,
+  { singularity = false }: { singularity?: boolean } = {},
+) => {
   // Select a computation
   await page.getByRole('button', { name: /select a computation/i }).click()
   await page.getByTestId(name).click()
+
+  if (singularity) {
+    // The wizard waits until the edge client has pulled and converted the image.
+    await page.getByRole('button', { name: 'Run Singularity Pull', exact: true }).click()
+    await expect(page.getByText('Singularity Image Downloaded')).toBeVisible({
+      timeout: COMPUTATION_TIMEOUT * 2,
+    })
+  }
 
   // Go to next step
   await page.getByRole('button', { name: /go to next step/i }).click()
@@ -58,7 +70,9 @@ const selectComputation = async ({ name }, page: Page) => {
   await page.getByRole('button', { name: /go to next step/i }).click()
 }
 
-const setDataForSRRFreesurfer = async (page: Page) => {
+// Docker nodes are started by the host daemon, so CI gives them a host path.
+// Pass dataDir when the node runs inside this container instead (Singularity).
+const setDataForSRRFreesurfer = async (page: Page, dataDir?: string) => {
   // Set parameters
   const jsonData = await fs.readFile(SRR_FREESURFER_PARAMETER_FILE, 'utf8')
   const parameters = JSON.parse(jsonData)
@@ -75,9 +89,9 @@ const setDataForSRRFreesurfer = async (page: Page) => {
   // Select data
   await page.getByPlaceholder(/enter your data directory path/i).click({ timeout: EXIST_TIMEOUT })
   await page.getByPlaceholder(/enter your data directory path/i)
-    .fill(process.env.CI === 'true'
+    .fill(dataDir ?? (process.env.CI === 'true'
       ? (process.env.CI_DATA_DIR ?? (() => { throw new Error('CI_DATA_DIR is not set') })())
-      : SRR_FREESURFER_SITE1_DIR)
+      : SRR_FREESURFER_SITE1_DIR))
   await page.getByRole('button', { name: /save/i }).click()
 }
 
@@ -119,6 +133,8 @@ const runComputation = async (page: Page) => {
   await goToRunResults(page)
   await expectRunResults(page)
 }
+
+export { SRR_FREESURFER_SITE1_DIR }
 
 export default {
   select: selectComputation,

@@ -109,6 +109,8 @@ export const runStartHandler = {
 
       // Prepare directories to mount
       const directoriesToMount = [
+        // Writable because NVFlare uses the kit directory as its workspace
+        // (pid files, logs and job folders are written there).
         {
           hostDirectory: runKitPath,
           containerDirectory: '/workspace/runKit',
@@ -163,11 +165,18 @@ export const runStartHandler = {
     } catch (error) {
       logger.error('Error in runStartHandler', { error })
 
-      await reportRunError({
-        runId: data.runStartEdge.runId,
-        vaultId: data.runStartEdge.vaultId,
-        errorMessage: `Error starting run: ${(error as Error).message}`,
-      })
+      try {
+        await reportRunError({
+          runId: data.runStartEdge.runId,
+          vaultId: data.runStartEdge.vaultId,
+          errorMessage: `Error starting run: ${(error as Error).message}`,
+        })
+      } catch (reportError) {
+        logger.error('Failed to report the run start failure', {
+          error: reportError,
+          runId: data.runStartEdge.runId,
+        })
+      }
     }
   },
 }

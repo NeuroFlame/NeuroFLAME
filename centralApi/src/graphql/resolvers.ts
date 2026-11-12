@@ -32,15 +32,20 @@ import {
 } from './generated/graphql.js'
 import { Resend } from 'resend'
 import { logger } from '../logger.js'
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { COMPUTATION_API_VERSION } from '../versions.js'
 import { disclosedRunErrorMessage } from './runErrorDisclosure.js'
+import { buildInviteEmail, inviteTokenDigest, isInviteToken } from './inviteEmail.js'
+import { revokeUserSessions } from '../authentication/sessionRevocation.js'
 
 interface Context {
   userId: string
   roles: string[]
   error: string
 }
+
+// Runs in these states have not finished; Complete and Error are terminal.
+const ACTIVE_RUN_STATUSES = ['Pending', 'Provisioning', 'In Progress']
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
@@ -66,6 +71,21 @@ const toObjectIdString = (value: unknown): string | null => {
 
   return null
 }
+
+const canViewConsortiumUsers = (
+  consortium: { leader?: unknown; members?: unknown[] },
+  context: Context,
+): boolean =>
+  Boolean(context.userId) && (
+    context.roles?.includes('admin') === true ||
+    toObjectIdString(consortium.leader) === context.userId ||
+    consortium.members?.some((member: unknown) => toObjectIdString(member) === context.userId) === true
+  )
+
+const dummyLoginHash = hashPassword(randomBytes(32).toString('hex'))
+
+const resetTokenDigest = (token: string): string =>
+  createHash('sha256').update(token).digest('hex')
 
 const resend = new Resend(RESEND_API_KEY)
 const RESEND_FROM = 'NeuroFLAME <no-reply@em5561.coinstac.org>'
@@ -419,19 +439,42 @@ const sendInviteEmail = async ({
   consortiumTitle: string
   token: string
 }): Promise<void> => {
-  const html = `${leaderName} invites you to join ${consortiumTitle} on NeuroFLAME. <br/>
-      Please click this <a href="${getInviteUrl(token)}">link</a> to join.`
+  const { subject, html } = buildInviteEmail({
+    leaderName,
+    consortiumTitle,
+    inviteUrl: getInviteUrl(token),
+  })
 
   const { error } = await resend.emails.send({
     from: RESEND_FROM,
     to: [email],
-    subject: `Invitation to join ${consortiumTitle}`,
+    subject,
     html,
   })
 
   if (error) {
     throw new Error(`Failed to send invite email: ${error.message}`)
   }
+}
+
+// Events about a consortium that no longer exists, or about a member who has
+// just left, carry the member list from before the change.
+interface ConsortiumEventPayload {
+  consortiumId: string
+  memberIds?: string[]
+}
+
+const memberIdsOf = (consortium: { members: Array<{ toString: () => string }> }): string[] =>
+  consortium.members.map((member) => member.toString())
+
+const isConsortiumEventRecipient = async (
+  payload: ConsortiumEventPayload,
+  userId?: string,
+): Promise<boolean> => {
+  if (!userId) return false
+  if (payload.memberIds) return payload.memberIds.includes(userId)
+  const consortium = await Consortium.findById(payload.consortiumId).select('members').lean()
+  return consortium ? memberIdsOf(consortium).includes(userId) : false
 }
 
 export default {
@@ -488,26 +531,29 @@ export default {
       })()
 
       const consortiums = await Consortium.find(filter)
-        .populate('leader')
-        .populate('members')
+        .populate('leader', 'username')
+        .populate('members', 'username vault')
         .lean() // Use lean() for better performance and to get plain JavaScript objects
 
-      return consortiums.map((consortium) => ({
-        id: consortium._id.toString(),
-        title: consortium.title,
-        description: consortium.description,
-        leader: {
-          id: (consortium.leader as any)._id.toString(),
-          username: (consortium.leader as any).username,
-        },
-        members: (consortium.members as any[]).map((member) => ({
-          id: member._id.toString(),
-          username: member.username,
-          vault: mapVault(member.vault),
-        })),
-        isPrivate: consortium.isPrivate ?? false,
-        createdAt: new mongoose.Types.ObjectId(consortium._id.toString()).getTimestamp().getTime().toString(),
-      }))
+      return consortiums.map((consortium) => {
+        const discloseUsers = canViewConsortiumUsers(consortium, context)
+        const id = consortium._id.toString()
+        return {
+          id,
+          title: consortium.title,
+          description: consortium.description,
+          leader: discloseUsers
+            ? { id: (consortium.leader as any)._id.toString(), username: (consortium.leader as any).username }
+            : { id: `public-${id}-leader`, username: 'Consortium leader' },
+          members: discloseUsers
+            ? (consortium.members as any[]).map((member) => ({
+                id: member._id.toString(), username: member.username, vault: mapVault(member.vault),
+              }))
+            : [],
+          isPrivate: consortium.isPrivate ?? false,
+          createdAt: new mongoose.Types.ObjectId(id).getTimestamp().getTime().toString(),
+        }
+      })
     },
     getComputationList: async (): Promise<ComputationListItem[]> => {
       const computations = await Computation.find().lean()
@@ -668,28 +714,30 @@ export default {
           throw new Error('Consortium not found or inaccessible')
         }
 
-        if (consortium.isPrivate) {
-          const { userId, roles } = context
-          const isAdmin = roles?.includes('admin')
+        const vaultServerAccess = context.userId && consortium.vaultMembers.length > 0
+          ? await VaultServer.exists({
+            user: context.userId,
+            _id: { $in: (consortium.vaultMembers as any[]).map((vault) => vault.server) },
+          })
+          : null
+        const discloseUsers = canViewConsortiumUsers(consortium, context) || Boolean(vaultServerAccess)
+        if (consortium.isPrivate && !discloseUsers) throw new Error('Consortium not found or inaccessible')
 
-          if (!isAdmin) {
-            if (!userId) throw new Error('Consortium not found or inaccessible')
-            const leaderId = consortium.leader._id.toString()
-            const isLeader = leaderId === userId
-            const isMember = consortium.members.map((member) => member._id.toString()).includes(userId)
-            const vaultServers = await VaultServer.find({
-              _id: {
-                $in: (consortium.vaultMembers as any[]).map((vault) => vault.server),
-              },
-            })
-              .select('user')
-              .lean()
-            const isVaultServerMember = vaultServers.some(
-              (server: any) => server.user.toString() === userId,
-            )
-            if (!isLeader && !isMember && !isVaultServerMember) {
-              throw new Error('Consortium not found or inaccessible')
-            }
+        if (!discloseUsers) {
+          // Keep the existing non-null GraphQL shape without exposing study internals.
+          return {
+            id: consortium.id,
+            title: consortium.title,
+            description: consortium.description || '',
+            isPrivate: false,
+            leader: { id: `public-${consortium.id}-leader`, username: 'Consortium leader' },
+            members: [],
+            activeMembers: [],
+            readyMembers: [],
+            vaultMembers: [],
+            activeVaultMembers: [],
+            readyVaultMembers: [],
+            studyConfiguration: { consortiumLeaderNotes: null, computationParameters: '', computation: null },
           }
         }
 
@@ -712,9 +760,7 @@ export default {
         } = consortium
 
         const transformUser = (user: any): PublicUser => ({
-          id: user.id,
-          username: user.username,
-          vault: mapVault(user.vault),
+          id: user.id, username: user.username, vault: mapVault(user.vault),
         })
 
         if (!leader) {
@@ -1015,34 +1061,55 @@ export default {
         throw new Error('Failed to fetch run details')
       }
     },
-    getVaultUserList: async (): Promise<PublicUser[]> => {
+    getVaultUserList: async (_: unknown, __: unknown, context: Context): Promise<PublicUser[]> => {
+      if (!context?.userId) throw new Error('User not authenticated')
       const users = await User.find({ roles: 'vault' })
+        .select('_id username vault vaultStatus')
         .populate('vault.allowedComputations', 'title imageName')
         .exec()
 
-      // Get consortium titles for any running computations
+      // The public vault directory shows each vault's name, description and allowed
+      // computations. Operational details (host dataset paths, running runs, consortium
+      // titles, dataset mappings) stay with admins and the vault's own account.
+      const isAdmin = context.roles?.includes('admin') === true
+      const canViewDetails = (user: { _id: { toString(): string } }): boolean =>
+        isAdmin || user._id.toString() === context.userId
+
       const consortiumIds = new Set<string>()
-      users.forEach((user) => {
+      users.filter(canViewDetails).forEach((user) => {
         user.vaultStatus?.runningComputations?.forEach((comp) => {
           consortiumIds.add(comp.consortiumId)
         })
       })
 
-      const consortiums = await Consortium.find({
-        _id: { $in: Array.from(consortiumIds) },
-      })
-        .select('_id title')
-        .lean()
+      const consortiums = consortiumIds.size > 0
+        ? await Consortium.find({
+          _id: { $in: Array.from(consortiumIds) },
+        })
+          .select('_id title')
+          .lean()
+        : []
       const consortiumMap = new Map(
         consortiums.map((c) => [c._id.toString(), c.title]),
       )
 
-      return users.map((user) => ({
-        id: user._id.toString(),
-        username: user.username,
-        vault: mapVault(user.vault),
-        vaultStatus: mapVaultStatus(user.vaultStatus, consortiumMap),
-      }))
+      return users.map((user) => {
+        const vault = mapVault(user.vault)
+        if (!canViewDetails(user)) {
+          return {
+            id: user._id.toString(),
+            username: user.vault?.name || 'Vault user',
+            vault: vault && { ...vault, datasetMappings: [] },
+            vaultStatus: null,
+          }
+        }
+        return {
+          id: user._id.toString(),
+          username: user.username,
+          vault,
+          vaultStatus: mapVaultStatus(user.vaultStatus, consortiumMap),
+        }
+      })
     },
     getVaultServerList: async (
       _: unknown,
@@ -1125,7 +1192,10 @@ export default {
       _: unknown,
       { inviteToken }: { inviteToken: string },
     ): Promise<InviteInfo> => {
-      const invite = await Invite.findOne({ token: inviteToken })
+      if (!isInviteToken(inviteToken)) {
+        throw new Error('Invalid invite link')
+      }
+      const invite = await Invite.findOne({ tokenDigest: inviteTokenDigest(inviteToken) })
         .populate('leader')
         .populate('consortium')
         .lean()
@@ -1239,23 +1309,17 @@ export default {
       const user = await User
         .findOne({ username: normalizeUsername(username) })
         .collation({ locale: 'en', strength: 2 })
-      if (!user) {
-        throw new Error('User not found')
-      }
-      // compare the password
-      if (!(await compare(validatePassword(password), user.hash))) {
+      const passwordMatches = await compare(validatePassword(password), user?.hash ?? await dummyLoginHash)
+      if (!user || !passwordMatches) {
         throw new Error('Invalid username or password')
       }
 
-      // create a token
-      const tokens = generateTokens(
-        {
-          userId: user._id,
-          roles: user.roles,
-          tokenVersion: user.tokenVersion,
-        },
-        { shouldExpire: false },
-      )
+      // Sign-in sessions expire; vault service tokens are issued separately.
+      const tokens = generateTokens({
+        userId: user._id,
+        roles: user.roles,
+        tokenVersion: user.tokenVersion,
+      })
       const { accessToken } = tokens as { accessToken: string }
 
       return {
@@ -1277,73 +1341,60 @@ export default {
       }
 
       const resetToken = randomBytes(32).toString('hex')
-      user.resetToken = resetToken
-      user.resetTokenExpiry = Date.now() + 1000 * 60 * 60 * 24 // 24 hours
-      await user.save()
-
-      const email = user.username
-      const msg = {
-        from: RESEND_FROM,
-        to: [email],
-        subject: 'Password Reset Request',
-        html: `We received your password reset request. <br/>
-            Please use this token for password reset. <br/>
-            Username: <strong>${username}</strong> <br/>
-            Token: <strong>${resetToken}</strong>`,
-      }
+      const saved = await User.updateOne({
+        _id: user._id, username: user.username, hash: user.hash,
+      }, {
+        $set: {
+          resetToken: resetTokenDigest(resetToken),
+          resetEmail: user.username,
+          resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        },
+      })
+      if (saved.matchedCount !== 1) return true
 
       try {
-        const { error } = await resend.emails.send(msg)
-        if (error) {
-          throw new Error(error.message)
-        }
-      } catch (error: any) {
-        throw new Error(`Failed to send email: ${error.message}`)
+        const { error } = await resend.emails.send({
+          from: RESEND_FROM,
+          to: [user.username],
+          subject: 'Password Reset Request',
+          html: `We received your password reset request. <br/>
+            Please use this token for password reset. <br/>
+            Token: <strong>${resetToken}</strong>`,
+        })
+        if (error) logger.error('Password reset email delivery failed')
+      } catch {
+        // Never expose account existence, token contents, or provider details.
+        logger.error('Password reset email delivery failed')
       }
-
       return true
     },
     resetPassword: async (
       _: unknown,
       { token, newPassword }: { token: string; newPassword: string },
-    ): Promise<{
-      accessToken: string
-      userId: string
-      username: string
-      roles: string[]
-    }> => {
-      try {
-        const user = await User.findOne({
-          resetToken: token,
-          resetTokenExpiry: { $gt: Date.now() },
-        })
-
-        if (!user) {
-          throw new Error('Invalid or expired token')
-        }
-
-        const hashedPassword = await hashPassword(validatePassword(newPassword))
-        user.hash = hashedPassword
-        user.resetToken = undefined
-        user.resetTokenExpiry = undefined
-        await user.save()
-
-        const tokens = generateTokens({
-          userId: user._id,
-          roles: user.roles,
-          tokenVersion: user.tokenVersion,
-        })
-        const { accessToken } = tokens as { accessToken: string }
-
-        return {
-          accessToken,
-          userId: user._id.toString(),
-          username: user.username,
-          roles: user.roles,
-        }
-      } catch (error: any) {
-        logger.error('Error resetting password:', error.message)
-        throw new Error(error.message)
+    ): Promise<LoginOutput> => {
+      const hashedPassword = await hashPassword(validatePassword(newPassword))
+      if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('Invalid or expired token')
+      // Token consumption, email binding, password update and session revocation are atomic.
+      const user = await User.findOneAndUpdate({
+        resetToken: resetTokenDigest(token),
+        resetTokenExpiry: { $gt: new Date() },
+        resetEmail: { $type: 'string' },
+        $expr: { $eq: ['$username', '$resetEmail'] },
+      }, {
+        $set: { hash: hashedPassword },
+        $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
+        $inc: { tokenVersion: 1 },
+      }, { new: true })
+      if (!user) throw new Error('Invalid or expired token')
+      revokeUserSessions(user._id.toString(), user.tokenVersion)
+      const { accessToken } = generateTokens({
+        userId: user._id, roles: user.roles, tokenVersion: user.tokenVersion,
+      })
+      return {
+        accessToken,
+        userId: user._id.toString(),
+        username: user.username,
+        roles: user.roles,
       }
     },
     startRun: async (
@@ -1492,14 +1543,20 @@ export default {
       ) {
         throw new Error('Resolved computation image digest is invalid')
       }
-      await Run.updateOne(
-        { _id: runId },
+      // Only a provisioning run can start. A duplicate or late ready report (for example
+      // after the central node already failed) must not revive the run or re-notify sites.
+      const started = await Run.updateOne(
+        { _id: runId, status: 'Provisioning' },
         {
           status: 'In Progress',
           resolvedComputationImage: resolvedImage,
           lastUpdated: Date.now(),
         },
       )
+      if (started.matchedCount !== 1) {
+        logger.warn('Ignoring run ready report for a run that is no longer provisioning', { runId })
+        return false
+      }
       const imageName = resolvedImage.reference
       const computationId = run.studyConfiguration.computation._id.toString()
       const consortiumId = run.consortium._id
@@ -1645,19 +1702,19 @@ export default {
         runError.vault = reportingVault._id
       }
 
-      const runUpdate: Record<string, unknown> = {
-        status: 'Error',
-        lastUpdated: Date.now().toString(),
-        $push: {
-          runErrors: runError,
-        },
-      }
-
       // Ordinary participants are always redacted. Only an authorized hosted
       // vault server may apply its operator-controlled disclosure decision.
+      // Every error is recorded, but a finished run keeps its terminal status.
       await Run.updateOne(
         { _id: runId },
-        runUpdate,
+        {
+          $set: { lastUpdated: Date.now().toString() },
+          $push: { runErrors: runError },
+        },
+      )
+      await Run.updateOne(
+        { _id: runId, status: { $in: ACTIVE_RUN_STATUSES } },
+        { $set: { status: 'Error' } },
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -1706,10 +1763,15 @@ export default {
       if (!run) {
         throw new Error(`Run with id ${runId} not found`)
       }
-      await Run.updateOne(
-        { _id: runId },
+      // A run that already failed, or never started, cannot be reported complete.
+      const completed = await Run.updateOne(
+        { _id: runId, status: 'In Progress' },
         { status: 'Complete', lastUpdated: Date.now() },
       )
+      if (completed.matchedCount !== 1) {
+        logger.warn('Ignoring run complete report for a run that is not in progress', { runId })
+        return false
+      }
 
       const consortium = await Consortium.findById(run.consortium._id)
       if (!consortium) {
@@ -1920,6 +1982,11 @@ export default {
       },
       context: Context,
     ): Promise<boolean> => {
+      // The creator becomes the owner, so there must be one.
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
       if (!title || !imageName || !imageDownloadUrl || !notes) {
         throw new Error(
           'Title, imageName, imageDownloadUrl, and notes are required',
@@ -1962,6 +2029,10 @@ export default {
       },
       context: Context,
     ): Promise<boolean> => {
+      if (!context.userId) {
+        throw new Error('User not authenticated')
+      }
+
       // Ensure the computation exists
       const computation = await Computation.findById(computationId)
       if (!computation) {
@@ -1974,7 +2045,7 @@ export default {
       }
 
       // Ensure at least one field is provided for update
-      if (!title && !imageName && !imageDownloadUrl && !notes) {
+      if (!title && !imageName && !imageDownloadUrl && !notes && hasLocalParameters === undefined) {
         throw new Error('No fields provided to update')
       }
 
@@ -2051,14 +2122,14 @@ export default {
       }
 
       // Ensure at least one field is provided for update
-      if (!title && !description && isPrivate === undefined) {
+      if (!title && description === undefined && isPrivate === undefined) {
         throw new Error('No fields provided to update')
       }
 
-      // Prepare the update payload
+      // Prepare the update payload. An empty description clears it.
       const updatePayload: { [key: string]: string | boolean } = {}
       if (title) updatePayload.title = title
-      if (description) updatePayload.description = description
+      if (description !== undefined) updatePayload.description = description
       if (isPrivate !== undefined) updatePayload.isPrivate = isPrivate
 
       // Perform the update operation
@@ -2116,7 +2187,10 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      const invite = await Invite.findOne({ token: inviteToken })
+      if (!isInviteToken(inviteToken)) {
+        throw new Error('Invalid invite link')
+      }
+      const invite = await Invite.findOne({ tokenDigest: inviteTokenDigest(inviteToken) })
         .populate('leader', 'id username')
         .populate('consortium', 'id members') as any
 
@@ -2188,15 +2262,17 @@ export default {
 
       await Consortium.findByIdAndDelete(consortiumId)
 
+      // The consortium no longer exists, so name its former members here.
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
+        memberIds: memberIdsOf(consortium),
       })
 
       return true
     },
     consortiumLeave: async (
       _: unknown,
-      { consortiumId }: { consortiumId: string },
+      { consortiumId, newLeaderId }: { consortiumId: string; newLeaderId?: string | null },
       context: Context,
     ): Promise<boolean> => {
       const { userId } = context
@@ -2204,13 +2280,46 @@ export default {
         throw new Error('User not authenticated')
       }
 
-      await Consortium.findByIdAndUpdate(consortiumId, {
-        $pull: { members: userId, activeMembers: userId, readyMembers: userId },
-      })
+      const consortium = await Consortium.findById(consortiumId).select('leader members').lean()
+      if (!consortium) {
+        throw new Error('Consortium not found')
+      }
+      const memberIds = memberIdsOf(consortium)
+      const leave = { $pull: { members: userId, activeMembers: userId, readyMembers: userId } }
 
-      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
-        consortiumId,
-      })
+      if (consortium.leader.toString() !== userId) {
+        // Leadership may be handed to this member after the read above; a leader
+        // must never leave without handing over, so the update re-checks it.
+        const result = await Consortium.updateOne(
+          { _id: consortiumId, leader: { $ne: userId } },
+          leave,
+        )
+        if (result.matchedCount !== 1) {
+          throw new Error('The consortium changed while leaving. Please try again.')
+        }
+      } else {
+        // A consortium always has a leader: the leader hands over before leaving.
+        if (!newLeaderId) {
+          throw new Error('Choose a new leader before leaving this consortium')
+        }
+        if (newLeaderId === userId || !memberIds.includes(newLeaderId)) {
+          throw new Error('The new leader must be another member of this consortium')
+        }
+        const newLeader = await User.findById(newLeaderId).select('roles').lean()
+        if (!newLeader || newLeader.roles.includes('vault')) {
+          throw new Error('The new leader must be a member account, not a vault')
+        }
+        const result = await Consortium.updateOne(
+          { _id: consortiumId, leader: userId, members: newLeaderId },
+          { $set: { leader: newLeaderId }, ...leave },
+        )
+        if (result.matchedCount !== 1) {
+          throw new Error('The consortium changed while leaving. Please try again.')
+        }
+      }
+
+      // Include the member who left so their other windows update too.
+      pubsub.publish('CONSORTIUM_DETAILS_CHANGED', { consortiumId, memberIds })
 
       return true
     },
@@ -2350,7 +2459,7 @@ export default {
 
       if (invite) {
         invite.email = normalizedEmail
-        invite.token = token
+        invite.tokenDigest = inviteTokenDigest(token)
         invite.createdAt = new Date()
         await invite.save()
       } else {
@@ -2358,7 +2467,7 @@ export default {
           leader: context.userId,
           consortium: consortiumId,
           email: normalizedEmail,
-          token,
+          tokenDigest: inviteTokenDigest(token),
           createdAt: Date.now(),
         })
       }
@@ -2425,22 +2534,26 @@ export default {
 
     userChangePassword: async (
       _: unknown,
-      { password }: { userId: string; password: string },
-      context: any,
+      { currentPassword, password }: { currentPassword: string; password: string },
+      context: Context,
     ): Promise<boolean> => {
       const { userId } = context
-      if (!userId) {
-        throw new Error('User not authenticated')
+      if (!userId) throw new Error('User not authenticated')
+      const user = await User.findById(userId).select('hash').exec()
+      if (!user) throw new Error('User not authenticated')
+      if (typeof currentPassword !== 'string' || !currentPassword ||
+        !(await compare(currentPassword, user.hash))) {
+        throw new Error('Current password is incorrect')
       }
-
-      try {
-        const hashedPassword = await hashPassword(validatePassword(password))
-        await User.updateOne({ _id: userId }, { hash: hashedPassword })
-        return true
-      } catch (error) {
-        logger.error('Error changing password:', error)
-        throw new Error('Failed to change password')
-      }
+      const hashedPassword = await hashPassword(validatePassword(password))
+      const updatedUser = await User.findOneAndUpdate({ _id: userId, hash: user.hash }, {
+        $set: { hash: hashedPassword },
+        $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
+        $inc: { tokenVersion: 1 },
+      }, { new: true }).select('tokenVersion').exec()
+      if (!updatedUser) throw new Error('Password changed. Please sign in again.')
+      revokeUserSessions(userId, updatedUser.tokenVersion)
+      return true
     },
     adminChangeUserPassword: async (
       _: unknown,
@@ -2458,9 +2571,16 @@ export default {
 
       try {
         const hashedPassword = await hashPassword(validatePassword(password))
-        await User
-          .updateOne({ username: normalizeUsername(username) }, { hash: hashedPassword })
+        const updatedUser = await User
+          .findOneAndUpdate({ username: normalizeUsername(username) }, {
+            $set: { hash: hashedPassword },
+            $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
+            $inc: { tokenVersion: 1 },
+          }, { new: true })
+          .select('_id tokenVersion')
           .collation({ locale: 'en', strength: 2 })
+        if (!updatedUser) throw new Error('User not found')
+        revokeUserSessions(updatedUser._id.toString(), updatedUser.tokenVersion)
         return true
       } catch (error) {
         logger.error('Error changing password:', error)
@@ -2937,6 +3057,7 @@ export default {
         throw new Error('Vault service account not found')
       }
 
+      revokeUserSessions(user._id.toString(), user.tokenVersion)
       const { accessToken } = generateTokens(
         {
           userId: user._id,
@@ -3329,14 +3450,24 @@ export default {
       if (consortium.leader.toString() !== context.userId) {
         throw new Error('User not authorized')
       }
+      if (userId === context.userId) {
+        throw new Error('The leader cannot be removed. Choose a new leader by leaving the consortium.')
+      }
 
-      // remove from the members, active members, and ready members
-      await consortium.updateOne({
-        $pull: { members: userId, activeMembers: userId, readyMembers: userId },
-      })
+      // Remove from the members, active members, and ready members. The filter
+      // re-checks leadership, which may have been handed over since the read.
+      const result = await Consortium.updateOne(
+        { _id: consortiumId, leader: { $eq: context.userId, $ne: userId } },
+        { $pull: { members: userId, activeMembers: userId, readyMembers: userId } },
+      )
+      if (result.matchedCount !== 1) {
+        throw new Error('The consortium changed while removing this member. Please try again.')
+      }
 
+      // Include the removed member so their view updates too.
       pubsub.publish('CONSORTIUM_DETAILS_CHANGED', {
         consortiumId,
+        memberIds: memberIdsOf(consortium),
       })
 
       return true
@@ -3430,6 +3561,7 @@ export default {
       }
 
       const consortiumId = (run as any).consortium._id.toString()
+      const consortium = await Consortium.findById(consortiumId).select('members').lean()
 
       await Run.findByIdAndDelete(runId)
 
@@ -3437,8 +3569,10 @@ export default {
         consortiumId,
       })
 
+      // The run no longer exists, so name the consortium members here.
       pubsub.publish('RUN_DETAILS_CHANGED', {
         runId,
+        memberIds: consortium ? memberIdsOf(consortium) : [],
       })
 
       return true
@@ -3448,13 +3582,8 @@ export default {
   Subscription: {
     runStartCentral: {
       resolve: (payload: RunStartCentralPayload): RunStartCentralPayload => {
-        logger.info(
-          `Event emitted for runStartCentral: \n${JSON.stringify(
-            payload,
-            null,
-            2,
-          )}`,
-        )
+        // Parameters and participant names stay out of the log.
+        logger.info(`Event emitted for runStartCentral: run ${payload.runId}`)
         return payload
       },
       subscribe: withFilter(
@@ -3466,16 +3595,7 @@ export default {
           payload: RunStartCentralPayload,
           variables: unknown,
           context: Context,
-        ) => {
-          logger.info(
-            `Subscription attempt for runStartCentral: context: \n${JSON.stringify(
-              context,
-              null,
-              2,
-            )}`,
-          )
-          return context.roles.includes('central')
-        },
+        ) => context.roles.includes('central'),
       ),
     },
     runStartEdge: {
@@ -3569,26 +3689,10 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
         async (
-          payload: { consortiumId: string },
+          payload: ConsortiumEventPayload,
           variables: unknown,
           context: Context,
-        ) => {
-          const { userId } = context
-          const { consortiumId } = payload
-
-          // Check if the user is part of the consortium's active members
-          const consortium = await Consortium.findById(consortiumId).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          const isMember = consortium.members.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
-          )
-
-          return isMember
-        },
+        ) => isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
@@ -3597,26 +3701,10 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
         async (
-          payload: { consortiumId: string },
+          payload: ConsortiumEventPayload,
           variables: unknown,
           context: Context,
-        ) => {
-          const { userId } = context
-          const { consortiumId } = payload
-
-          // Check if the user is part of the consortium's active members
-          const consortium = await Consortium.findById(consortiumId).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          const isMember = consortium.members.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
-          )
-
-          return isMember
-        },
+        ) => isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
@@ -3625,35 +3713,21 @@ export default {
       subscribe: withFilter(
         () => pubsub.asyncIterator(['RUN_DETAILS_CHANGED']),
         async (
-          payload: { runId: string },
+          payload: { runId: string; memberIds?: string[] },
           variables: unknown,
           context: Context,
         ) => {
-          const { userId } = context
-          const { runId } = payload
-
-          // Find the run by its ID
-          const run = await Run.findById(runId).lean()
-          if (!run) {
-            logger.error('Run not found')
-            throw new Error('Run not found')
-          }
-
-          // Check if the user is a member of the run's consortium
-          const consortium = await Consortium.findById(run.consortium).lean()
-          if (!consortium) {
-            logger.error('Consortium not found')
-            throw new Error('Consortium not found')
-          }
-
-          // Verify if the user is part of the consortium's members
-          const isMember = consortium.members.some(
-            (memberObjectId: any) => memberObjectId.toString() === userId,
+          if (!context.userId) return false
+          if (payload.memberIds) return payload.memberIds.includes(context.userId)
+          const run = await Run.findById(payload.runId).select('consortium').lean()
+          if (!run) return false
+          return isConsortiumEventRecipient(
+            { consortiumId: run.consortium.toString() },
+            context.userId,
           )
-
-          return isMember
         },
       ),
     },
+
   },
 }

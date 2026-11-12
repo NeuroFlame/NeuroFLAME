@@ -19,6 +19,7 @@ import AdminPage from './Admin/AdminPage'
 import ConsortiumWizard from './ConsortiumWizard/ConsortiumWizard'
 import VaultListPage from './VaultList/VaultListPage'
 import HealthPage from './HealthPage/HealthPage'
+import { ChangePassword } from './LoginPage/ChangePassword/ChangePassword'
 import { useUserState } from '../contexts/UserStateContext'
 
 function AdminRoute() {
@@ -29,6 +30,13 @@ function AdminRoute() {
   if (!roles.includes('admin')) return <Navigate to='/home' replace />
 
   return <AdminPage />
+}
+
+function ChangePasswordRoute() {
+  const { isInitialized, username } = useUserState()
+  if (!isInitialized) return null
+  if (!username) return <Navigate to='/' replace />
+  return <ChangePassword />
 }
 
 export default function AppRoutes() {
@@ -61,6 +69,7 @@ export default function AppRoutes() {
       <Route path='/vaults/list' element={<VaultListPage />} />
       <Route path='/appConfig' element={<AppConfig />} />
       <Route path='/appHealth' element={<HealthPage />} />
+      <Route path='/account/change-password' element={<ChangePasswordRoute />} />
       <Route path='/admin' element={<AdminRoute />} />
     </Routes>
   )

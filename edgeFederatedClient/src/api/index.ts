@@ -2,7 +2,7 @@ import { ApolloServer } from '@apollo/server'
 import { expressMiddleware } from '@as-integrations/express4'
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer'
 import express from 'express'
-import { createServer } from 'http'
+import { createServer, IncomingMessage, Server } from 'http'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import { WebSocketServer } from 'ws'
 import { useServer } from 'graphql-ws/lib/use/ws'
@@ -12,23 +12,24 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { logger } from '../logger.js'
 import runResultsRoute from './routes/runResultsRoutes.js'
+import {
+  hasLocalApiKey,
+  LOCAL_API_HOST,
+  requireLocalApiKey,
+} from './localApiAccess.js'
 
 import { typeDefs } from './graphql/typeDefs.js'
 import { resolvers } from './graphql/resolvers.js'
 import { httpServerContext, wsServerContext } from './serverContexts.js'
 
-import { getConfig } from '../config/config.js'
-
-export async function start({ port }: { port: number }) {
+export async function start({
+  port,
+  localApiKey,
+}: {
+  port: number
+  localApiKey: string
+}): Promise<Server> {
   const PORT = port
-
-  const config = await getConfig()
-
-  if (!config) {
-    throw new Error('getConfig() returned undefined')
-  }
-
-  const { pathBaseDirectory: filesDirectory } = config
 
   const schema = makeExecutableSchema({ typeDefs, resolvers })
 
@@ -38,6 +39,7 @@ export async function start({ port }: { port: number }) {
   const wsServer = new WebSocketServer({
     server: httpServer,
     path: '/graphql',
+    verifyClient: ({ req }: { req: IncomingMessage }) => hasLocalApiKey(req.headers, localApiKey),
   })
 
   const serverCleanup = useServer(
@@ -67,6 +69,7 @@ export async function start({ port }: { port: number }) {
   await server.start()
 
   app.use(cors())
+  app.use(requireLocalApiKey(localApiKey))
   app.use(bodyParser.json())
   app.use(
     '/graphql',
@@ -82,21 +85,17 @@ export async function start({ port }: { port: number }) {
   app.use('/static', express.static(staticDir))
   app.get('/nii-viewer', (_req, res) => res.sendFile(path.join(staticDir, 'nii-viewer.html')))
 
-  logger.info('[STATIC FILES] Serving from: ' + path.resolve(filesDirectory))
-
-  // Serve static assets (excluding .html)
-  app.use('/run-results', (req, res, next) => {
-    if (req.path.endsWith('.html')) {
-      return next()
-    }
-    express.static(path.resolve(filesDirectory))(req, res, next)
-  })
-
-  // Dynamic API routes for /run-results/*
+  // Results are served only from run results directories, never the whole base directory.
   app.use('/run-results', runResultsRoute)
 
-  httpServer.listen(PORT, () => {
-    logger.info(`🚀 Query endpoint ready at http://localhost:${PORT}/graphql`)
-    logger.info(`🚀 Subscription endpoint ready at ws://localhost:${PORT}/graphql`)
+  await new Promise<void>((resolve, reject) => {
+    httpServer.once('error', reject)
+    httpServer.listen(PORT, LOCAL_API_HOST, () => {
+      httpServer.off('error', reject)
+      resolve()
+    })
   })
+  logger.info(`🚀 Query endpoint ready at http://${LOCAL_API_HOST}:${PORT}/graphql`)
+  logger.info(`🚀 Subscription endpoint ready at ws://${LOCAL_API_HOST}:${PORT}/graphql`)
+  return httpServer
 }

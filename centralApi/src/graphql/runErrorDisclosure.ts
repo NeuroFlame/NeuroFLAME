@@ -2,6 +2,10 @@ const REDACTED_PARTICIPANT_ERROR =
   'Site computation failed. Detailed error is available only to that participant.'
 const REDACTED_HOSTED_VAULT_ERROR =
   'Hosted vault computation failed. Detailed error was not disclosed by vault policy.'
+const OVERSIZED_ERROR: Record<'central' | 'hostedVault', string> = {
+  central: 'Central computation failed. The detailed error exceeded the size limit.',
+  hostedVault: 'Hosted vault computation failed. The detailed error exceeded the size limit.',
+}
 
 export const MAX_DISCLOSED_RUN_ERROR_BYTES = 64 * 1024
 
@@ -38,10 +42,9 @@ export const disclosedRunErrorMessage = ({
       : REDACTED_PARTICIPANT_ERROR
   }
 
+  // Never persist oversized detail, but still record that the run failed.
   if (Buffer.byteLength(errorMessage, 'utf8') > MAX_DISCLOSED_RUN_ERROR_BYTES) {
-    throw new Error(
-      `Detailed run error exceeds ${MAX_DISCLOSED_RUN_ERROR_BYTES} bytes`,
-    )
+    return OVERSIZED_ERROR[reporter === 'central' ? 'central' : 'hostedVault']
   }
   return errorMessage
 }

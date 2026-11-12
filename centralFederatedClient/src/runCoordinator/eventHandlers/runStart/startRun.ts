@@ -53,7 +53,7 @@ export default async function startRun({
     start: HOSTING_PORT_START,
     end: HOSTING_PORT_END,
   }
-  let releaseFedLearnPort: (() => Promise<void>) | undefined
+  let fedLearnReservation: Awaited<ReturnType<typeof reservePort>> | undefined
 
   try {
     const resolvedImage = await resolveDockerComputationImage(
@@ -65,15 +65,11 @@ export default async function startRun({
     await fs.chmod(pathCentralResults, 0o700)
 
     // NVFlare 2.8 uses one externally routed server port for this computation API.
-    const {
-      port: reservedFedLearnPort,
-      release,
-    } = await reservePort({
+    fedLearnReservation = await reservePort({
       ...hostingPortRange,
       imageName: resolvedImage.reference,
     })
-    const fedLearnPort = reservedFedLearnPort
-    releaseFedLearnPort = release
+    const fedLearnPort = fedLearnReservation.port
 
     // Provision the run
     logger.info(`Provisioning run ${runId}`)
@@ -94,12 +90,12 @@ export default async function startRun({
       pathBaseDirectory: BASE_DIR,
     })
 
-    // Release and fully close the reservation before Docker binds the port.
-    await releaseFedLearnPort()
-    releaseFedLearnPort = undefined
+    // Free the host port for Docker to bind; the in-process claim keeps other
+    // runs from taking it until the central node is running (or has failed).
+    await fedLearnReservation.releaseHold()
 
     // Launch the Docker node
-    await launchNode({
+    const centralContainerId = await launchNode({
       containerService: 'docker',
       imageName: resolvedImage.reference,
       directoriesToMount: [
@@ -139,11 +135,11 @@ export default async function startRun({
         })
       },
     })
-    return resolvedImage
+    return { resolvedImage, centralContainerId }
   } finally {
-    if (releaseFedLearnPort) {
+    if (fedLearnReservation) {
       try {
-        await releaseFedLearnPort()
+        await fedLearnReservation.release()
       } catch (releaseError) {
         logger.error('Failed to release reserved federation port', {
           error: releaseError,

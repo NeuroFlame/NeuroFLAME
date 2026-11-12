@@ -9,10 +9,7 @@ interface GraphQLResponse<T> {
 }
 
 interface ReportRunCompleteResponse {
-  reportRunComplete: {
-    success: boolean
-    message?: string
-  }
+  reportRunComplete: boolean
 }
 
 // GraphQL mutation
@@ -47,7 +44,8 @@ export default async function reportRunComplete({ runId }: { runId: string }) {
       throw new Error('Failed to report run complete due to GraphQL error')
     }
 
-    if (responseData.data && responseData.data.reportRunComplete) {
+    // false means the central API ignored a report for a run in another state.
+    if (typeof responseData.data?.reportRunComplete === 'boolean') {
       return responseData.data.reportRunComplete
     } else {
       throw new Error('Invalid response data')

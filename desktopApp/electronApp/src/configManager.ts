@@ -26,15 +26,10 @@ async function initializeConfig(): Promise<Config> {
   }
 
   // Ensure all paths exist
-  const singularityImagesDir = path.join(
-    finalConfig.edgeClientConfig.pathBaseDirectory,
-    'singularityImages',
-  )
   await ensurePathsExist([
     finalConfig.logPath,
     finalConfig.edgeClientConfig.logPath,
     finalConfig.edgeClientConfig.pathBaseDirectory,
-    singularityImagesDir,
   ])
 
   // Save the updated config

@@ -1,6 +1,8 @@
 import axios from 'axios'
-import fs from 'fs'
+import { constants, promises as fs } from 'fs'
 import path from 'path'
+import { Readable, Transform } from 'stream'
+import { pipeline } from 'stream/promises'
 import { logger } from '../../../logger.js'
 
 interface DownloadFileParams {
@@ -8,16 +10,48 @@ interface DownloadFileParams {
   accessToken: string;
   pathOutputDir: string;
   outputFilename: string;
+  idleTimeoutMs?: number;
+  totalTimeoutMs?: number;
 }
+
+// A stalled or dropped file server connection must fail the run start rather
+// than leave it waiting forever.
+const IDLE_TIMEOUT_MS = 60 * 1000
+const TOTAL_TIMEOUT_MS = 30 * 60 * 1000
 
 export default async function downloadFile({
   url,
   accessToken,
   pathOutputDir,
   outputFilename,
+  idleTimeoutMs = IDLE_TIMEOUT_MS,
+  totalTimeoutMs = TOTAL_TIMEOUT_MS,
 }: DownloadFileParams): Promise<void> {
+  const controller = new AbortController()
+  let timeoutError: Error | undefined
+  const abortWith = (message: string) => {
+    timeoutError ??= new Error(message)
+    controller.abort(timeoutError)
+  }
+  const totalTimer = setTimeout(
+    () => abortWith(`no complete response within ${totalTimeoutMs} ms`),
+    totalTimeoutMs,
+  )
+  let idleTimer: NodeJS.Timeout | undefined
+  const armIdleTimer = () => {
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(
+      () => abortWith(`no data received for ${idleTimeoutMs} ms`),
+      idleTimeoutMs,
+    )
+  }
+  const pathOutputFile = path.join(pathOutputDir, outputFilename)
+  let fileOpened = false
+  let body: Readable | undefined
+
   try {
     logger.info(`Attempting to download from URL: ${url}`)
+    armIdleTimer()
 
     const response = await axios({
       method: 'POST',
@@ -26,49 +60,48 @@ export default async function downloadFile({
         'x-access-token': accessToken,
       },
       responseType: 'stream',
+      signal: controller.signal,
     })
+    body = response.data as Readable
 
-    // Ensure the directory exists
-    await fs.promises.mkdir(pathOutputDir, { recursive: true })
-    const pathOutputFile = path.join(pathOutputDir, outputFilename)
-    const writer = fs.createWriteStream(pathOutputFile)
+    await fs.mkdir(pathOutputDir, { recursive: true, mode: 0o700 })
+    // The run kit directory is mounted into the computation container, so never
+    // follow a link planted there.
+    const file = await fs.open(
+      pathOutputFile,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | (constants.O_NOFOLLOW ?? 0),
+      0o600,
+    )
+    fileOpened = true
     logger.info(`Writing to file: ${pathOutputFile}`)
 
-    // Pipe the response data to the file
-    response.data.pipe(writer)
-
-    // Handle download completion and verification
-    return new Promise<void>((resolve, reject) => {
-      writer.on('finish', async () => {
-        logger.info('File write completed successfully.')
-
-        try {
-          // Verify file size matches expected content-length
-          const fileSize = (await fs.promises.stat(pathOutputFile)).size
-          const contentLength = response.headers['content-length'] as string
-
-          if (contentLength && fileSize !== parseInt(contentLength, 10)) {
-            reject(
-              new Error(
-                `File size mismatch: expected ${contentLength}, but got ${fileSize}`,
-              ),
-            )
-          } else {
-            logger.info('File size matches the content-length. Download successful.')
-            resolve()
-          }
-        } catch (error) {
-          logger.error('Error verifying downloaded file:', (error as Error).message)
-          reject(error)
-        }
-      })
-
-      writer.on('error', (error) => {
-        logger.error('File write failed:', (error as Error).message)
-        reject(error)
-      })
+    let received = 0
+    const watchdog = new Transform({
+      transform(chunk, _encoding, callback) {
+        received += chunk.length
+        armIdleTimer()
+        callback(null, chunk)
+      },
     })
-  } catch (error) {
+    await pipeline(body, watchdog, file.createWriteStream(), {
+      signal: controller.signal,
+    })
+
+    const contentLength = response.headers['content-length']
+    if (contentLength && received !== Number(contentLength)) {
+      throw new Error(
+        `File size mismatch: expected ${contentLength}, but got ${received}`,
+      )
+    }
+    logger.info('File size matches the content-length. Download successful.')
+  } catch (caught) {
+    const error = timeoutError ?? caught
+    body?.destroy()
+    if (fileOpened) {
+      await fs.rm(pathOutputFile, { force: true }).catch((removeError: Error) => {
+        logger.error(`Failed to remove partial download: ${removeError.message}`)
+      })
+    }
     if (axios.isAxiosError(error)) {
       logger.error(`Failed to download file: ${error.message}`, JSON.stringify({
         message: error.message,
@@ -78,8 +111,11 @@ export default async function downloadFile({
         statusText: error.response?.statusText,
       }, null, 2))
     } else {
-      logger.error('Unexpected error:', (error as Error).message)
+      logger.error(`Failed to download file: ${(error as Error).message}`)
     }
     throw new Error(`Download failed: ${(error as Error).message}`)
+  } finally {
+    clearTimeout(totalTimer)
+    clearTimeout(idleTimer)
   }
 }

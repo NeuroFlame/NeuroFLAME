@@ -48,6 +48,8 @@ async function fixture() {
           resolveDir: rendererRoot,
           contents: importPath.endsWith('/AppRoutes') ? `
             import { useState } from 'react';
+            import { Routes, Route, useNavigate } from 'react-router-dom';
+            import ConsortiumDetails from './src/pages/ConsortiumDetails/ConsortiumDetailsPage';
             import { useUserState } from './src/contexts/UserStateContext';
             import { Box, Button, Dialog, DialogTitle, DialogContent, TextField, Select, MenuItem } from '@mui/material';
             import LoginPage from './src/pages/LoginPage/LoginPage';
@@ -62,17 +64,22 @@ async function fixture() {
             import NiiVueViewer from './src/pages/RunResults/NiiVueViewer';
             import FileTree from './src/pages/RunResults/FileTree';
             export default function Pages() {
-              const { username } = useUserState();
+              const { username, setUserData } = useUserState();
+              const navigate = useNavigate();
               const [screen, setScreen] = useState('lists');
               const [dialog, setDialog] = useState(false);
               if (!username) return <LoginPage />;
               return <main style={{padding: 24}}>
-                <nav>{['lists', 'editor', 'health', 'results', 'volume'].map(name =>
-                  <Button key={name} onClick={() => setScreen(name)}>{name}</Button>)}</nav>
+                <nav>{['lists', 'editor', 'health', 'results', 'volume', 'public-study'].map(name =>
+                  <Button key={name} onClick={() => {
+                    setScreen(name);
+                    setUserData({accessToken:'synthetic',userId:'demo',username:'researcher',roles:[name==='public-study'?'user':'admin']});
+                    if(name==='public-study') navigate('/consortium/details/public');
+                  }}>{name}</Button>)}</nav>
                 <h1>{screen === 'lists' ? 'Research workspace' : screen}</h1>
                 {screen === 'lists' && <>
                   <ComputationListItem computation={{id:'demo', title:'Federated neuroimaging'}} />
-                  <ConsortiumListItem consortium={{id:'demo',title:'Synthetic consortium',description:'Distributed research study',leader:{username:'researcher'},members:[{id:'demo'}]}} onReload={() => {}} />
+                  <ConsortiumListItem consortium={{id:'demo',title:'Synthetic consortium',description:'Distributed research study',leader:{id:'demo',username:'researcher'},members:[{id:'demo'}]}} onReload={() => {}} />
                   <RunListItem run={{runId:'demo',consortiumTitle:'Synthetic run',status:'completed',createdAt:'1700000000000'}} isStarred={false} onToggleStar={() => {}} />
                   <Button onClick={() => setDialog(true)}>Open settings dialog</Button>
                   <Dialog open={dialog} onClose={() => setDialog(false)}>
@@ -83,6 +90,9 @@ async function fixture() {
                     </DialogContent>
                   </Dialog>
                 </>}
+                {screen === 'public-study' && <Routes>
+                  <Route path='/consortium/details/:consortiumId' element={<ConsortiumDetails />} />
+                </Routes>}
                 {screen === 'editor' && <Box sx={{bgcolor:'background.paper',p:2}}>
                   <Notes consortiumLeaderNotes={'# Study notes\\n\\nReadable **research** notes.\\n\\n- First step\\n- Second step'} onSave={() => {}} onCancel={() => {}} />
                 </Box>}
@@ -101,7 +111,12 @@ async function fixture() {
             }` : importPath.endsWith('/centralApi') ? `
             export const useCentralApi = () => ({
               login: async () => ({accessToken:'synthetic',userId:'demo',username:'researcher',roles:['admin']}),
-              consortiumJoin: async () => {}, consortiumLeave: async () => {}
+              consortiumJoin: async () => {}, consortiumLeave: async () => {},
+              subscriptions: {consortiumDetailsChanged: () => ({subscribe: () => ({unsubscribe() {}})})},
+              getConsortiumDetails: async () => ({id:'public',title:'Public study overview',description:'Public study description',
+                leader:{id:'public-leader',username:'Consortium leader'},isPrivate:false,
+                members:[],activeMembers:[],readyMembers:[],vaultMembers:[],activeVaultMembers:[],readyVaultMembers:[],
+                studyConfiguration:{consortiumLeaderNotes:null,computationParameters:'',computation:null}})
             });` : 'export const useEdgeApi = () => ({connectAsUser: async () => {}});',
         }))
       },
@@ -126,7 +141,7 @@ async function fixture() {
       response.setHeader('Content-Type', 'text/html')
       response.end(
         '<!doctype html><html><link rel="stylesheet" href="/theme.css"><div id="root"></div>' +
-        '<script src="/theme.js"></script></html>',
+        '<script>window.ElectronAPI={}</script><script src="/theme.js"></script></html>',
       )
     }
   })
@@ -180,6 +195,7 @@ test('app theme integrates with system settings, persistence, controls and repre
     const pageErrors = []
     page.on('pageerror', (error) => pageErrors.push(error.message))
     await page.goto(url)
+    assert.deepEqual(pageErrors, [], 'Application bootstrap errors')
     // First launch stays light even when the operating system is dark.
     await mode(page, 'light')
     await expect(page.getByRole('button', { name: 'Use system theme' })).toHaveAttribute('aria-pressed', 'false')
@@ -248,6 +264,13 @@ test('app theme integrates with system settings, persistence, controls and repre
           })
         }
       }
+      await page.getByRole('button', { name: 'public-study', exact: true }).click()
+      await expect(page.getByText('Public study overview', { exact: true })).toBeVisible()
+      await expect(page.getByText('Public study description', { exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Browse consortia', exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Setup Wizard', exact: true })).toHaveCount(0)
+      await expect(page.getByText('Consortium leader', { exact: true })).toHaveCount(0)
+      if (screenshots) await page.screenshot({ path: path.join(screenshots, `public-study-${palette}.png`) })
       await page.getByRole('button', { name: 'lists', exact: true }).click()
       await page.setViewportSize({ width: 390, height: 844 })
       const header = page.locator('header')

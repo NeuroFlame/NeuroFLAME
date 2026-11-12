@@ -4,6 +4,35 @@ import path from 'path'
 import fs from 'fs/promises'
 import { logger } from '../../logger.js'
 import inMemoryStore from '../../inMemoryStore.js'
+import { isRunPathSegment } from '../runPathSegment.js'
+import {
+  isSingularityImageCached,
+  pullSingularityImage,
+} from '../../runCoordinator/singularityImageCache.js'
+
+const requireUserId = (context: any): string => {
+  const userId = context?.tokenPayload?.userId
+  if (typeof userId !== 'string' || !userId) {
+    throw new Error('Not authorized')
+  }
+  return userId
+}
+
+// Consortium IDs become directory names under the base directory.
+const consortiumDirectory = (consortiumId: unknown): string => {
+  if (!isRunPathSegment(consortiumId)) {
+    throw new Error('Invalid consortium id')
+  }
+  return path.join(getConfig().pathBaseDirectory, consortiumId)
+}
+
+const requireSingularity = (): string => {
+  const { containerService = 'docker', pathBaseDirectory } = getConfig()
+  if (containerService !== 'singularity') {
+    throw new Error('This site is not configured for Singularity')
+  }
+  return pathBaseDirectory
+}
 
 export const resolvers = {
   Query: {
@@ -12,15 +41,8 @@ export const resolvers = {
       { consortiumId }: { consortiumId: string },
       context: any,
     ): Promise<string> => {
-      // Check if the caller is authorized
-      const { tokenPayload } = context
-      const { userId } = tokenPayload
-      if (!tokenPayload || !userId) {
-        throw new Error('Not authorized')
-      }
-
-      const { pathBaseDirectory } = getConfig()
-      const consortiumDir = path.join(pathBaseDirectory, consortiumId)
+      requireUserId(context)
+      const consortiumDir = consortiumDirectory(consortiumId)
 
       try {
         // Read the mount_config.json file
@@ -39,12 +61,7 @@ export const resolvers = {
       { consortiumId, mountDir }: { consortiumId: string; mountDir: string },
       context: any,
     ): Promise<string> => {
-      // Auth check
-      const { tokenPayload } = context
-      const { userId } = tokenPayload || {}
-      if (!userId) {
-        throw new Error('Not authorized')
-      }
+      const userId = requireUserId(context)
 
       const configPath = path.join(mountDir, 'local_parameters.json')
 
@@ -66,11 +83,26 @@ export const resolvers = {
         throw new Error('Failed to read local parameters from mount directory')
       }
     },
+    singularityImageCached: async (
+      _: any,
+      { imageName }: { imageName: string },
+      context: any,
+    ): Promise<boolean> => {
+      requireUserId(context)
+      const baseDirectory = requireSingularity()
+      try {
+        return await isSingularityImageCached(imageName, baseDirectory)
+      } catch (error) {
+        logger.error('Error checking Singularity image cache:', error)
+        throw new Error('Unable to check the Singularity image. See the edge client log.')
+      }
+    },
   },
 
   Mutation: {
     connectAsUser: async (_: any, args: any, context: any): Promise<string> => {
       logger.info('connectAsUser')
+      requireUserId(context)
       try {
         // Make the runCoordinator connect to the centralApi
         inMemoryStore.set('accessToken', context.accessToken)
@@ -80,7 +112,7 @@ export const resolvers = {
           wsUrl,
           accessToken: context.accessToken,
         })
-        return JSON.stringify(context)
+        return 'connected'
       } catch (error) {
         logger.error('Error in connectAsUser:', error)
         throw new Error('Failed to connect as user')
@@ -91,10 +123,9 @@ export const resolvers = {
       { consortiumId, mountDir }: { consortiumId: string; mountDir: string },
       context: any,
     ): Promise<boolean> => {
+      requireUserId(context)
+      const consortiumDir = consortiumDirectory(consortiumId)
       try {
-        const { pathBaseDirectory } = getConfig()
-        const consortiumDir = path.join(pathBaseDirectory, consortiumId)
-
         // Ensure the consortium directory exists
         await fs.mkdir(consortiumDir, { recursive: true })
 
@@ -116,6 +147,7 @@ export const resolvers = {
       { consortiumId, mountDir, localParams }: { consortiumId: string; mountDir: string, localParams: string },
       context: any,
     ): Promise<boolean> => {
+      requireUserId(context)
       try {
         // Validate JSON format before writing
         JSON.parse(localParams)
@@ -133,6 +165,24 @@ export const resolvers = {
 
         logger.error('Error in setLocalParams:', error)
         throw new Error('Failed to set/save local parameters')
+      }
+    },
+    pullSingularityImage: async (
+      _: any,
+      { imageName }: { imageName: string },
+      context: any,
+    ): Promise<boolean> => {
+      requireUserId(context)
+      const baseDirectory = requireSingularity()
+      try {
+        const { alreadyExists } = await pullSingularityImage(imageName, baseDirectory)
+        logger.info(alreadyExists
+          ? `Singularity image already cached: ${imageName}`
+          : `Singularity image pulled: ${imageName}`)
+        return true
+      } catch (error) {
+        logger.error('Error pulling Singularity image:', error)
+        throw new Error('Failed to pull the Singularity image. See the edge client log.')
       }
     },
   },

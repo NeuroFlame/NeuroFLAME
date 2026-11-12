@@ -71,3 +71,20 @@ test('does not hide non-port Docker failures', async () => {
   assert.equal(docker.containers.length, 1)
   assert.equal(docker.containers[0].removeCalls, 1)
 })
+
+test('a port stays claimed between handing it to Docker and the node binding it', async () => {
+  const docker = fakeDocker([undefined, undefined, undefined])
+  const range = { start: 3020, end: 3021, imageName: 'computation@sha256:test' }
+  const first = await reservePort(range, docker.client)
+  assert.equal(first.port, 3020)
+
+  // The reservation container is gone, so Docker would accept 3020 again; another run must not.
+  await first.releaseHold()
+  const concurrent = await reservePort(range, docker.client)
+  assert.equal(concurrent.port, 3021)
+
+  await first.release()
+  const later = await reservePort({ ...range, end: 3020 }, docker.client)
+  assert.equal(later.port, 3020)
+  await Promise.all([concurrent.release(), later.release()])
+})

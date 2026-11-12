@@ -15,29 +15,6 @@ export const GET_VAULT_USER_LIST = gql`
           title
           imageName
         }
-        datasetMappings {
-          computationId
-          datasetKey
-        }
-      }
-      vaultStatus {
-        status
-        version
-        uptime
-        websocketConnected
-        lastHeartbeat
-        availableDatasets {
-          key
-          path
-          label
-        }
-        runningComputations {
-          runId
-          consortiumId
-          consortiumTitle
-          runStartedAt
-          runningFor
-        }
       }
     }
   }

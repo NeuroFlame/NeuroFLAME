@@ -1,0 +1,6 @@
+schema: ../../centralApi/src/graphql/typeDefs.graphql
+generates:
+  ./src/apis/centralApi/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations

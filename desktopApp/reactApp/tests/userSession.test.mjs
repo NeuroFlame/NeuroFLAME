@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clearUserSession, restoreUserSession, saveUserSession } from '../src/contexts/userSession.ts'
+import {
+  accessTokenExpiresAt,
+  clearUserSession,
+  restoreUserSession,
+  saveUserSession,
+} from '../src/contexts/userSession.ts'
 
 const memoryStorage = () => {
   const values = new Map()
@@ -10,7 +15,15 @@ const memoryStorage = () => {
     removeItem: (key) => values.delete(key),
   }
 }
-const user = { accessToken: 'synthetic-token', userId: 'synthetic-user', username: 'researcher', roles: ['admin'] }
+const tokenExpiringAt = (exp) => [
+  Buffer.from('{"alg":"HS256"}').toString('base64url'),
+  Buffer.from(JSON.stringify({ userId: 'synthetic-user', exp })).toString('base64url'),
+  'signature',
+].join('.')
+const inTwoDays = Math.floor(Date.now() / 1000) + 48 * 60 * 60
+const user = {
+  accessToken: tokenExpiringAt(inTwoDays), userId: 'synthetic-user', username: 'researcher', roles: ['admin'],
+}
 
 test('session login retains identity, roles and token through repeated renderer reloads', () => {
   const local = memoryStorage()
@@ -99,4 +112,22 @@ test('local login fields are restored only with an explicit remember preference'
   local.removeItem('keepLoggedIn')
   assert.equal(restoreUserSession(local, memoryStorage()), null)
   assert.equal(local.getItem('accessToken'), null)
+})
+
+test('expired or expiry-less sessions are discarded from both stores', () => {
+  assert.equal(accessTokenExpiresAt(user.accessToken), inTwoDays * 1000)
+  for (const accessToken of [tokenExpiringAt(Math.floor(Date.now() / 1000) - 1), 'legacy-token', 'a.!!!.c']) {
+    for (const keepLoggedIn of [false, true]) {
+      const local = memoryStorage()
+      const session = memoryStorage()
+      saveUserSession({ ...user, accessToken }, keepLoggedIn, local, session)
+      // A remembered login is restored into a fresh window session.
+      assert.equal(restoreUserSession(local, keepLoggedIn ? memoryStorage() : session), null, accessToken)
+      assert.equal(local.getItem('accessToken'), null)
+      assert.equal(local.getItem('keepLoggedIn'), null)
+    }
+  }
+  const local = memoryStorage()
+  saveUserSession(user, true, local, memoryStorage())
+  assert.equal(restoreUserSession(local, memoryStorage(), (inTwoDays + 1) * 1000), null)
 })

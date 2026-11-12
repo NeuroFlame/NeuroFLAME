@@ -305,14 +305,14 @@ type Mutation {
   consortiumJoin(consortiumId: String!): Boolean!
   consortiumJoinByInvite(inviteToken: String!): Boolean!
   consortiumDelete(consortiumId: String!): Boolean!
-  consortiumLeave(consortiumId: String!): Boolean!
+  consortiumLeave(consortiumId: String!, newLeaderId: String): Boolean!
   consortiumSetMemberActive(consortiumId: String!, active: Boolean!): Boolean!
   consortiumSetMemberReady(consortiumId: String!, ready: Boolean!): Boolean!
   consortiumInvite(consortiumId: String!, email: String!): Boolean!
   computationCreate(title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   computationEdit(computationId: String!, title: String!, imageName: String!, imageDownloadUrl: String!, notes: String!, hasLocalParameters: Boolean!): Boolean!
   userCreate(username: String!, password: String!): LoginOutput!
-  userChangePassword(password: String!): Boolean!
+  userChangePassword(currentPassword: String!, password: String!): Boolean!
   adminCreateVaultUser(username: String!, password: String!): LoginOutput!
   adminChangeUserRoles(username: String!, roles: [String!]!): Boolean!
   adminChangeUserPassword(username: String!, password: String!): Boolean!
