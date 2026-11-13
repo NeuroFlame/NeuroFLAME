@@ -1,4 +1,4 @@
-import jwt, { JwtPayload } from 'jsonwebtoken'
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
 import { hash } from 'bcrypt'
 import { ACCESS_TOKEN_DURATION, ACCESS_TOKEN_SECRET } from '../config.js'
 export { compare } from 'bcrypt'
@@ -20,8 +20,8 @@ export const generateTokens = (
 ) => {
   const { shouldExpire = true } = options
 
-  const accessTokenOptions = shouldExpire
-    ? { expiresIn: ACCESS_TOKEN_DURATION }
+  const accessTokenOptions: SignOptions = shouldExpire
+    ? { expiresIn: ACCESS_TOKEN_DURATION as SignOptions['expiresIn'] }
     : {}
 
   const accessToken = sign(payload, ACCESS_TOKEN_SECRET, accessTokenOptions)
