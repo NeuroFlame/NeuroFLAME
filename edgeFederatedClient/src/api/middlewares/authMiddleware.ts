@@ -20,7 +20,7 @@ export const authenticate = async (
       return res.status(403).json({ error: 'Forbidden: Invalid token' })
     }
 
-    (req as any).user = tokenPayload
+    req.user = tokenPayload
 
     next()
   } catch (error) {
