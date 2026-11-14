@@ -3,7 +3,7 @@ import FormData from 'form-data'
 import { createReadStream, createWriteStream } from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 import crypto from 'crypto'
 import { ACCESS_TOKEN, FILE_SERVER_URL } from '../../../config.js'
 import { logger } from '../../../logger.js'
@@ -125,7 +125,7 @@ export async function zipDirectory(
     }
 
     const output = createWriteStream(outPath)
-    const archive = archiver('zip', { zlib: { level: 9 } })
+    const archive = new ZipArchive({ zlib: { level: 9 } })
 
     output.on('close', () => {
       logger.info(`Archived ${archive.pointer()} total bytes.`)

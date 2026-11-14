@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 import { getConfig } from '../../config/config.js'
 import { logger } from '../../logger.js'
 import { RunResultsParams } from '../types.js'
@@ -284,7 +284,7 @@ export const serveRunFolder = async (
     res.setHeader('Content-Type', 'application/zip')
     res.setHeader('Content-Disposition', `attachment; filename=${runId}_results.zip`)
 
-    const archive = archiver('zip', {
+    const archive = new ZipArchive({
       zlib: { level: 9 },
     })
 
