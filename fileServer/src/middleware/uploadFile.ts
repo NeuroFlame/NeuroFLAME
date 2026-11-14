@@ -5,6 +5,7 @@ import path from 'path'
 import crypto from 'crypto'
 import { BASE_DIR } from '../config.js'
 import { logger } from '../logger.js'
+import { ConsortiumRunParams } from '../types.js'
 
 function generateChecksumSync(filePath: string): string {
   const hash = crypto.createHash('sha256')
@@ -14,7 +15,7 @@ function generateChecksumSync(filePath: string): string {
 }
 
 export const uploadFile = async (
-  req: Request,
+  req: Request<ConsortiumRunParams>,
   res: Response,
   next: NextFunction,
 ) => {

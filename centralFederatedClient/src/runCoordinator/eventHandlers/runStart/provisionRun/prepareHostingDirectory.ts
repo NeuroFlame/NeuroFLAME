@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 
 interface prepareHostingDirectoryArgs {
   sourceDir: string
@@ -37,7 +37,7 @@ async function createZipFromFolder(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(outputZipPath)
-    const archive = archiver('zip', {
+    const archive = new ZipArchive({
       zlib: { level: 9 }, // Compression level
     })
 

@@ -1,11 +1,11 @@
 import { ApolloServer } from '@apollo/server'
-import { expressMiddleware } from '@as-integrations/express4'
+import { expressMiddleware } from '@as-integrations/express5'
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer'
 import express from 'express'
 import { createServer } from 'http'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import { WebSocketServer } from 'ws'
-import { useServer } from 'graphql-ws/lib/use/ws'
+import { useServer } from 'graphql-ws/use/ws'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import mongoose from 'mongoose'
@@ -24,7 +24,6 @@ import { APPLICATION_API_VERSION } from './versions.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const inviteSiteDir = join(__dirname, '..', 'public', 'invite')
-const inviteSiteIndex = join(inviteSiteDir, 'index.html')
 
 if (LOG_PATH) {
   logToPath(LOG_PATH)
@@ -103,14 +102,14 @@ export async function start({
     }),
   )
   app.get('/invite', (_req, res) => {
-    res.sendFile(inviteSiteIndex)
+    res.sendFile('index.html', { root: inviteSiteDir })
   })
   app.get('/invite/:inviteToken', (_req, res) => {
-    res.sendFile(inviteSiteIndex)
+    res.sendFile('index.html', { root: inviteSiteDir })
   })
 
   app.post('/authenticateToken', (req, res) => {
-    const token = req.body.token // assuming the token is sent in the request body
+    const token = req.body?.token // assuming the token is sent in the request body
     if (!token) {
       res.status(400).send('Token is required')
       return

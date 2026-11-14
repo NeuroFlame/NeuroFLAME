@@ -177,7 +177,7 @@ export function AppConfig() {
             >
               Restart App
             </Button>
-                    }
+          }
           sx={{ my: 2 }}
         >
           Changes saved. Restart the app to apply.
