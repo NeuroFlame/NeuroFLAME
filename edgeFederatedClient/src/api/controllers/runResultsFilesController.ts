@@ -248,7 +248,11 @@ export const serveRunFile = async (
 
     // ✅ Serve other files
     if (stat.isFile()) {
-      return res.sendFile(resolvedFile)
+      // Express 5 hides files under any dot-folder (e.g. ~/.config on Linux); only hide dotfiles, as Express 4 did
+      return res.sendFile(path.relative(resolvedBase, resolvedFile), {
+        root: resolvedBase,
+        dotfiles: path.basename(resolvedFile).startsWith('.') ? 'ignore' : 'allow',
+      })
     }
 
     logger.warn(`Unsupported file type at path: ${resolvedFile}`)

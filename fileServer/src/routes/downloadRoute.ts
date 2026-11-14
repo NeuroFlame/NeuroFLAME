@@ -31,14 +31,14 @@ router.post(
         .status(400)
         .send('Token payload data does not match requested resource')
     }
-    const filePath = path.join(
-      BASE_DIR,
+    const relativePath = path.join(
       tokenPayload.consortiumId,
       tokenPayload.runId,
       `${tokenPayload.participantId}.zip`,
     )
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath)
+    if (fs.existsSync(path.join(BASE_DIR, relativePath))) {
+      // Pass root so a dot-folder in BASE_DIR isn't treated as a hidden file
+      res.sendFile(relativePath, { root: BASE_DIR })
     } else {
       res.status(404).send('File not found')
     }
