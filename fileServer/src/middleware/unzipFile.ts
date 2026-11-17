@@ -5,9 +5,10 @@ import fs from 'fs-extra'
 import { Request, Response, NextFunction } from 'express'
 import { BASE_DIR } from '../config.js'
 import { logger } from '../logger.js'
+import { ConsortiumRunParams } from '../types.js'
 
 export const unzipFile = async (
-  req: Request,
+  req: Request<ConsortiumRunParams>,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {

@@ -1398,8 +1398,8 @@ export default {
         vaultMembers: consortium.activeVaultMembers ?? [],
         status: 'Provisioning',
         runErrors: [],
-        createdAt: Date.now(),
-        lastUpdated: Date.now(),
+        createdAt: Date.now().toString(),
+        lastUpdated: Date.now().toString(),
       })
 
       const populatedConsortium = await Consortium.findById(consortium._id)
@@ -1497,7 +1497,7 @@ export default {
         {
           status: 'In Progress',
           resolvedComputationImage: resolvedImage,
-          lastUpdated: Date.now(),
+          lastUpdated: Date.now().toString(),
         },
       )
       const imageName = resolvedImage.reference
@@ -1708,7 +1708,7 @@ export default {
       }
       await Run.updateOne(
         { _id: runId },
-        { status: 'Complete', lastUpdated: Date.now() },
+        { status: 'Complete', lastUpdated: Date.now().toString() },
       )
 
       const consortium = await Consortium.findById(run.consortium._id)
@@ -2359,7 +2359,7 @@ export default {
           consortium: consortiumId,
           email: normalizedEmail,
           token,
-          createdAt: Date.now(),
+          createdAt: new Date(),
         })
       }
 
@@ -2931,7 +2931,7 @@ export default {
       const user = await User.findOneAndUpdate(
         { _id: server.user, roles: 'vault' },
         { $inc: { tokenVersion: 1 } },
-        { new: true },
+        { returnDocument: 'after' },
       ).select('_id roles tokenVersion').exec()
       if (!user) {
         throw new Error('Vault service account not found')
@@ -3460,13 +3460,16 @@ export default {
       subscribe: withFilter(
         () => {
           logger.info('Subscription attempt for runStartCentral')
-          return pubsub.asyncIterator(['RUN_START_CENTRAL'])
+          return pubsub.asyncIterableIterator(['RUN_START_CENTRAL'])
         },
         (
-          payload: RunStartCentralPayload,
+          payload: RunStartCentralPayload | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!context) {
+            return false
+          }
           logger.info(
             `Subscription attempt for runStartCentral: context: \n${JSON.stringify(
               context,
@@ -3516,12 +3519,19 @@ export default {
         return output
       },
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_START_EDGE']),
+        () => pubsub.asyncIterableIterator(['RUN_START_EDGE']),
         async (
-          payload: RunStartEdgePayload & { participantId: string; targetUserId: string; vaultId?: string | null },
+          payload: (RunStartEdgePayload & {
+            participantId: string;
+            targetUserId: string;
+            vaultId?: string | null;
+          }) | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           const { targetUserId } = payload
           const { userId } = context
           return userId === targetUserId
@@ -3531,12 +3541,15 @@ export default {
     runEvent: {
       resolve: (payload: RunEventPayload): RunEventPayload => payload,
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_EVENT']),
+        () => pubsub.asyncIterableIterator(['RUN_EVENT']),
         async (
-          payload: RunEventPayload,
+          payload: RunEventPayload | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           logger.info('Run event emitted', { payload, context })
 
           if (context.error) {
@@ -3567,12 +3580,15 @@ export default {
     consortiumLatestRunChanged: {
       resolve: (): string => 'Consortium latest run changed',
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
+        () => pubsub.asyncIterableIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
         async (
-          payload: { consortiumId: string },
+          payload: { consortiumId: string } | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           const { userId } = context
           const { consortiumId } = payload
 
@@ -3595,12 +3611,15 @@ export default {
     consortiumDetailsChanged: {
       resolve: (): string => 'Consortium details changed',
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
+        () => pubsub.asyncIterableIterator(['CONSORTIUM_DETAILS_CHANGED']),
         async (
-          payload: { consortiumId: string },
+          payload: { consortiumId: string } | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           const { userId } = context
           const { consortiumId } = payload
 
@@ -3623,12 +3642,15 @@ export default {
     runDetailsChanged: {
       resolve: (payload: { runId: string }): string => 'Run details changed',
       subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_DETAILS_CHANGED']),
+        () => pubsub.asyncIterableIterator(['RUN_DETAILS_CHANGED']),
         async (
-          payload: { runId: string },
+          payload: { runId: string } | undefined,
           variables: unknown,
-          context: Context,
+          context: Context | undefined,
         ) => {
+          if (!payload || !context) {
+            return false
+          }
           const { userId } = context
           const { runId } = payload
 

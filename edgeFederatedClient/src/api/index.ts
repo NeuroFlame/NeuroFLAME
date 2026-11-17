@@ -1,11 +1,11 @@
 import { ApolloServer } from '@apollo/server'
-import { expressMiddleware } from '@as-integrations/express4'
+import { expressMiddleware } from '@as-integrations/express5'
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer'
 import express from 'express'
 import { createServer } from 'http'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import { WebSocketServer } from 'ws'
-import { useServer } from 'graphql-ws/lib/use/ws'
+import { useServer } from 'graphql-ws/use/ws'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import path from 'path'
@@ -80,7 +80,7 @@ export async function start({ port }: { port: number }) {
 
   // NiiVue viewer and its bundled assets
   app.use('/static', express.static(staticDir))
-  app.get('/nii-viewer', (_req, res) => res.sendFile(path.join(staticDir, 'nii-viewer.html')))
+  app.get('/nii-viewer', (_req, res) => res.sendFile('nii-viewer.html', { root: staticDir }))
 
   logger.info('[STATIC FILES] Serving from: ' + path.resolve(filesDirectory))
 
