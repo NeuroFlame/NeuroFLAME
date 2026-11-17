@@ -80,7 +80,7 @@ export async function start({ port }: { port: number }) {
 
   // NiiVue viewer and its bundled assets
   app.use('/static', express.static(staticDir))
-  app.get('/nii-viewer', (_req, res) => res.sendFile(path.join(staticDir, 'nii-viewer.html')))
+  app.get('/nii-viewer', (_req, res) => res.sendFile('nii-viewer.html', { root: staticDir }))
 
   logger.info('[STATIC FILES] Serving from: ' + path.resolve(filesDirectory))
 
