@@ -25,6 +25,13 @@ jobs:
           echo "Host UID: $HOST_UID, GID: $HOST_GID"
           sudo chown $HOST_UID:$HOST_GID _devTestDirectories/screencap
 
+      - name: Allow unprivileged user namespaces for Apptainer
+        run: |
+          # Ubuntu 24.04 runners restrict them through AppArmor by default.
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+
       - name: Build docker
         run: ./scripts/dockerbuild-for-ci.sh
 
@@ -55,6 +62,13 @@ jobs:
           docker cp \
             neuroflame-ui-1:/tmp/neuroflame/logs/. \
             edge_client_logs/ 2>/dev/null || true
+
+          # Site failures are only logged locally, so show the tail of each edge log here.
+          find edge_client_logs -type f -name '*.log' | while read -r log; do
+            echo "::group::$log"
+            tail -n 80 "$log"
+            echo "::endgroup::"
+          done
 
       - name: Make test artifacts readable by the runner
         if: always()

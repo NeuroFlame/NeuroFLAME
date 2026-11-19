@@ -4,6 +4,7 @@ import { getMountDir } from './getMountDir'
 import { setMountDir } from './setMountDir'
 import { getLocalParams } from './getLocalParams'
 import { setLocalParams } from './setLocalParams'
+import { pullSingularityImage, singularityImageCached } from './singularityImage'
 
 export const useEdgeApi = () => {
   const { edgeClientApolloClient } = useApolloClients()
@@ -30,5 +31,11 @@ export const useEdgeApi = () => {
     // Set the local parameters for a consortium
     setLocalParams: (consortiumId: string, mountDir: string, LocalParameters: string) =>
       setLocalParams(edgeClientApolloClient, consortiumId, mountDir, LocalParameters),
+
+    // The edge client owns the Singularity image cache; the UI only asks it to fill it.
+    singularityImageCached: (imageName: string) =>
+      singularityImageCached(edgeClientApolloClient, imageName),
+    pullSingularityImage: (imageName: string) =>
+      pullSingularityImage(edgeClientApolloClient, imageName),
   }
 }

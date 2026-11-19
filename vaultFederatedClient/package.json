@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@types/dockerode": "^4.0.1",
+    "@types/node": "^24.19.2",
     "@types/unzipper": "^0.10.9",
     "@types/ws": "^8.5.10",
     "typescript": "^5.4.5"

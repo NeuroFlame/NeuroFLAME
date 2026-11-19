@@ -108,6 +108,13 @@ const NavDrawer: React.FC<NavDrawerProps> = ({
           <ListItemText primary='App Health' />
         </ListItem>
         <ListItem
+          onClick={() => { navSetDrawerOpen(false) }}
+          component={Link}
+          to='/account/change-password'
+        >
+          <ListItemText primary='Change Password' />
+        </ListItem>
+        <ListItem
           onClick={() => { handleLogout() }}
           style={{ cursor: 'pointer' }}
         >

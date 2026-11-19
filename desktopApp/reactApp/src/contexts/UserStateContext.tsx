@@ -5,7 +5,16 @@ import {
   ReactNode,
   useEffect,
 } from 'react'
-import { clearUserSession, restoreUserSession, saveUserSession, UserSession } from './userSession'
+import {
+  accessTokenExpiresAt,
+  clearUserSession,
+  restoreUserSession,
+  saveUserSession,
+  UserSession,
+} from './userSession'
+
+// setTimeout cannot wait longer than this.
+const MAX_TIMER_MS = 2 ** 31 - 1
 
 interface UserStateContextType {
   userId: string;
@@ -47,6 +56,15 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     saveUserSession(data, options?.keepLoggedIn ?? false, localStorage, sessionStorage)
     _setUserData(data)
   }
+
+  // Sign out when the session token expires, so the user is sent back to the
+  // login page instead of every request failing.
+  useEffect(() => {
+    const expiresAt = accessTokenExpiresAt(userData.accessToken)
+    if (expiresAt === null) return
+    const timer = setTimeout(clearUserData, Math.min(Math.max(expiresAt - Date.now(), 0), MAX_TIMER_MS))
+    return () => clearTimeout(timer)
+  }, [userData.accessToken])
 
   return (
     <UserStateContext.Provider

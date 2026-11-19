@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +18,10 @@ test('Vite serves bundled fonts and blocks private files with local and Docker b
   const privateFile = path.join(privateDir, 'run-result.json')
   const marker = 'synthetic-private-run-result'
   await writeFile(privateFile, JSON.stringify({ marker }))
+  // The default cache would keep this server's partial dependency set. A dev server
+  // started later from it (as in the CI image) skips its startup scan and re-optimizes
+  // mid-load, so the first page load gets 504s and must reload.
+  const cacheDir = await mkdtemp(path.join(tmpdir(), 'nf-vite-cache-'))
 
   try {
     for (const host of [undefined, '0.0.0.0']) {
@@ -24,6 +29,7 @@ test('Vite serves bundled fonts and blocks private files with local and Docker b
         root: rendererRoot,
         configFile: path.join(rendererRoot, 'vite.config.ts'),
         logLevel: 'silent',
+        cacheDir,
         // File-access checks do not need a background dependency scan at shutdown.
         optimizeDeps: { noDiscovery: true, include: [] },
         server: { port: 0, ...(host ? { host } : {}) },
@@ -68,5 +74,6 @@ test('Vite serves bundled fonts and blocks private files with local and Docker b
     }
   } finally {
     await rm(privateDir, { recursive: true, force: true })
+    await rm(cacheDir, { recursive: true, force: true })
   }
 })

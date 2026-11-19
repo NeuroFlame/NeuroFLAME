@@ -24,6 +24,41 @@ interface TerminalErrorMarker {
 }
 
 const MAX_ERROR_FIELD_LENGTH = 2000
+const MAX_MARKER_BYTES = 64 * 1024
+
+const isWithin = (base: string, candidate: string): boolean =>
+  candidate === base || candidate.startsWith(`${base}${path.sep}`)
+
+// Results directories are written by the computation, which can plant symlinks.
+// Resolve them and refuse anything that leaves the run's results directory.
+const realPathWithin = async (base: string, candidate: string): Promise<string | undefined> => {
+  try {
+    const [realBase, realCandidate] = await Promise.all([
+      fs.promises.realpath(base),
+      fs.promises.realpath(candidate),
+    ])
+    return isWithin(realBase, realCandidate) ? realCandidate : undefined
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+const readMarker = async (markerPath: string): Promise<string | undefined> => {
+  let handle: Awaited<ReturnType<typeof fs.promises.open>> | undefined
+  try {
+    const markerStats = await fs.promises.lstat(markerPath)
+    if (!markerStats.isFile() || markerStats.size > MAX_MARKER_BYTES) return undefined
+    handle = await fs.promises.open(markerPath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0))
+    const contents = await handle.readFile()
+    return contents.byteLength > MAX_MARKER_BYTES ? undefined : contents.toString('utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw error
+  } finally {
+    await handle?.close()
+  }
+}
 
 const cleanErrorField = (value: unknown): string | undefined => {
   if (typeof value !== 'string') return undefined
@@ -64,7 +99,7 @@ const walkDirectory = (
 
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name)
-    const stat = fs.statSync(fullPath)
+    const stat = fs.lstatSync(fullPath)
     const relativePath = path.relative(rootPath, fullPath) // key fix here
 
     const fileInfo: FileInfo = {
@@ -138,13 +173,12 @@ export const getRunError = async (req: Request, res: Response) => {
     )
     const markerPath = path.join(resultsDirectory, '.neuroflame_error.json')
 
-    if (!fs.existsSync(markerPath)) {
+    const rawMarker = await readMarker(markerPath)
+    if (rawMarker === undefined) {
       return res.status(404).json({ error: 'No local computation error found' })
     }
 
-    const marker = JSON.parse(
-      fs.readFileSync(markerPath, 'utf8'),
-    ) as TerminalErrorMarker
+    const marker = JSON.parse(rawMarker) as TerminalErrorMarker
     const message = cleanErrorField(marker.message)
     if (!message) {
       return res.status(422).json({ error: 'Invalid local computation error' })
@@ -184,26 +218,28 @@ export const serveRunFile = async (req: Request, res: Response) => {
     const resolvedFile = path.resolve(baseDirectory, filePathParam)
 
     // Ensure path is within allowed directory
-    if (!resolvedFile.startsWith(resolvedBase)) {
+    if (resolvedFile !== resolvedBase && !resolvedFile.startsWith(`${resolvedBase}${path.sep}`)) {
       logger.warn(`Unauthorized path access attempt: ${resolvedFile}`)
       return res.status(403).json({ error: 'Unauthorized access' })
     }
 
-    // Fail fast if it doesn't exist
-    if (!fs.existsSync(resolvedFile)) {
+    // Fail fast if it doesn't exist, or a symlink leads outside the results directory
+    const realFile = await realPathWithin(resolvedBase, resolvedFile)
+    if (!realFile) {
       logger.warn(`File not found: ${resolvedFile}`)
       return res.status(404).send('File not found')
     }
 
-    const stat = fs.lstatSync(resolvedFile)
+    const stat = fs.lstatSync(realFile)
 
     // ✅ Handle directories
     if (stat.isDirectory()) {
-      const entries = fs.readdirSync(resolvedFile, { withFileTypes: true })
+      const entries = fs.readdirSync(realFile, { withFileTypes: true })
 
       const directoryContents: FileInfo[] = entries.map((entry) => {
+        // URLs follow the requested path; filesystem access uses the resolved one.
         const entryPath = path.join(resolvedFile, entry.name)
-        const entryStat = fs.statSync(entryPath)
+        const entryStat = fs.lstatSync(path.join(realFile, entry.name))
         const relativeUrl = path.relative(
           baseDirectory,
           entryPath,
@@ -224,7 +260,7 @@ export const serveRunFile = async (req: Request, res: Response) => {
 
     // ✅ Handle .html files
     if (stat.isFile() && resolvedFile.endsWith('.html')) {
-      let contents = fs.readFileSync(resolvedFile, 'utf8')
+      let contents = fs.readFileSync(realFile, 'utf8')
 
       if (!contents.includes('<base')) {
         contents = contents.replace('<head>', '<head><base href="./">')
@@ -236,7 +272,7 @@ export const serveRunFile = async (req: Request, res: Response) => {
 
     // ✅ Serve other files
     if (stat.isFile()) {
-      return res.sendFile(resolvedFile)
+      return res.sendFile(realFile)
     }
 
     logger.warn(`Unsupported file type at path: ${resolvedFile}`)

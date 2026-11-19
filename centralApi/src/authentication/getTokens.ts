@@ -5,13 +5,12 @@ const centralToken = generateTokens(
   { userId: '66289c79aebab67040a20067', roles: ['central'] },
   { shouldExpire: false },
 )
+// Site tokens are sign-in sessions and expire like a login; service tokens do not.
 const site1Token = generateTokens(
   { userId: '66289c79aebab67040a20068', roles: ['user'] },
-  { shouldExpire: false },
 )
 const site2Token = generateTokens(
   { userId: '66289c79aebab67040a20069', roles: ['user'] },
-  { shouldExpire: false },
 )
 
 const vaultUser1Token = generateTokens(

@@ -8,8 +8,8 @@ export const userChangePassword = async (
   input: MutationUserChangePasswordArgs,
 ): Promise<void> => {
   const USER_CHANGE_PASSWORD_MUTATION = gql`
-    mutation UserChangePassword($password: String!) {
-      userChangePassword(password: $password)
+    mutation UserChangePassword($currentPassword: String!, $password: String!) {
+      userChangePassword(currentPassword: $currentPassword, password: $password)
     }
   `
 

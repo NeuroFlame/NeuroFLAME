@@ -10,7 +10,7 @@ import { useCentralApi } from '../../apis/centralApi/centralApi'
 import {
   StudyConfiguration,
 } from '../../apis/centralApi/generated/graphql'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useUserState } from '../../contexts/UserStateContext'
 
 export interface ConsortiumMemberLike {
@@ -81,6 +81,7 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
   } = useCentralApi()
   const { consortiumId } = useParams<{ consortiumId: string }>()
   const { userId } = useUserState()
+  const navigate = useNavigate()
 
   // State Variables
   const [
@@ -102,8 +103,8 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
   const [isLeader, setIsLeader] = useState(false)
 
   // Fetch consortium details function
-  const fetchConsortiumDetails = useCallback(async () => {
-    if (!consortiumId) return
+  const fetchConsortiumDetails = useCallback(async (): Promise<boolean> => {
+    if (!consortiumId) return false
     setLoading(true)
     setError(null)
 
@@ -150,8 +151,10 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
       setStudyConfiguration(result.studyConfiguration)
 
       setIsLeader(result.leader.id === userId)
+      return true
     } catch (err) {
       setError('Failed to fetch consortium details.')
+      return false
     } finally {
       setLoading(false)
     }
@@ -163,8 +166,9 @@ React.FC<ConsortiumDetailsProviderProps> = ({ children }) => {
       fetchConsortiumDetails()
       const subscription = consortiumDetailsChanged({ consortiumId })
         .subscribe({
-          next: () => {
-            fetchConsortiumDetails()
+          next: async () => {
+            // The consortium was deleted or this user was removed from it.
+            if (!(await fetchConsortiumDetails())) navigate('/consortium/list')
           },
         })
       return () => {

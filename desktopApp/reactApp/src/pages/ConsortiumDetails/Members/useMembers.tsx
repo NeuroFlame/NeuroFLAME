@@ -114,16 +114,10 @@ export const useMembers = ({
     }
   }
 
-  // Handle leaving the consortium
-  const handleLeave = async () => {
-    try {
-      await consortiumLeave({ consortiumId })
-      // You can refetch or update the UI state to reflect the change
-    } catch (error) {
-      console.error('Failed to leave the consortium:', error)
-    } finally {
-      navigate('/consortium/list')
-    }
+  // Errors reach the leave dialog, which shows them; a leader must name a successor.
+  const handleLeave = async (newLeaderId?: string) => {
+    await consortiumLeave({ consortiumId, newLeaderId })
+    navigate('/consortium/list')
   }
 
   return {

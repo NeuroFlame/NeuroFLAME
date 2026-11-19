@@ -4,7 +4,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose'
 interface IInvite extends Document {
   leader: mongoose.Types.ObjectId // Reference to a User
   consortium: mongoose.Types.ObjectId // Reference to a Consortium
-  token: String
+  tokenDigest: string // SHA-256 of the invite link token; the token itself is never stored
   email: String
   createdAt: Date
 }
@@ -13,7 +13,7 @@ interface IInvite extends Document {
 const inviteSchema: Schema = new Schema({
   leader: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
   consortium: { type: mongoose.Types.ObjectId, ref: 'Consortium', required: true },
-  token: { type: String, required: true },
+  tokenDigest: { type: String, required: true },
   email: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 })
