@@ -1,6 +1,6 @@
 import { GraphQLError, GraphQLSchema } from 'graphql'
 import { Context, ServerOptions } from 'graphql-ws'
-import { Extra } from 'graphql-ws/lib/use/ws'
+import { Extra } from 'graphql-ws/use/ws'
 import { WebSocket } from 'ws'
 import { validateServerAccessToken, wsServerContext } from '../serverContexts.js'
 import { onSessionRevocation } from './sessionRevocation.js'
