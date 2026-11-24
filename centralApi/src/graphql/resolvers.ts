@@ -477,6 +477,25 @@ const isConsortiumEventRecipient = async (
   return consortium ? memberIdsOf(consortium).includes(userId) : false
 }
 
+// graphql-subscriptions v3 may call filters with an undefined payload or context.
+// Keep that guard in one place so every subscription filter can assume both exist.
+type DefinedFilterFn<TPayload, TArgs = unknown> = (
+  payload: TPayload,
+  variables: TArgs,
+  context: Context,
+) => boolean | Promise<boolean>
+
+const withDefinedFilter = <TPayload, TArgs = unknown>(
+  asyncIteratorFn: () => AsyncIterableIterator<unknown> | Promise<AsyncIterableIterator<unknown>>,
+  filterFn: DefinedFilterFn<TPayload, TArgs>,
+) => withFilter(
+  asyncIteratorFn,
+  (payload?: TPayload, variables?: TArgs, context?: Context) => {
+    if (!payload || !context) return false
+    return filterFn(payload, variables as TArgs, context)
+  },
+)
+
 export default {
   Query: {
     getUserProfile: async (
@@ -1384,7 +1403,7 @@ export default {
         $set: { hash: hashedPassword },
         $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
         $inc: { tokenVersion: 1 },
-      }, { new: true })
+      }, { returnDocument: 'after' })
       if (!user) throw new Error('Invalid or expired token')
       revokeUserSessions(user._id.toString(), user.tokenVersion)
       const { accessToken } = generateTokens({
@@ -2550,7 +2569,7 @@ export default {
         $set: { hash: hashedPassword },
         $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
         $inc: { tokenVersion: 1 },
-      }, { new: true }).select('tokenVersion').exec()
+      }, { returnDocument: 'after' }).select('tokenVersion').exec()
       if (!updatedUser) throw new Error('Password changed. Please sign in again.')
       revokeUserSessions(userId, updatedUser.tokenVersion)
       return true
@@ -2576,7 +2595,7 @@ export default {
             $set: { hash: hashedPassword },
             $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
             $inc: { tokenVersion: 1 },
-          }, { new: true })
+          }, { returnDocument: 'after' })
           .select('_id tokenVersion')
           .collation({ locale: 'en', strength: 2 })
         if (!updatedUser) throw new Error('User not found')
@@ -3586,21 +3605,13 @@ export default {
         logger.info(`Event emitted for runStartCentral: run ${payload.runId}`)
         return payload
       },
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => {
           logger.info('Subscription attempt for runStartCentral')
           return pubsub.asyncIterableIterator(['RUN_START_CENTRAL'])
         },
-        (
-          payload: RunStartCentralPayload | undefined,
-          variables: unknown,
-          context: Context | undefined,
-        ) => {
-          if (!context) {
-            return false
-          }
-          return context.roles.includes('central')
-        },
+        (payload: RunStartCentralPayload, _variables, context) =>
+          context.roles.includes('central'),
       ),
     },
     runStartEdge: {
@@ -3640,38 +3651,24 @@ export default {
 
         return output
       },
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => pubsub.asyncIterableIterator(['RUN_START_EDGE']),
-        async (
-          payload: (RunStartEdgePayload & {
-            participantId: string;
-            targetUserId: string;
-            vaultId?: string | null;
-          }) | undefined,
-          variables: unknown,
-          context: Context | undefined,
-        ) => {
-          if (!payload || !context) {
-            return false
-          }
-          const { targetUserId } = payload
-          const { userId } = context
-          return userId === targetUserId
-        },
+        (
+          payload: RunStartEdgePayload & {
+            participantId: string
+            targetUserId: string
+            vaultId?: string | null
+          },
+          _variables,
+          context,
+        ) => payload.targetUserId === context.userId,
       ),
     },
     runEvent: {
       resolve: (payload: RunEventPayload): RunEventPayload => payload,
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => pubsub.asyncIterableIterator(['RUN_EVENT']),
-        async (
-          payload: RunEventPayload | undefined,
-          variables: unknown,
-          context: Context | undefined,
-        ) => {
-          if (!payload || !context) {
-            return false
-          }
+        async (payload: RunEventPayload, _variables, context) => {
           logger.info('Run event emitted', { payload, context })
 
           if (context.error) {
@@ -3701,48 +3698,32 @@ export default {
     },
     consortiumLatestRunChanged: {
       resolve: (): string => 'Consortium latest run changed',
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => pubsub.asyncIterableIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
-        async (
-          payload: ConsortiumEventPayload | undefined,
-          variables: unknown,
-          context: Context | undefined,
-        ) => {
-          if (!payload || !context) {
-            return false
-          }
-          return isConsortiumEventRecipient(payload, context.userId)
-        },
+        (payload: ConsortiumEventPayload, _variables, context) =>
+          isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
     consortiumDetailsChanged: {
       resolve: (): string => 'Consortium details changed',
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => pubsub.asyncIterableIterator(['CONSORTIUM_DETAILS_CHANGED']),
-        async (
-          payload: ConsortiumEventPayload | undefined,
-          variables: unknown,
-          context: Context | undefined,
-        ) => {
-          if (!payload || !context) {
-            return false
-          }
-          return isConsortiumEventRecipient(payload, context.userId)
-        },
+        (payload: ConsortiumEventPayload, _variables, context) =>
+          isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
     runDetailsChanged: {
       resolve: (payload: { runId: string }): string => 'Run details changed',
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => pubsub.asyncIterableIterator(['RUN_DETAILS_CHANGED']),
         async (
-          payload: { runId: string; memberIds?: string[] } | undefined,
-          variables: unknown,
-          context: Context | undefined,
+          payload: { runId: string; memberIds?: string[] },
+          _variables,
+          context,
         ) => {
-          if (!payload || !context?.userId) return false
+          if (!context.userId) return false
           if (payload.memberIds) return payload.memberIds.includes(context.userId)
           const run = await Run.findById(payload.runId).select('consortium').lean()
           if (!run) return false
