@@ -336,7 +336,7 @@ const wsHarness = async (t) => {
   installAccountRateLimits(schema)
   const guard = createSessionWebSocketOptions(schema)
   const readiness = new Map()
-  const cleanup = useServer({ ...guard.options, onOperation: (_ctx, msg) => { readiness.get(msg.id)?.() } }, sockets)
+  const cleanup = useServer({ ...guard.options, onOperation: (_ctx, id) => { readiness.get(id)?.() } }, sockets)
   const clients = []
   t.after(async () => {
     for (const client of clients) await client.dispose()
