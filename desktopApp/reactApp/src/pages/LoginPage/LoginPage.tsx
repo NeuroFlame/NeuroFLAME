@@ -1,7 +1,7 @@
 // LoginPage.tsx
 import React, { useEffect, useState } from 'react'
 import { Box, Button, Typography, Alert } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { CreateUser } from './CreateUser/CreateUser'
 import { Login } from './Login/Login'
 import { ChangePassword } from './ChangePassword/ChangePassword'
@@ -19,6 +19,7 @@ const LoginPage: React.FC = () => {
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [userCreated, setUserCreated] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -71,6 +72,11 @@ const LoginPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 'xs', '& .MuiButton-text': { color: '#b8d2ff' } }}>
+        {location.state?.passwordChanged && (
+          <Alert severity='success' sx={{ mb: 2 }}>
+            Password changed. Please sign in with your new password.
+          </Alert>
+        )}
         {userCreated && (
           <Alert
             severity='success'

@@ -5,10 +5,28 @@ import { installLandingPageTheme } from './landingPageTheme.js'
 import { installResultReportTheme } from './resultReportTheme.js'
 import { getConfig } from './config.js'
 import { logger } from './logger.js'
+import { installWindowSecurity } from './windowSecurity.js'
+
+export const MAIN_SESSION_PARTITION = 'persist:neuroflame-main'
+
+/** The only page allowed to use the preload bridge. */
+export function appStartUrl(): string {
+  const productionPath = path.join(app.getAppPath(), '../app/build/index.html')
+  const productionUrl = url.format({
+    pathname: productionPath,
+    protocol: 'file:',
+    slashes: true,
+  })
+  const developmentUrl =
+    process.env.NODE_ENV === 'test' && process.env.CI === 'true'
+      ? 'http://react:3000'
+      : 'http://localhost:3000'
+  return app.isPackaged ? productionUrl : developmentUrl
+}
 
 export async function createMainWindow(): Promise<BrowserWindow> {
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const persistentSession = session.fromPartition('persist:neuroflame-main')
+  const persistentSession = session.fromPartition(MAIN_SESSION_PARTITION)
 
   // Window configuration
   const mainWindow = new BrowserWindow({
@@ -22,21 +40,21 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     },
   })
 
-  // Define URLs for production and development
-  const appPath = app.getAppPath()
-  const productionPath = path.join(appPath, '../app/build/index.html')
-  const productionUrl = url.format({
-    pathname: productionPath,
-    protocol: 'file:',
-    slashes: true,
+  const startUrl = appStartUrl()
+  const { edgeClientRunResultsUrl } = await getConfig()
+  installWindowSecurity(mainWindow.webContents, {
+    appUrl: startUrl,
+    isAppWindow: true,
+    edgeResultsUrl: edgeClientRunResultsUrl,
+    onViewNifti: (niftiUrl) => {
+      if (mainWindow.isDestroyed()) return
+      mainWindow.webContents.executeJavaScript(
+        `window.dispatchEvent(new MessageEvent('message', { data: { type: 'view-nifti', url: ${JSON.stringify(niftiUrl)} } }))`,
+      ).catch(() => {
+        logger.warn('Unable to open the NIfTI viewer.')
+      })
+    },
   })
-  const developmentUrl =
-    process.env.NODE_ENV === 'test' && process.env.CI === 'true'
-      ? 'http://react:3000'
-      : 'http://localhost:3000'
-
-  // Choose the appropriate start URL
-  const startUrl = app.isPackaged ? productionUrl : developmentUrl
 
   installLandingPageTheme(mainWindow.webContents, startUrl, () => {
     logger.warn('Unable to apply the home iframe theme.')

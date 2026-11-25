@@ -1,20 +1,16 @@
-import express from 'express'
-import downloadRoute from './routes/downloadRoute.js'
-import uploadRoute from './routes/uploadRoute.js'
-import { LOG_PATH, PORT } from './config.js'
+import { createApp } from './app.js'
+import { BASE_DIR, LOG_PATH, PORT, RUN_KIT_RETENTION_HOURS } from './config.js'
 import { logger, logToPath } from './logger.js'
+import { scheduleRunKitRetention } from './runKitRetention.js'
 
 const init = async () => {
-  const app = express()
   if (LOG_PATH) {
     logToPath(LOG_PATH)
   }
 
-  app.use(express.json())
+  scheduleRunKitRetention(BASE_DIR, RUN_KIT_RETENTION_HOURS * 60 * 60 * 1000)
 
-  app.use('/', downloadRoute)
-  app.use('/', uploadRoute)
-
+  const app = createApp()
   app.listen(PORT, () => logger.info(`Server is running on port ${PORT}`))
 }
 

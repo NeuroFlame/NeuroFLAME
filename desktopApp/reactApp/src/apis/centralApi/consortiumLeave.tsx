@@ -8,8 +8,8 @@ export const consortiumLeave = async (
   input: MutationConsortiumLeaveArgs,
 ): Promise<void> => {
   const CONSORTIUM_LEAVE_MUTATION = gql`
-    mutation ConsortiumLeave($consortiumId: String!) {
-      consortiumLeave(consortiumId: $consortiumId)
+    mutation ConsortiumLeave($consortiumId: String!, $newLeaderId: String) {
+      consortiumLeave(consortiumId: $consortiumId, newLeaderId: $newLeaderId)
     }
   `
 

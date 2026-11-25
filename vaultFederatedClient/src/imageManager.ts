@@ -989,16 +989,65 @@ export async function prepareResolvedComputationImage(
     if (isLocalImage && inspection.Id !== resolvedImage.digest) {
       throw new Error('Local computation image ID does not match the run')
     }
-    const labels = inspection.Config?.Labels ?? {}
-    for (const [field, label] of Object.entries(COMPUTATION_LABELS) as Array<
-      [keyof ComputationImageMetadata, string]
-    >) {
-      if (labels[label] !== resolvedImage.metadata[field]) {
-        throw new Error(`Computation image label "${label}" does not match the run`)
-      }
+    assertComputationLabels(inspection.Config?.Labels ?? {}, resolvedImage.metadata)
+    return resolvedImage.reference
+  }
+
+  // Run the SIF built for this exact digest, and only after the same label check.
+  const imagePath = await findSingularityImageByHash(
+    resolvedImage.reference,
+    digestToShortHash(resolvedImage.digest),
+  )
+  if (!imagePath) {
+    throw new Error('The Singularity image for this run digest is not available')
+  }
+  assertComputationLabels(
+    await readSingularityLabels(await getSingularityBinary(), imagePath),
+    resolvedImage.metadata,
+  )
+  return imagePath
+}
+
+function assertComputationLabels(
+  labels: Record<string, unknown>,
+  metadata: ComputationImageMetadata,
+): void {
+  for (const [field, label] of Object.entries(COMPUTATION_LABELS) as Array<
+    [keyof ComputationImageMetadata, string]
+  >) {
+    // Central records trimmed label values, so compare them the same way.
+    const value = labels[label]
+    if (typeof value !== 'string' || value.trim() !== metadata[field]) {
+      throw new Error(`Computation image label "${label}" does not match the run`)
     }
   }
-  return resolvedImage.reference
+}
+
+/** OCI labels of a Docker image are carried into the SIF built from it. */
+export async function readSingularityLabels(
+  binary: string,
+  imagePath: string,
+): Promise<Record<string, unknown>> {
+  const stdout = await new Promise<string>((resolve, reject) => {
+    execFile(
+      binary,
+      ['inspect', '--labels', '--json', imagePath],
+      { maxBuffer: 1024 * 1024, timeout: 120_000 },
+      (error, output) => (error ? reject(error) : resolve(output)),
+    )
+  })
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(stdout)
+  } catch {
+    throw new Error('Singularity returned unreadable image labels')
+  }
+  const labels = (parsed as { data?: { attributes?: { labels?: unknown } } })
+    ?.data?.attributes?.labels
+  if (!labels || typeof labels !== 'object' || Array.isArray(labels)) {
+    throw new Error('Singularity did not report image labels')
+  }
+  return labels as Record<string, unknown>
 }
 
 export async function startImageManager(): Promise<void> {

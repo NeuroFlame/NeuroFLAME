@@ -6,8 +6,16 @@ import {
   serveRunFile,
   serveRunFolder,
 } from '../controllers/runResultsFilesController.js'
+import { isRunPathSegment } from '../runPathSegment.js'
 
 const router = Router()
+
+// Path IDs are joined into local paths; skip any route whose IDs are not ObjectIds.
+for (const name of ['consortiumId', 'runId', 'participantId']) {
+  router.param(name, (_req, _res, next, value) => {
+    next(isRunPathSegment(value) ? undefined : 'route')
+  })
+}
 
 // Define the routes
 router.get('/error/:consortiumId/:runId/:participantId', getRunError)

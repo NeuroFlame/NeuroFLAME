@@ -16,7 +16,7 @@ interface ReportRunErrorResponse {
 
 // GraphQL mutation
 const REPORT_RUN_ERROR_MUTATION = `
-  mutation reportRunError($runId: String!, $vaultId: String!, $errorMessage: String!, $redactErrorDetails: Boolean!) {
+  mutation reportRunError($runId: String!, $vaultId: String, $errorMessage: String!, $redactErrorDetails: Boolean!) {
     reportRunError(runId: $runId, vaultId: $vaultId, errorMessage: $errorMessage, redactErrorDetails: $redactErrorDetails)
   }
 `
@@ -28,7 +28,9 @@ export default async function reportRunError({
   redactErrorDetails = true,
 }: {
   runId: string
-  vaultId: string
+  // Null when this vault account takes part as an ordinary member rather than
+  // as a hosted vault; central then authorises the report by membership.
+  vaultId: string | null
   errorMessage: string
   redactErrorDetails?: boolean
 }) {
