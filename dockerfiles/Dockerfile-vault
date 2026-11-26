@@ -10,7 +10,7 @@
 # Build: docker build -f dockerfiles/Dockerfile-vault -t neuroflame/vault .
 # Run:   See docker-compose.vault.yaml for example deployment
 
-FROM node:lts-slim
+FROM node:24-slim
 
 # Install Docker CLI (needed to launch computation containers)
 RUN apt-get update && apt-get install -y \
@@ -32,12 +32,13 @@ WORKDIR /app
 COPY vaultFederatedClient/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --include=dev
 
 # Copy source and compile
 COPY vaultFederatedClient/tsconfig.json ./
 COPY vaultFederatedClient/src ./src
 RUN npm run compile
+RUN npm prune --omit=dev
 
 # Default environment variables (override in deployment)
 ENV NODE_ENV=production

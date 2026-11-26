@@ -1,5 +1,6 @@
 {
   "name": "centralfederatedclient",
+  "private": true,
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -14,7 +15,7 @@
   "dependencies": {
     "archiver": "^7.0.1",
     "axios": "^1.20.0",
-    "dockerode": "^4.0.2",
+    "dockerode": "^5.0.1",
     "form-data": "^4.0.6",
     "graphql-ws": "^5.16.0",
     "js-yaml": "^4.1.0",
@@ -23,8 +24,9 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@types/node": "^20.12.4",
     "@types/archiver": "^6.0.2",
-    "@types/dockerode": "^3.3.28",
+    "@types/dockerode": "^4.0.1",
     "@types/js-yaml": "^4.0.9",
     "@types/ws": "^8.5.10",
     "typescript": "^5.4.3"

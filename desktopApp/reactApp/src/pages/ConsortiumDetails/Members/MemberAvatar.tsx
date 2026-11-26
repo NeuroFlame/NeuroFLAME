@@ -35,6 +35,7 @@ const GetUserColor = (userId: string, active: boolean): string => {
 const UserAvatar = styled(Avatar, {
   shouldForwardProp: (prop) => prop !== 'admin' && prop !== 'active' && prop !== 'userId',
 })<{ userId: string; admin: boolean; active: boolean }>(({
+  theme,
   userId,
   admin,
   active,
@@ -42,6 +43,7 @@ const UserAvatar = styled(Avatar, {
   width: '45px',
   height: '45px',
   background: !admin ? GetUserColor(userId, active) : 'none',
+  color: admin ? theme.palette.text.primary : theme.palette.getContrastText(GetUserColor(userId, active)),
 }))
 
 interface MemberAvatarProps {
@@ -88,9 +90,9 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
           <CheckCircleIcon
             sx={{
               position: 'absolute',
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--nf-surface)',
               borderRadius: '16px',
-              color: '#2FA84F',
+              color: 'var(--nf-success)',
               width: '16px',
               height: '16px',
               top: '-2px',
@@ -104,7 +106,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
             style={{
               position: 'absolute',
               borderRadius: '16px',
-              color: '#2FA84F',
+              color: 'var(--nf-success)',
               width: '20px',
               height: '20px',
               top: '-10px',
@@ -158,7 +160,7 @@ const MemberAvatar: React.FC<MemberAvatarProps> = (props) => {
       <span
         className='username'
         style={{
-          color: isActive ? '#000' : '#aaa',
+          color: isActive ? 'var(--nf-text)' : 'var(--nf-muted)',
           marginLeft: direction === 'row' ? '0.5rem' : '0',
           fontSize: nameSize,
           maxWidth: direction === 'row' ? '12rem' : '100%',

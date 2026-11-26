@@ -45,26 +45,31 @@ test('central computation errors preserve their existing detail behavior', () =>
   }), detail)
 })
 
-test('oversized detailed reports are rejected at the central boundary', () => {
-  assert.throws(
-    () => disclosedRunErrorMessage({
+test('oversized detailed reports are replaced with a fixed summary, never persisted', () => {
+  for (const [reporter, summary] of [
+    ['hostedVault', /^Hosted vault computation failed\. The detailed error exceeded the size limit\.$/],
+    ['central', /^Central computation failed\. The detailed error exceeded the size limit\.$/],
+  ]) {
+    assert.match(disclosedRunErrorMessage({
       errorMessage: 'x'.repeat(MAX_DISCLOSED_RUN_ERROR_BYTES + 1),
-      reporter: 'hostedVault',
+      reporter,
       requestedRedaction: false,
-    }),
-    /exceeds 65536 bytes/,
-  )
+    }), summary)
+  }
 })
 
 test('central limit counts UTF-8 bytes rather than JavaScript characters', () => {
-  assert.throws(
-    () => disclosedRunErrorMessage({
-      errorMessage: '🔥'.repeat((MAX_DISCLOSED_RUN_ERROR_BYTES / 4) + 1),
-      reporter: 'hostedVault',
-      requestedRedaction: false,
-    }),
-    /exceeds 65536 bytes/,
-  )
+  const atLimit = '🔥'.repeat(MAX_DISCLOSED_RUN_ERROR_BYTES / 4)
+  assert.equal(disclosedRunErrorMessage({
+    errorMessage: atLimit,
+    reporter: 'hostedVault',
+    requestedRedaction: false,
+  }), atLimit)
+  assert.match(disclosedRunErrorMessage({
+    errorMessage: `${atLimit}🔥`,
+    reporter: 'hostedVault',
+    requestedRedaction: false,
+  }), /exceeded the size limit/)
 })
 
 test('oversized redacted input is never persisted', () => {

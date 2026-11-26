@@ -10,7 +10,7 @@ export default function StepSetParameters() {
         overflowY: 'scroll',  // Allow vertical scrolling if content exceeds
         padding: 1,
         boxSizing: 'border-box',
-        border: '1px solid #eee',
+        border: '1px solid var(--nf-border)',
       }}
     >
       <Grid container spacing={2}>

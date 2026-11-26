@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('ElectronAPI', {
+  setLandingPageTheme: async (theme) => ipcRenderer.invoke('setLandingPageTheme', theme),
+  setResultReportTheme: async (theme) => ipcRenderer.invoke('setResultReportTheme', theme),
   getConfig: async () => ipcRenderer.invoke('getConfig'),
   getCompatibilityStatus: async () => ipcRenderer.invoke('getCompatibilityStatus'),
   openLatestRelease: async () => ipcRenderer.invoke('openLatestRelease'),
@@ -16,17 +18,8 @@ contextBridge.exposeInMainWorld('ElectronAPI', {
   terminalOutput: (callback) => ipcRenderer.on('terminalOutput', callback),
   removeTerminalOutputListener: () =>
     ipcRenderer.removeAllListeners('terminalOutput'),
-  singularityPullOutput: (callback) => ipcRenderer.on('singularityPullOutput', callback),
-  removeSingularityPullOutputListener: () =>
-    ipcRenderer.removeAllListeners('singularityPullOutput'),
   getEdgeClientLogs: async (options) =>
     ipcRenderer.invoke('getEdgeClientLogs', options),
-  pullSingularityImage: async (dockerImageName) =>
-    ipcRenderer.invoke('pullSingularityImage', dockerImageName),
-  checkSingularityImageExists: async (dockerImageName) =>
-    ipcRenderer.invoke('checkSingularityImageExists', dockerImageName),
-  getSingularityImagesPath: async () =>
-    ipcRenderer.invoke('getSingularityImagesPath'),
 })
 
 console.log('preload.js loaded')

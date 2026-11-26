@@ -105,7 +105,7 @@ export default function ComputationDetails() {
           </Box>
 
           <Card sx={{ m: '1rem', p: '2rem' }}>
-            <Typography variant='h5' fontWeight={600} color='black'>
+            <Typography variant='h5' fontWeight={600} color='var(--nf-text)'>
               {computationDetails.title}
             </Typography>
             <Typography variant='body2' color='textSecondary'>
@@ -123,7 +123,7 @@ export default function ComputationDetails() {
                 <Typography
                   component='code'
                   sx={{
-                    bgcolor: '#f5f5f5',
+                    bgcolor: 'var(--nf-subtle)',
                     p: '4px 8px',
                     borderRadius: 1,
                     fontFamily: 'monospace',
@@ -143,7 +143,7 @@ export default function ComputationDetails() {
                   <ContentCopyIcon fontSize='small' />
                 </IconButton>
                 {copied && (
-                  <Typography fontSize='0.75rem' color='green' ml={1}>
+                  <Typography fontSize='0.75rem' color='var(--nf-success)' ml={1}>
                     Copied!
                   </Typography>
                 )}

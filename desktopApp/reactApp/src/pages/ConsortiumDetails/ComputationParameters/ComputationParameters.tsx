@@ -15,10 +15,10 @@ export function ComputationParameters() {
   } = useComputationParameters()
 
   return (
-    <Box p={2} borderRadius={2} marginBottom={0} bgcolor='white'>
+    <Box p={2} borderRadius={2} marginBottom={0} bgcolor='var(--nf-surface)'>
       <Typography variant='h6' gutterBottom>
         Global Settings{' '}
-        <span style={{ fontSize: '12px', color: 'black' }}>
+        <span style={{ fontSize: '12px', color: 'var(--nf-text)' }}>
           (parameters.json)
         </span>
       </Typography>

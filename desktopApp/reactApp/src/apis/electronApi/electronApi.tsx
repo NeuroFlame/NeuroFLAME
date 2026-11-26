@@ -41,6 +41,18 @@ export type CompatibilityStatus = {
 }
 
 interface ElectronAPI {
+  setResultReportTheme?: (theme: { url: string; mode: 'light' | 'dark' } | null) => Promise<void>;
+  setLandingPageTheme?: (theme: {
+    mode: 'light' | 'dark';
+    page: string;
+    surface: string;
+    text: string;
+    muted: string;
+    border: string;
+    primary: string;
+    error: string;
+    warning: string;
+  }) => Promise<void>;
   getConfigPath: () => Promise<string>;
   getConfig: () => Promise<Config>;
   getCompatibilityStatus: () => Promise<CompatibilityStatus>;
@@ -54,16 +66,11 @@ interface ElectronAPI {
     error: string | null,
   }>;
   restartApp: () => void;
-  spawnTerminal: () => void;
-  terminalOutput: (output: any) => Promise<{ output: any }>;
+  spawnTerminal: () => Promise<{ status: string; pid?: number }>;
+  terminalOutput: (callback: (event: unknown, data: string) => void) => void;
   terminalInput: (input: any) => Promise<{ input: any }>;
   removeTerminalOutputListener: () => void;
   getEdgeClientLogs: (options?: { maxBytes?: number; maxLines?: number }) => Promise<EdgeClientLogsResponse>;
-  pullSingularityImage: (dockerImageName: string) => Promise<{ imagePath: string; alreadyExists: boolean }>;
-  checkSingularityImageExists: (dockerImageName: string) => Promise<boolean>;
-  getSingularityImagesPath: () => Promise<string>;
-  singularityPullOutput: (callback: any) => void;
-  removeSingularityPullOutputListener: () => void;
 }
 
 declare global {
@@ -87,9 +94,4 @@ export const electronApi = {
   spawnTerminal,
   removeTerminalOutputListener,
   getEdgeClientLogs,
-  pullSingularityImage: window.ElectronAPI.pullSingularityImage,
-  checkSingularityImageExists: window.ElectronAPI.checkSingularityImageExists,
-  getSingularityImagesPath: window.ElectronAPI.getSingularityImagesPath,
-  singularityPullOutput: window.ElectronAPI.singularityPullOutput,
-  removeSingularityPullOutputListener: window.ElectronAPI.removeSingularityPullOutputListener,
 }

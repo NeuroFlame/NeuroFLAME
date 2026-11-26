@@ -129,9 +129,11 @@ const ConsortiumWizard = () => {
           style={{
             margin: '2rem 2rem 0',
             padding: '2rem 1rem',
-            background: 'white',
+            background: 'var(--nf-surface)',
             borderRadius: '1rem',
-            height: 'calc(100vh - 13rem)',
+            minHeight: 'calc(100vh - 13rem)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <ConsortiumWizardNavBar
@@ -140,7 +142,7 @@ const ConsortiumWizard = () => {
             handleStepNav={handleStepNav}
           />
           <Box style={{ margin: '2rem 1rem 1rem' }}>
-            <Typography variant='h6' gutterBottom color='black'>
+            <Typography variant='h6' gutterBottom color='var(--nf-text)'>
               {isLeader ? 'Consortium Setup Wizard' : `Consortium: ${data.title}`}
             </Typography>
             <Typography variant='h5' gutterBottom>
@@ -149,7 +151,7 @@ const ConsortiumWizard = () => {
           </Box>
 
           {/* Step Routes */}
-          <Box style={{ margin: '0 1rem 2rem' }}>
+          <Box style={{ margin: '0 1rem 2rem', flex: 1 }}>
             <Routes>
               <Route
                 path='step-select-computation'
@@ -186,10 +188,9 @@ const ConsortiumWizard = () => {
           {/* Control Panel Buttons */}
           <Box
             sx={{
-              position: 'absolute',
-              bottom: '4rem',
-              width: 'calc(100% - 8rem)',
               display: 'flex',
+              flexWrap: 'wrap',
+              gap: 2,
               alignItems: 'center',
               margin: '0 1rem',
               justifyContent: 'space-between',

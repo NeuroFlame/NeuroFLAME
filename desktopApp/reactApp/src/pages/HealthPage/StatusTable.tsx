@@ -4,9 +4,9 @@ import { EndpointStatus, StatusState, TerminalDockerStatus } from './types'
 const badge = (variant: StatusState | boolean) => {
   const state: StatusState = typeof variant === 'boolean' ? (variant ? 'ok' : 'down') : variant
   const colors = {
-    ok: { fg: '#0b6', bg: '#e9fff4', border: '#9fefc1', text: 'OK' },
-    down: { fg: '#b00', bg: '#ffebeb', border: '#f5bcbc', text: 'DOWN' },
-    checking: { fg: '#555', bg: '#f5f7fb', border: '#e0e6f0', text: 'CHECKING' },
+    ok: { fg: 'var(--nf-success)', bg: 'var(--nf-success-bg)', border: 'var(--nf-success)', text: 'OK' },
+    down: { fg: 'var(--nf-error)', bg: 'var(--nf-error-bg)', border: 'var(--nf-error)', text: 'DOWN' },
+    checking: { fg: 'var(--nf-muted)', bg: 'var(--nf-subtle)', border: 'var(--nf-border)', text: 'CHECKING' },
   }[state]
 
   return {
@@ -30,7 +30,7 @@ const rowStyle: React.CSSProperties = {
   gap: 12,
   alignItems: 'center',
   padding: '10px 12px',
-  borderBottom: '1px solid #eee',
+  borderBottom: '1px solid var(--nf-border)',
 }
 
 interface StatusTableProps {
@@ -55,8 +55,8 @@ const StatusTable: React.FC<StatusTableProps> = ({ results, dockerStatus }) => {
   ]
 
   return (
-    <div style={{ border: '1px solid #eee', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ ...rowStyle, background: '#fafafa', fontWeight: 700 }}>
+    <div style={{ border: '1px solid var(--nf-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ ...rowStyle, background: 'var(--nf-subtle)', fontWeight: 700 }}>
         <div>Component</div>
         <div>Target</div>
         <div>Status</div>
@@ -70,16 +70,16 @@ const StatusTable: React.FC<StatusTableProps> = ({ results, dockerStatus }) => {
           <div key={`docker-${i}`} style={rowStyle}>
             <div>
               <div style={{ fontWeight: 600 }}>{r.label}</div>
-              <div style={{ fontSize: 12, color: '#888' }}>{i === 0 ? 'DOCKER' : 'SOCKET'}</div>
+              <div style={{ fontSize: 12, color: 'var(--nf-muted)' }}>{i === 0 ? 'DOCKER' : 'SOCKET'}</div>
             </div>
-            <div style={{ overflowWrap: 'anywhere', color: '#555' }}>{r.target}</div>
+            <div style={{ overflowWrap: 'anywhere', color: 'var(--nf-muted)' }}>{r.target}</div>
             <div>
               <span style={b.style as React.CSSProperties}>{b.text}</span>
             </div>
             <div
               style={{
                 color:
-                  r.state === 'ok' ? '#2b7a0b' : r.state === 'down' ? '#8a1c1c' : '#555',
+                  r.state === 'ok' ? 'var(--nf-success)' : r.state === 'down' ? 'var(--nf-error)' : 'var(--nf-muted)',
               }}
             >
               {r.details || ''}
@@ -95,16 +95,16 @@ const StatusTable: React.FC<StatusTableProps> = ({ results, dockerStatus }) => {
           <div key={i} style={rowStyle}>
             <div>
               <div style={{ fontWeight: 600 }}>{r.name}</div>
-              <div style={{ fontSize: 12, color: '#888' }}>{r.kind.toUpperCase()}</div>
+              <div style={{ fontSize: 12, color: 'var(--nf-muted)' }}>{r.kind.toUpperCase()}</div>
             </div>
-            <div style={{ overflowWrap: 'anywhere', color: '#555' }}>{r.target}</div>
+            <div style={{ overflowWrap: 'anywhere', color: 'var(--nf-muted)' }}>{r.target}</div>
             <div>
               <span style={b.style as React.CSSProperties}>{b.text}</span>
               {typeof r.latencyMs === 'number' && (
-                <span style={{ marginLeft: 8, fontSize: 12, color: '#666' }}>{r.latencyMs} ms</span>
+                <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--nf-muted)' }}>{r.latencyMs} ms</span>
               )}
             </div>
-            <div style={{ color: r.ok ? '#2b7a0b' : '#8a1c1c' }}>{r.details || ''}</div>
+            <div style={{ color: r.ok ? 'var(--nf-success)' : 'var(--nf-error)' }}>{r.details || ''}</div>
           </div>
         )
       })}

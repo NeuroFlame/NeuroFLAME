@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for published NeuroFLAME releases every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+Unit=neuroflame-release-deploy.service
+
+[Install]
+WantedBy=timers.target

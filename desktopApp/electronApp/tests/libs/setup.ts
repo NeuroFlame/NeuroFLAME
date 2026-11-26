@@ -15,10 +15,13 @@ const appPackage = JSON.parse(
 
 let instances: Array<{ app: ElectronApplication, appPage: Page }> = []
 
-async function createInstance(appId: string | number) {
+const configPathFor = (configName: string) =>
+  path.resolve(__dirname, '../../../../configs', `${configName}.json`)
+
+async function createInstance(appId: string | number, configName = 'electronApp1') {
   const instanceId = `test-${appId}`
 
-  const configPath = path.resolve(__dirname, '../../../../configs/electronApp1.json')
+  const configPath = configPathFor(configName)
 
   const app = await electron.launch({
     args: [
@@ -53,10 +56,10 @@ async function createInstance(appId: string | number) {
   return { app, appPage }
 }
 
-async function setup(instanceCount = 1) {
+async function setup(instanceCount = 1, configName?: string) {
   const promises = Array(instanceCount).fill(0).map(() => {
     const appId = instances.length + 1
-    return createInstance(appId)
+    return createInstance(appId, configName)
   })
 
   instances = await Promise.all(promises)
@@ -74,4 +77,4 @@ async function destroyAllInstances() {
   await Promise.all(currentInstances.map((instance) => instance.app.close()))
 }
 
-export { createInstance, destroyAllInstances, setup }
+export { configPathFor, createInstance, destroyAllInstances, setup }

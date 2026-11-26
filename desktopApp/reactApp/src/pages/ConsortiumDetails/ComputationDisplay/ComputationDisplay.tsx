@@ -92,7 +92,7 @@ const ComputationDisplay: React.FC<{
       className='computation-notes consortium-summary-card window-height'
       borderRadius={2}
       marginBottom={2}
-      bgcolor='white'
+      bgcolor='var(--nf-surface)'
     >
       <div id='compnotes' />{/* For Notes anchor placement at 800px wide */}
       <CardContent>
@@ -101,7 +101,7 @@ const ComputationDisplay: React.FC<{
             {notesHeading && (
               <Typography fontSize='11px'>Computation Notes:</Typography>
             )}
-            <Typography variant='h5' fontWeight='600' color='black'>
+            <Typography variant='h5' fontWeight='600' color='var(--nf-text)'>
               {title}
             </Typography>
           </Box>

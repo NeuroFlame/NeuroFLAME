@@ -23,7 +23,7 @@ export function MembersDisplay({
     <Box
       p={2}
       borderRadius={2}
-      bgcolor='white'
+      bgcolor='var(--nf-surface)'
     >
       <Box>
         <Typography variant='h6' gutterBottom>

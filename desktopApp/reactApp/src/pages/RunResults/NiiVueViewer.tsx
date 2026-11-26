@@ -195,7 +195,7 @@ export default function NiiVueViewer({ fileUrl }: NiiVueViewerProps) {
         backgroundColor: 'black',
       }}
     >
-      <Box sx={{ padding: 2, backgroundColor: '#f5f5f5' }}>
+      <Box sx={{ padding: 2, backgroundColor: 'var(--nf-subtle)' }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid item>
             <Button variant='outlined' onClick={handleReset}>Reset</Button>

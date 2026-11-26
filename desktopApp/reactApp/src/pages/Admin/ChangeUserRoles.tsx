@@ -73,7 +73,7 @@ export default function ChangeUserRoles() {
         onChange={(e) => setUsername(e.target.value)}
         disabled={loading}
         sx={{
-          '& .MuiInputBase-root': { backgroundColor: 'white' },
+          '& .MuiInputBase-root': { backgroundColor: 'var(--nf-surface)' },
           marginBottom: '1rem',
         }}
       />

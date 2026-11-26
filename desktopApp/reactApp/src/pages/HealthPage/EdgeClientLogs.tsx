@@ -49,13 +49,13 @@ export const EdgeClientLogs: React.FC<EdgeClientLogsProps> = ({
             marginTop: '1rem',
             maxHeight: 200,
             overflowY: 'auto',
-            background: '#f7f7f7',
+            background: 'var(--nf-subtle)',
             padding: 8,
-            border: '1px solid #ddd',
+            border: '1px solid var(--nf-border)',
             borderRadius: 6,
             fontSize: 11,
             lineHeight: 1.4,
-            color: '#333',
+            color: 'var(--nf-text)',
           }}
         >
           {logs.length ? logs.join('\n') : loading ? 'Loading...' : 'No log lines available'}

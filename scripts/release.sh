@@ -189,9 +189,10 @@ fi
 if [ "$BUILD_DESKTOP" = true ]; then
   echo
   echo "Building desktop release prerequisites..."
-  (cd desktopApp/reactApp && npm install && npm run build)
-  (cd edgeFederatedClient && npm install && npm run build)
-  (cd desktopApp/electronApp && npm install && npm run build)
+  npm install
+  npm run build --workspace desktopApp/reactApp
+  npm run build --workspace edgeFederatedClient
+  npm run build --workspace desktopApp/electronApp
 
   echo
   if [ "$DEPLOY_GH" = true ]; then
@@ -199,7 +200,7 @@ if [ "$BUILD_DESKTOP" = true ]; then
     (cd desktopApp/electronApp && NODE_ENV=production DEPLOY=true npm run dist)
   else
     echo "Creating Electron dist without GitHub publish..."
-    (cd desktopApp/electronApp && npm run dist)
+    (cd desktopApp/electronApp && NODE_ENV=production node ./scripts/build.cjs)
   fi
 
   echo

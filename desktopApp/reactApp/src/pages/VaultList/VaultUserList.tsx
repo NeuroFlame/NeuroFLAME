@@ -110,7 +110,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
       <Box
         sx={{
           width: '50%',
-          borderRight: '1px solid grey',
+          borderRight: '1px solid var(--nf-border)',
           padding: '0 1rem 1rem 0',
           overflow: 'scroll',
           height: '70vh',
@@ -187,7 +187,7 @@ const VaultUserList: React.FC<VaultUserListProps> = ({ refreshSignal }) => {
           height: '70vh',
         }}
       >
-        <h4 style={{ color: 'black' }}>
+        <h4 style={{ color: 'var(--nf-text)' }}>
           {vaultUserList[selectedVaultInfo]?.username}
         </h4>
         <h2 style={{ lineHeight: 1.2 }}>{vaultUserList[selectedVaultInfo]?.vault?.name}</h2>

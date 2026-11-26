@@ -20,7 +20,7 @@ export default function ConsortiumWizardNavBar({
             sx={{
               '& .MuiSvgIcon-root': { fontSize: '2rem' },
               '& .Mui-active.MuiStepLabel-label': { fontWeight: 'bold' },
-              '& .Mui-completed .MuiSvgIcon-root': { color: '#2FA84F' },
+              '& .Mui-completed .MuiSvgIcon-root': { color: 'var(--nf-success)' },
               '& .MuiStepButton-root.Mui-disabled': { background: 'none' },
             }}
           >

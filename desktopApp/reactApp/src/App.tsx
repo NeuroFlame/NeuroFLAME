@@ -3,8 +3,9 @@ import Header from './components/Header'
 import AppRoutes from './pages/AppRoutes'
 import { useUserState } from './contexts/UserStateContext'
 import './App.css'
+import { AppThemeProvider } from './theme/AppThemeProvider'
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const { username } = useUserState()
   const isLoggedIn = !!username
 
@@ -15,5 +16,7 @@ const App: React.FC = () => {
     </>
   )
 }
+
+const App: React.FC = () => <AppThemeProvider><AppContent /></AppThemeProvider>
 
 export default App

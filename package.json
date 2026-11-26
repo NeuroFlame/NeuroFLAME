@@ -1,8 +1,15 @@
 {
     "name": "project",
     "private": true,
+    "engines": {
+        "node": "24.x"
+    },
     "workspaces": [
+        "centralApi",
+        "centralFederatedClient",
+        "fileServer",
         "desktopApp/electronApp",
+        "desktopApp/reactApp",
         "edgeFederatedClient",
         "vaultFederatedClient"
     ],
@@ -16,5 +23,21 @@
         "lint": "eslint .",
         "release": "bash ./scripts/release.sh",
         "check-app-api-version": "node ./scripts/check-app-api-compatibility.mjs"
+    },
+    "allowScripts": {
+        "fsevents@2.3.3": true,
+        "fsevents@2.3.2": true,
+        "@apollo/protobufjs@1.2.7": true,
+        "bcrypt@6.0.0": true,
+        "core-js@3.18.3": true,
+        "core-js-pure@3.50.0": true,
+        "cpu-features@0.0.10": true,
+        "electron@30.5.1": true,
+        "es5-ext@0.10.64": true,
+        "esbuild@0.25.12": true,
+        "node-pty@1.0.0": true,
+        "protobufjs@7.6.6": true,
+        "ssh2@1.17.0": true,
+        "unrs-resolver@1.11.1": true
     }
 }

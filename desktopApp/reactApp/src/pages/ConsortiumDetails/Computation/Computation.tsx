@@ -41,7 +41,7 @@ export default function Computation({
 
   if (!computation) {
     return (
-      <Box p={2} borderRadius={2} marginBottom={2} bgcolor='white'>
+      <Box p={2} borderRadius={2} marginBottom={2} bgcolor='var(--nf-surface)'>
         <Typography variant='h6'>Computation</Typography>
         <Typography variant='body1'>No computation selected</Typography>
         <Box marginTop='1rem'>
@@ -69,7 +69,7 @@ export default function Computation({
       p={2}
       borderRadius={2}
       marginBottom={2}
-      bgcolor='white'
+      bgcolor='var(--nf-surface)'
       position='relative'
     >
       <Box display='flex' justifyContent='space-between'>
@@ -80,7 +80,7 @@ export default function Computation({
           <Typography
             variant='h6'
             fontWeight='600'
-            color='black'
+            color='var(--nf-text)'
             lineHeight='1'
           >
             {title}
@@ -108,7 +108,7 @@ export default function Computation({
               <Typography
                 component='code'
                 sx={{
-                  bgcolor: '#f5f5f5',
+                  bgcolor: 'var(--nf-subtle)',
                   padding: '4px 8px',
                   borderRadius: 1,
                   fontFamily: 'monospace',
@@ -128,7 +128,7 @@ export default function Computation({
                 <ContentCopyIcon fontSize='small' />
               </IconButton>
               {copied && (
-                <Typography fontSize='0.75rem' color='green' marginLeft={1}>
+                <Typography fontSize='0.75rem' color='var(--nf-success)' marginLeft={1}>
                   Copied!
                 </Typography>
               )}

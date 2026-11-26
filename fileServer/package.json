@@ -1,11 +1,13 @@
 {
   "name": "fileServer",
+  "private": true,
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "compile": "tsc",
+    "test": "npm run compile && node --test tests/*.test.mjs",
     "start": "npm run compile && node ./dist/index.js",
     "zip-test": "npm run compile && node ./dist/unzipIt.js -- "
   },
@@ -22,6 +24,7 @@
     "winston": "^3.14.1"
   },
   "devDependencies": {
+    "@types/node": "^20.12.4",
     "@types/express": "^4.17.21",
     "@types/fs-extra": "^11.0.4",
     "@types/tar-stream": "^3.1.3",

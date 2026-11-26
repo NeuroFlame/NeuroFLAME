@@ -5,7 +5,7 @@ import { useLatestRun } from './useLatestRun' // Import the custom hook
 
 function RunStatusIcon({ status }: { status: string }) {
   if (status === 'Complete') {
-    return <CheckCircleIcon sx={{ color: '#2FA84F', fontSize: 18, verticalAlign: 'middle' }} />
+    return <CheckCircleIcon sx={{ color: 'var(--nf-success)', fontSize: 18, verticalAlign: 'middle' }} />
   }
   if (status === 'Error') {
     return <WarningIcon color='warning' sx={{ fontSize: 18, verticalAlign: 'middle' }} />
@@ -14,9 +14,9 @@ function RunStatusIcon({ status }: { status: string }) {
 }
 
 function runStatusColor(status: string) {
-  if (status === 'Complete') return '#2FA84F'
-  if (status === 'Error') return '#D32F2F'
-  return '#0066FF'
+  if (status === 'Complete') return 'var(--nf-success)'
+  if (status === 'Error') return 'var(--nf-error)'
+  return 'var(--nf-primary)'
 }
 
 export function LatestRunDisplay({
@@ -33,27 +33,23 @@ export function LatestRunDisplay({
       {loading ? (
         <CircularProgress />
       ) : (latestRun &&
-        <Box p={2} borderRadius={2} bgcolor='white' marginBottom={2}>
+        <Box p={2} borderRadius={2} bgcolor='var(--nf-surface)' marginBottom={2}>
           <Typography variant='h6' gutterBottom>
             Latest Run
           </Typography>
           <Box
-            position='relative'
             p={2}
             borderRadius={2}
-            bgcolor='#EEF2F2'
+            bgcolor='var(--nf-subtle)'
             display='flex'
             justifyContent='space-between'
             alignItems='center'
             style={{ animation: 'fadeIn 2s' }}
           >
-            <Box position='absolute' top='1rem' right='1rem'>
-              <RunStatusIcon status={latestRun.status} />
-            </Box>
             <Box>
               <Typography
                 variant='body1'
-                style={{ fontWeight: 'bold', color: '#0066FF' }}
+                style={{ fontWeight: 'bold', color: 'var(--nf-primary)' }}
               >
                 {latestRun.consortiumTitle}
               </Typography>
@@ -61,12 +57,15 @@ export function LatestRunDisplay({
                 <strong>Status:</strong>{' '}
                 <strong style={{ color: runStatusColor(latestRun.status) }}>
                   {latestRun.status}
-                </strong><br />
+                </strong>{' '}
+                <Box component='span' aria-hidden='true'>
+                  <RunStatusIcon status={latestRun.status} />
+                </Box><br />
                 <strong>Created At:</strong>{' '}
                 {new Date(Number(latestRun.createdAt)).toLocaleString()}<br />
                 <strong>Last Updated:</strong>{' '}
                 {new Date(Number(latestRun.lastUpdated)).toLocaleString()}<br />
-                <span style={{ fontSize: '11px', color: '#aaa' }}>
+                <span style={{ fontSize: '11px', color: 'var(--nf-muted)' }}>
                   {latestRun.runId}
                 </span>
               </Typography>

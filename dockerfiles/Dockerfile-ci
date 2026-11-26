@@ -1,4 +1,4 @@
-FROM node:22-bookworm
+FROM node:24-bookworm
 ARG BRANCH=main
 
 RUN apt-get update && apt-get install -y \
@@ -22,48 +22,44 @@ RUN apt-get update
 
 RUN apt-get install --no-install-recommends -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Apptainer lets CI run the edge client's Singularity runtime. Releases only ship amd64 packages.
+ARG APPTAINER_VERSION=1.4.1
+ARG APPTAINER_SHA256=9a0663f6e680d270dd3675f94cabf35dc324bb8673f5c6b645005e5aa1bd6d88
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+      curl -fsSL -o /tmp/apptainer.deb \
+        "https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb" && \
+      echo "${APPTAINER_SHA256}  /tmp/apptainer.deb" | sha256sum -c - && \
+      apt-get install --no-install-recommends -y /tmp/apptainer.deb && \
+      rm /tmp/apptainer.deb && \
+      rm -rf /var/lib/apt/lists/*; \
+    else \
+      echo "Skipping Apptainer: no package for $(dpkg --print-architecture)"; \
+    fi
+
 RUN mkdir -p /nf
 
 WORKDIR /nf
 
 COPY . .
-RUN rm -rf node_modules
-RUN npm install
-
-WORKDIR /nf/edgeFederatedClient
-RUN rm -rf node_modules
-RUN npm install
-
-WORKDIR /nf/centralApi
-RUN rm -rf node_modules
-RUN npm install
-
-WORKDIR /nf/centralFederatedClient
-RUN rm -rf node_modules
-RUN npm install
-
-WORKDIR /nf/fileServer
-RUN rm -rf node_modules
-RUN npm install
-
-WORKDIR /nf/desktopApp/reactApp
-RUN rm -rf node_modules
-RUN npm install
+RUN npm ci
 
 WORKDIR /nf/desktopApp/electronApp
-RUN rm -rf node_modules
-RUN npm install
-RUN node /nf/node_modules/electron/install.js
 RUN node -e "const fs = require('fs'); const path = require('path'); const electronDir = path.dirname(require.resolve('electron/package.json')); const executablePath = fs.readFileSync(path.join(electronDir, 'path.txt'), 'utf8').trim(); const binaryPath = path.join(electronDir, 'dist', executablePath); if (!fs.existsSync(binaryPath)) throw new Error('Electron binary is missing: ' + binaryPath)"
 
 WORKDIR /nf/edgeFederatedClient
 RUN npm run build
 
 WORKDIR /nf/desktopApp/reactApp
-RUN npm run build
+RUN npm test && npm run build
 
 WORKDIR /nf/desktopApp/electronApp
 RUN npm run build
 
 WORKDIR /nf/centralApi
 RUN npm run build
+
+WORKDIR /nf/centralFederatedClient
+RUN npm run compile
+
+WORKDIR /nf/fileServer
+RUN npm run compile

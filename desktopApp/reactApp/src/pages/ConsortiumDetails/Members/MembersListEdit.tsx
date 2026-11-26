@@ -46,7 +46,7 @@ export default function MembersListEdit({
             width: '100%',
             gap: '0.75rem',
             padding: '0.75rem 1rem',
-            background: index % 2 === 0 ? 'white' : '#EEF2F2',
+            background: index % 2 === 0 ? 'var(--nf-surface)' : 'var(--nf-subtle)',
           }}
         >
           <Box sx={{ flex: '1 1 16rem', minWidth: 0 }}>
@@ -84,12 +84,12 @@ export default function MembersListEdit({
                 size='small'
                 variant='outlined'
                 sx={{
-                  color: 'grey',
-                  borderColor: 'grey',
+                  color: 'var(--nf-muted)',
+                  borderColor: 'var(--nf-border)',
                   minWidth: '8.5rem',
                   whiteSpace: 'nowrap',
                   '&:hover': {
-                    backgroundColor: '#f0f0f0',
+                    backgroundColor: 'var(--nf-subtle)',
                   },
                 }}
                 onClick={() => leaderSetMemberActive(id, !isActive, isVaultUser)}
@@ -103,7 +103,7 @@ export default function MembersListEdit({
                 size='small'
                 variant='contained'
                 sx={{
-                  backgroundColor: 'grey',
+                  backgroundColor: 'var(--nf-muted)',
                   minWidth: '7.5rem',
                   whiteSpace: 'nowrap',
                 }}

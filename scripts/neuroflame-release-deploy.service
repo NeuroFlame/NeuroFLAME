@@ -1,0 +1,12 @@
+[Unit]
+Description=Deploy the latest published NeuroFLAME release
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ec2-user
+UMask=0077
+Environment=PATH=/opt/neuroflame/node/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 /usr/local/lib/neuroflame/deploy-published-release.py --repo /home/ec2-user/NeuroFLAME --state-dir /home/ec2-user/.local/state/neuroflame-release --restart-script /home/ec2-user/NeuroFLAME/scripts/restart-prod-services.sh
+TimeoutStartSec=20min

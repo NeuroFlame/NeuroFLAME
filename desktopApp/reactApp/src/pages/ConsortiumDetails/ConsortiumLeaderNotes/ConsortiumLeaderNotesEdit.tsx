@@ -1,4 +1,4 @@
-import { Box, Button } from '@mui/material'
+import { Box, Button, useTheme } from '@mui/material'
 import { useState } from 'react'
 import {
   MDXEditor,
@@ -26,6 +26,7 @@ export default function ConsortiumLeaderNotesEdit({
   onSave,
   onCancel,
 }: ConsortiumLeaderNotesEditProps) {
+  const theme = useTheme()
   const [notes, setNotes] = useState(consortiumLeaderNotes)
 
   const handleSave = () => {
@@ -54,6 +55,7 @@ export default function ConsortiumLeaderNotesEdit({
         </Button>
       </Box>
       <MDXEditor
+        className={theme.palette.mode === 'dark' ? 'dark-theme dark-editor' : ''}
         markdown={notes}
         onChange={(e) => setNotes(e)}
         plugins={[

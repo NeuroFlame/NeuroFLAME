@@ -2,12 +2,14 @@ import { Router, Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
+import { requireObjectIdParams } from '../runKitIds.js'
 import { BASE_DIR } from '../config.js'
 
 const router = Router()
 
 router.post(
   '/download/:consortiumId/:runId/:participantId',
+  requireObjectIdParams,
   decodeAndValidateJWT,
   async (req: Request, res: Response) => {
     const { consortiumId, runId, participantId } = req.params
@@ -32,9 +34,9 @@ router.post(
     }
     const filePath = path.join(
       BASE_DIR,
-      tokenPayload.consortiumId,
-      tokenPayload.runId,
-      `${tokenPayload.participantId}.zip`,
+      consortiumId,
+      runId,
+      `${participantId}.zip`,
     )
     if (fs.existsSync(filePath)) {
       res.sendFile(filePath)

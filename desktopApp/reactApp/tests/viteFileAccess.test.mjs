@@ -1,0 +1,79 @@
+import assert from 'node:assert/strict'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import test from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { createServer } from 'vite'
+import { createRequire } from 'node:module'
+
+const rendererRoot = fileURLToPath(new URL('..', import.meta.url))
+const require = createRequire(import.meta.url)
+const fsUrl = (file) => `/@fs/${file.replaceAll('\\', '/').replace(/^\//, '')}`
+
+test('Vite serves bundled fonts and blocks private files with local and Docker bindings', async () => {
+  // A sibling directory is inside the monorepo's default Vite allowlist, but
+  // outside the renderer. Only synthetic data is created or requested here.
+  const privateDir = await mkdtemp(path.join(path.dirname(rendererRoot), '.vite-private-test-'))
+  const privateFile = path.join(privateDir, 'run-result.json')
+  const marker = 'synthetic-private-run-result'
+  await writeFile(privateFile, JSON.stringify({ marker }))
+  // The default cache would keep this server's partial dependency set. A dev server
+  // started later from it (as in the CI image) skips its startup scan and re-optimizes
+  // mid-load, so the first page load gets 504s and must reload.
+  const cacheDir = await mkdtemp(path.join(tmpdir(), 'nf-vite-cache-'))
+
+  try {
+    for (const host of [undefined, '0.0.0.0']) {
+      const server = await createServer({
+        root: rendererRoot,
+        configFile: path.join(rendererRoot, 'vite.config.ts'),
+        logLevel: 'silent',
+        cacheDir,
+        // File-access checks do not need a background dependency scan at shutdown.
+        optimizeDeps: { noDiscovery: true, include: [] },
+        server: { port: 0, ...(host ? { host } : {}) },
+      })
+      try {
+        await server.listen()
+        assert.equal(server.config.server.host, host ?? '127.0.0.1')
+        const address = server.httpServer.address()
+        const base = `http://127.0.0.1:${address.port}`
+        const headers = { Host: host ? 'react:3000' : '127.0.0.1:3000' }
+
+        for (const asset of ['/', '/src/index.tsx', '/@vite/client']) {
+          const response = await fetch(`${base}${asset}`, { headers })
+          assert.equal(response.status, 200, `renderer asset: ${asset}`)
+          await response.text()
+        }
+
+        for (const font of ['@fontsource/lato', '@fontsource/inter']) {
+          const fontRoot = path.dirname(require.resolve(`${font}/400.css`))
+          for (const weight of [400, 700]) {
+            const name = `${font.split('/')[1]}-latin-${weight}-normal.woff2`
+            const response = await fetch(`${base}${fsUrl(path.join(fontRoot, 'files', name))}`, { headers })
+            assert.equal(response.status, 200, `font asset: ${name}`)
+            const signature = Buffer.from(await response.arrayBuffer()).subarray(0, 4).toString()
+            assert.equal(signature, 'wOF2', `valid WOFF2 font: ${name}`)
+          }
+        }
+
+        // IP hosts are always accepted by Vite's Host-header check, so that
+        // check must not substitute for restricting access to private files.
+        const fsPath = fsUrl(privateFile)
+        for (const suffix of ['', '?raw', '?import']) {
+          const response = await fetch(`${base}${fsPath}${suffix}`, {
+            headers: { Host: '192.0.2.123:3000' },
+          })
+          assert.equal(response.status, 403, `private file request: ${suffix || 'plain'}`)
+          assert.equal((await response.text()).includes(marker), false)
+        }
+      } finally {
+        await server.close()
+      }
+    }
+  } finally {
+    await rm(privateDir, { recursive: true, force: true })
+    await rm(cacheDir, { recursive: true, force: true })
+  }
+})

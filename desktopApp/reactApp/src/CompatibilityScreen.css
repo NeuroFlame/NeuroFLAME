@@ -1,6 +1,6 @@
 .compatibility-screen {
   align-items: center;
-  background: #f5f7fa;
+  background: var(--nf-page);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -8,7 +8,7 @@
 }
 
 .compatibility-card {
-  background: white;
+  background: var(--nf-surface);
   border-radius: 12px;
   box-shadow: 0 12px 36px rgb(15 23 42 / 12%);
   max-width: 520px;

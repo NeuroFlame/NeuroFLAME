@@ -204,7 +204,7 @@ export function AppConfig() {
           padding: '8px',
           fontSize: '16px',
           borderRadius: '8px',
-          border: '1px solid #ccc',
+          border: '1px solid var(--nf-border)',
         }}
       />
 

@@ -43,10 +43,8 @@ load_env_file "$SCRIPT_DIR/centralFederatedClient/.env"
 load_env_file "$SCRIPT_DIR/fileServer/.env"
 
 # Install dependencies
-for dir in centralApi edgeFederatedClient centralFederatedClient fileServer desktopApp/reactApp desktopApp/electronApp; do
-  echo "Installing dependencies in $dir"
-  (cd "$dir" && npm install)
-done
+echo "Installing workspace dependencies"
+(cd "$SCRIPT_DIR" && npm install)
 
 # Initialize configs
 echo "Initializing configs"

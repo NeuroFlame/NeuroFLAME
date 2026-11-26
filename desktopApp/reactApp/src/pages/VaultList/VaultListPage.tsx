@@ -37,7 +37,7 @@ const VaultListPage: React.FC = () => {
           </Button>
         </Box>
       </Box>
-      <Box sx={{ backgroundColor: 'white', borderRadius: '8px', p: 2 }}>
+      <Box sx={{ backgroundColor: 'var(--nf-surface)', borderRadius: '8px', p: 2 }}>
         <VaultUserList refreshSignal={refreshSignal} />
       </Box>
     </Container>

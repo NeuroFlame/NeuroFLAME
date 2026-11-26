@@ -229,9 +229,9 @@ export default function MatViewer({ fileUrl }: MatViewerProps) {
   )
 
   return (
-    <div style={{ background: '#f8f8f8', padding: '1rem' }}>
+    <div style={{ background: 'var(--nf-subtle)', padding: '1rem' }}>
       {error ? (
-        <div style={{ color: 'red' }}>{error}</div>
+        <div style={{ color: 'var(--nf-error)' }}>{error}</div>
       ) : treeData ? renderTree(treeData) : 'Loading .mat file...'}
     </div>
   )

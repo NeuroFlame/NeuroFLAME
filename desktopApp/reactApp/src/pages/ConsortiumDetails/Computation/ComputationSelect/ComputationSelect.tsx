@@ -88,7 +88,7 @@ export default function ComputationSelect({
             </Alert>
           )}
           {loading && <p>Loading computations...</p>}
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <p style={{ color: 'var(--nf-error)' }}>{error}</p>}
           {!loading && !error && (
             <ComputationList
               computations={computations}

@@ -1,6 +1,7 @@
 import React from 'react'
 import { CompatibilityStatus, electronApi } from './apis/electronApi/electronApi'
 import './CompatibilityScreen.css'
+import ThemeControls from './theme/ThemeControls'
 
 export default function CompatibilityScreen({
   compatibility,
@@ -11,6 +12,7 @@ export default function CompatibilityScreen({
   return (
     <main className='compatibility-screen'>
       <section className='compatibility-card'>
+        <ThemeControls />
         <h1>
           {appNeedsUpdate
             ? 'Update NeuroFLAME to continue'

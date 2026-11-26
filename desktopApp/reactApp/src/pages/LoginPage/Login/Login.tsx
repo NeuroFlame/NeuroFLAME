@@ -48,7 +48,7 @@ export function Login() {
         disabled={loading}
         sx={{
           '& .MuiInputBase-root': {
-            backgroundColor: 'white',
+            backgroundColor: 'var(--nf-surface)',
           },
           '& .MuiInputBase-root input': {
             margin: '0',
@@ -71,7 +71,7 @@ export function Login() {
         disabled={loading}
         sx={{
           '& .MuiInputBase-root': {
-            backgroundColor: 'white',
+            backgroundColor: 'var(--nf-surface)',
           },
           '& .MuiInputBase-root input': {
             margin: '0',

@@ -26,7 +26,7 @@ export default function CSVViewer({ fileUrl }: CSVViewerProps) {
     <div
       style={{
         overflowX: 'auto',
-        background: 'white',
+        background: 'var(--nf-surface)',
         height: 'calc(100vh - 170px)',
       }}
     >
@@ -37,9 +37,9 @@ export default function CSVViewer({ fileUrl }: CSVViewerProps) {
               <th
                 key={idx}
                 style={{
-                  border: '1px solid #ccc',
+                  border: '1px solid var(--nf-border)',
                   padding: '4px',
-                  background: '#f9f9f9',
+                  background: 'var(--nf-subtle)',
                 }}
               >
                 {typeof cell === 'string' ? cell.replace(/^[(']+|[)',]+$/g, '') : cell}
@@ -53,7 +53,7 @@ export default function CSVViewer({ fileUrl }: CSVViewerProps) {
               {row.map((cell, cIdx) => (
                 <td
                   key={cIdx}
-                  style={{ border: '1px solid #eee', padding: '4px' }}
+                  style={{ border: '1px solid var(--nf-border)', padding: '4px' }}
                 >
                   {cell}
                 </td>

@@ -8,6 +8,7 @@ import { logger } from '../../../logger.js'
 import reportRunError from '../../report/reportRunError.js'
 import { prepareComputationImage } from '../../computationImage.js'
 import { ensureLocalRuntimeError } from '../../terminalError.js'
+import { mountConfigurationErrorMessage } from './mountConfigurationError.js'
 
 export const RUN_START_SUBSCRIPTION = `
   subscription runStartSubscription {
@@ -102,6 +103,8 @@ export const runStartHandler = {
 
       // Prepare directories to mount
       const directoriesToMount = [
+        // Writable because NVFlare uses the kit directory as its workspace
+        // (pid files, logs and job folders are written there).
         {
           hostDirectory: runKitPath,
           containerDirectory: '/workspace/runKit',
@@ -127,7 +130,7 @@ export const runStartHandler = {
         })
       } catch (e) {
         logger.error(`Failed to read or parse mount configuration: ${e}`)
-        throw new Error('Failed to load mount configuration')
+        throw new Error(mountConfigurationErrorMessage(e))
       }
 
       // Launch the node
@@ -181,10 +184,17 @@ export const runStartHandler = {
         }
       }
 
-      await reportRunError({
-        runId: data.runStartEdge.runId,
-        errorMessage: `Error starting run: ${(error as Error).message}`,
-      })
+      try {
+        await reportRunError({
+          runId: data.runStartEdge.runId,
+          errorMessage: `Error starting run: ${(error as Error).message}`,
+        })
+      } catch (reportError) {
+        logger.error('Failed to report the run start failure', {
+          error: reportError,
+          runId: data.runStartEdge.runId,
+        })
+      }
     }
   },
 }

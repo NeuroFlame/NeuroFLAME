@@ -1,5 +1,11 @@
 # edge-federated-client
 
+## 1.8.1
+
+### Patch Changes
+
+- Improve desktop session restoration, computation downloads, and multi-client production profiles. Harden runtime errors and update service dependencies. Add production deployment from published release tags.
+
 ## 1.8.0
 
 ### Minor Changes

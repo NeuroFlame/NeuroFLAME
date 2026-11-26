@@ -11,7 +11,7 @@ export default function StepDownloadImage({
   const selectedComputation = consortiumDetails?.studyConfiguration?.computation
 
   return (
-    <Box style={{ maxWidth: '400px', border: '1px solid #eee', marginBottom: '1rem' }}>
+    <Box style={{ maxWidth: '400px', border: '1px solid var(--nf-border)', marginBottom: '1rem' }}>
       <Computation
         computation={selectedComputation}
         showDownloadInstructions

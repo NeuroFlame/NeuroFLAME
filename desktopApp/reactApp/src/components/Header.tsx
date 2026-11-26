@@ -3,6 +3,7 @@ import { AppBar, Toolbar, IconButton, Typography } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import { Link, useLocation } from 'react-router-dom'
 import NavDrawer from './NavDrawer'
+import ThemeControls from '../theme/ThemeControls'
 import UserAvatar from './UserAvatar'
 import logoSM from '../assets/neuroflame-logo.png'
 
@@ -24,13 +25,22 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
         <Toolbar
           sx={{
             pr: '24px', // keep right padding when drawer closed
-            backgroundColor: '#001f70',
           }}
         >
-          <Typography sx={{ flexGrow: 1 }}>
+          <Typography
+            sx={{
+              flexGrow: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: { xs: 'none', sm: 'block' },
+            }}
+            noWrap
+          >
             {location.pathname}
           </Typography>
           <img
+            className='header-logo'
             src={logoSM}
             alt='Logo'
             style={{
@@ -43,12 +53,14 @@ const Header: React.FC<HeaderProps> = ({ appUsername }) => {
             color='inherit'
             sx={{
               fontFamily: 'Lato',
-              fontSize: '1.5rem',
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              flexGrow: { xs: 1, sm: 0 },
             }}
             noWrap
           >
             Neuro<b>FLAME</b>
           </Typography>
+          <ThemeControls />
           <Link to='/home' style={{ textDecoration: 'none' }}>
             <UserAvatar username={appUsername} />
           </Link>

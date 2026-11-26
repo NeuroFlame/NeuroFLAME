@@ -25,7 +25,7 @@ export default function ConsortiumLeaderNotes({
     <Box
       p={2}
       borderRadius={2}
-      bgcolor='white'
+      bgcolor='var(--nf-surface)'
       marginBottom={0}
     >
       <Box

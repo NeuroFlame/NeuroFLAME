@@ -1,4 +1,3 @@
-export function spawnTerminal(setTerminalReady: any) {
-  window.ElectronAPI.spawnTerminal()
-  setTerminalReady(true)
+export async function spawnTerminal(): Promise<void> {
+  await window.ElectronAPI.spawnTerminal()
 }

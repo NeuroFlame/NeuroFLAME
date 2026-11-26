@@ -20,24 +20,13 @@ export default async function uploadFileToServer({
   pathBaseDirectory,
 }: UploadParameters): Promise<void> {
   const url = `${FILE_SERVER_URL}/upload/${consortiumId}/${runId}`
-  const zipPath = path.join(
-    pathBaseDirectory,
-    'runs',
-    consortiumId,
-    runId,
-    'hosting',
-    `${runId}.zip`,
-  )
-  const extractPath = path.join(
-    pathBaseDirectory,
-    'runs',
-    consortiumId,
-    runId,
-    'hosting',
-  )
+  const pathRun = path.join(pathBaseDirectory, 'runs', consortiumId, runId)
+  const hostingPath = path.join(pathRun, 'hosting')
+  // Written beside hosting/, never inside it, so the archive cannot include itself.
+  const zipPath = path.join(pathRun, 'hosting.zip')
 
   try {
-    await zipDirectory(extractPath, zipPath)
+    await zipDirectory(hostingPath, zipPath)
     logger.info(`Zip file created at ${zipPath}`)
 
     await validateZipFile(zipPath)
@@ -52,6 +41,12 @@ export default async function uploadFileToServer({
   } catch (error) {
     logger.error('Error during file upload:', formatAxiosError(error))
     throw error // Properly propagate errors
+  } finally {
+    try {
+      await fs.rm(zipPath, { force: true })
+    } catch (removeError) {
+      logger.error('Failed to remove the uploaded run kit archive', { error: removeError, runId })
+    }
   }
 }
 

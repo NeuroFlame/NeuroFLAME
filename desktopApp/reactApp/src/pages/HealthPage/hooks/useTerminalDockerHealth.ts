@@ -101,29 +101,28 @@ export function useTerminalDockerHealth(timeoutMs: number = DEFAULT_TIMEOUT_MS) 
     }
   }
 
-  // Wrapped setter that can handle function updaters
-  const setOutputDetecting = useCallback((val: any) => {
-    if (typeof val === 'function') {
-      const prev = bufferRef.current
-      const next = val(prev) as string[]           // let the bridge build the next array
-      const added = next.slice(prev.length)        // diff = new lines appended
-      bufferRef.current = next
-      if (added.length) scanLines(added)
-    } else {
-      const arr = Array.isArray(val) ? val : [val]
-      if (arr.length === 0) return
-      bufferRef.current = [...bufferRef.current, ...arr]
-      scanLines(arr)
-    }
+  const onOutput = useCallback((chunk: string) => {
+    bufferRef.current = [...bufferRef.current, chunk]
+    scanLines([chunk])
   }, [])
 
   useEffect(() => {
-    spawnTerminal(() => setReady(true))
-
-    // IMPORTANT: pass (outputArray, setter) like your API expects
-    terminalOutput(bufferRef.current, setOutputDetecting)
+    let active = true
+    terminalOutput((chunk) => { if (active) onOutput(chunk) })
+    spawnTerminal().then(() => {
+      if (active) setReady(true)
+    }).catch((error) => {
+      console.error('Error starting Docker health terminal:', error)
+      if (active) {
+        setStatus((s) => ({
+          cli: { ...s.cli, state: 'down', details: 'Unable to start terminal' },
+          daemon: { ...s.daemon, state: 'down', details: 'Unable to start terminal' },
+        }))
+      }
+    })
 
     return () => {
+      active = false
       removeTerminalOutputListener()
       if (timersRef.current.cli) clearTimeout(timersRef.current.cli)
       if (timersRef.current.daemon) clearTimeout(timersRef.current.daemon)
