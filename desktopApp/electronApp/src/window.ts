@@ -20,7 +20,7 @@ export function appStartUrl(): string {
   const developmentUrl =
     process.env.NODE_ENV === 'test' && process.env.CI === 'true'
       ? 'http://react:3000'
-      : 'http://localhost:3000'
+      : `http://localhost:${process.env.REACT_DEV_PORT || 3000}`
   return app.isPackaged ? productionUrl : developmentUrl
 }
 
@@ -55,6 +55,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
       })
     },
   })
+
 
   installLandingPageTheme(mainWindow.webContents, startUrl, () => {
     logger.warn('Unable to apply the home iframe theme.')
