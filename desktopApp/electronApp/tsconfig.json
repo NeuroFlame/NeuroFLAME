@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "lib": ["dom", "es2020"],
@@ -11,16 +11,17 @@
     "types": ["node", "electron"],
     "sourceMap": true,
     "strict": true,
+    "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
-      "edge-federated-client": ["../../edgeFederatedClient/dist"]
-    }
+      "edge-federated-client": ["../../edgeFederatedClient/dist"],
+    },
   },
   "include": ["src/**/*"],
   "exclude": [
     "src/preload.js",
     "node_modules",
     "**/*.spec.ts",
-    "**/*.test.ts"
-  ]
+    "**/*.test.ts",
+  ],
 }

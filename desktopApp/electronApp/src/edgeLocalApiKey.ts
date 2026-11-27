@@ -52,6 +52,8 @@ export function installEdgeLocalApiKey(
     ) {
       requestHeaders[EDGE_LOCAL_API_KEY_HEADER] = localApiKey
     }
+    // Electron's callback takes a response object, not an error.
+    // eslint-disable-next-line n/no-callback-literal
     callback({ requestHeaders })
   })
 }

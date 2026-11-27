@@ -7,7 +7,7 @@ import { ApolloServer } from '@apollo/server'
 import { startStandaloneServer } from '@apollo/server/standalone'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import { WebSocketServer, WebSocket } from 'ws'
-import { useServer } from 'graphql-ws/lib/use/ws'
+import { useServer } from 'graphql-ws/use/ws'
 import { createClient } from 'graphql-ws'
 import jwt from 'jsonwebtoken'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -336,7 +336,7 @@ const wsHarness = async (t) => {
   installAccountRateLimits(schema)
   const guard = createSessionWebSocketOptions(schema)
   const readiness = new Map()
-  const cleanup = useServer({ ...guard.options, onOperation: (_ctx, msg) => { readiness.get(msg.id)?.() } }, sockets)
+  const cleanup = useServer({ ...guard.options, onOperation: (_ctx, id) => { readiness.get(id)?.() } }, sockets)
   const clients = []
   t.after(async () => {
     for (const client of clients) await client.dispose()

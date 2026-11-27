@@ -4,6 +4,7 @@ import fs from 'fs'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
 import { requireObjectIdParams } from '../runKitIds.js'
 import { BASE_DIR } from '../config.js'
+import { ParticipantRunParams } from '../types.js'
 
 const router = Router()
 
@@ -11,7 +12,7 @@ router.post(
   '/download/:consortiumId/:runId/:participantId',
   requireObjectIdParams,
   decodeAndValidateJWT,
-  async (req: Request, res: Response) => {
+  async (req: Request<ParticipantRunParams>, res: Response) => {
     const { consortiumId, runId, participantId } = req.params
     const tokenPayload = res.locals.tokenPayload
 

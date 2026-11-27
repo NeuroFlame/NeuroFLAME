@@ -14,9 +14,9 @@
         "vaultFederatedClient"
     ],
     "devDependencies": {
-        "@changesets/cli": "^2.29.2",
-        "eslint": "^9.33.0",
-        "neostandard": "^0.12.2"
+        "@changesets/cli": "^3.0.3",
+        "eslint": "^10.13.0",
+        "neostandard": "^0.14.1"
     },
     "scripts": {
         "db:start": "docker compose --env-file _devCentralDatabase/.env -f _devCentralDatabase/docker-compose.yaml up -d",
@@ -27,15 +27,14 @@
     "allowScripts": {
         "fsevents@2.3.3": true,
         "fsevents@2.3.2": true,
-        "@apollo/protobufjs@1.2.7": true,
+        "@apollo/protobufjs@1.2.8": true,
         "bcrypt@6.0.0": true,
         "core-js@3.18.3": true,
-        "core-js-pure@3.50.0": true,
+        "core-js-pure@3.51.0": true,
         "cpu-features@0.0.10": true,
         "electron@30.5.1": true,
         "es5-ext@0.10.64": true,
         "esbuild@0.25.12": true,
-        "node-pty@1.0.0": true,
         "protobufjs@7.6.6": true,
         "ssh2@1.17.0": true,
         "unrs-resolver@1.11.1": true
