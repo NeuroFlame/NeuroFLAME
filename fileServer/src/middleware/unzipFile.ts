@@ -6,6 +6,7 @@ import unzipper from 'unzipper'
 import { Request, Response, NextFunction } from 'express'
 import { BASE_DIR } from '../config.js'
 import { logger } from '../logger.js'
+import { ConsortiumRunParams } from '../types.js'
 
 // The upload is a flat archive of one <participantId>.zip per participant kit.
 const KIT_ENTRY = /^[A-Za-z0-9_-]{1,128}\.zip$/
@@ -53,7 +54,7 @@ export async function extractRunKits(zipPath: string, targetDir: string): Promis
 }
 
 export const unzipFile = async (
-  req: Request,
+  req: Request<ConsortiumRunParams>,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {

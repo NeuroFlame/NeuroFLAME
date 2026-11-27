@@ -47,7 +47,7 @@ export interface IUser extends Document {
   vaultStatus?: IVaultStatus // Optional vault status (for vault users)
   resetEmail?: string
   resetToken?: string
-  resetTokenExpiry?: number
+  resetTokenExpiry?: Date
 }
 
 // Define the Vault sub-schema

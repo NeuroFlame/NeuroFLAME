@@ -477,6 +477,25 @@ const isConsortiumEventRecipient = async (
   return consortium ? memberIdsOf(consortium).includes(userId) : false
 }
 
+// graphql-subscriptions v3 may call filters with an undefined payload or context.
+// Keep that guard in one place so every subscription filter can assume both exist.
+type DefinedFilterFn<TPayload, TArgs = unknown> = (
+  payload: TPayload,
+  variables: TArgs,
+  context: Context,
+) => boolean | Promise<boolean>
+
+const withDefinedFilter = <TPayload, TArgs = unknown>(
+  asyncIteratorFn: () => AsyncIterableIterator<unknown> | Promise<AsyncIterableIterator<unknown>>,
+  filterFn: DefinedFilterFn<TPayload, TArgs>,
+) => withFilter(
+  asyncIteratorFn,
+  (payload?: TPayload, variables?: TArgs, context?: Context) => {
+    if (!payload || !context) return false
+    return filterFn(payload, variables as TArgs, context)
+  },
+)
+
 export default {
   Query: {
     getUserProfile: async (
@@ -1384,7 +1403,7 @@ export default {
         $set: { hash: hashedPassword },
         $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
         $inc: { tokenVersion: 1 },
-      }, { new: true })
+      }, { returnDocument: 'after' })
       if (!user) throw new Error('Invalid or expired token')
       revokeUserSessions(user._id.toString(), user.tokenVersion)
       const { accessToken } = generateTokens({
@@ -1449,8 +1468,8 @@ export default {
         vaultMembers: consortium.activeVaultMembers ?? [],
         status: 'Provisioning',
         runErrors: [],
-        createdAt: Date.now(),
-        lastUpdated: Date.now(),
+        createdAt: Date.now().toString(),
+        lastUpdated: Date.now().toString(),
       })
 
       const populatedConsortium = await Consortium.findById(consortium._id)
@@ -1550,7 +1569,7 @@ export default {
         {
           status: 'In Progress',
           resolvedComputationImage: resolvedImage,
-          lastUpdated: Date.now(),
+          lastUpdated: Date.now().toString(),
         },
       )
       if (started.matchedCount !== 1) {
@@ -1766,7 +1785,7 @@ export default {
       // A run that already failed, or never started, cannot be reported complete.
       const completed = await Run.updateOne(
         { _id: runId, status: 'In Progress' },
-        { status: 'Complete', lastUpdated: Date.now() },
+        { status: 'Complete', lastUpdated: Date.now().toString() },
       )
       if (completed.matchedCount !== 1) {
         logger.warn('Ignoring run complete report for a run that is not in progress', { runId })
@@ -2468,7 +2487,7 @@ export default {
           consortium: consortiumId,
           email: normalizedEmail,
           tokenDigest: inviteTokenDigest(token),
-          createdAt: Date.now(),
+          createdAt: new Date(),
         })
       }
 
@@ -2550,7 +2569,7 @@ export default {
         $set: { hash: hashedPassword },
         $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
         $inc: { tokenVersion: 1 },
-      }, { new: true }).select('tokenVersion').exec()
+      }, { returnDocument: 'after' }).select('tokenVersion').exec()
       if (!updatedUser) throw new Error('Password changed. Please sign in again.')
       revokeUserSessions(userId, updatedUser.tokenVersion)
       return true
@@ -2576,7 +2595,7 @@ export default {
             $set: { hash: hashedPassword },
             $unset: { resetToken: '', resetTokenExpiry: '', resetEmail: '' },
             $inc: { tokenVersion: 1 },
-          }, { new: true })
+          }, { returnDocument: 'after' })
           .select('_id tokenVersion')
           .collation({ locale: 'en', strength: 2 })
         if (!updatedUser) throw new Error('User not found')
@@ -3051,7 +3070,7 @@ export default {
       const user = await User.findOneAndUpdate(
         { _id: server.user, roles: 'vault' },
         { $inc: { tokenVersion: 1 } },
-        { new: true },
+        { returnDocument: 'after' },
       ).select('_id roles tokenVersion').exec()
       if (!user) {
         throw new Error('Vault service account not found')
@@ -3586,16 +3605,13 @@ export default {
         logger.info(`Event emitted for runStartCentral: run ${payload.runId}`)
         return payload
       },
-      subscribe: withFilter(
+      subscribe: withDefinedFilter(
         () => {
           logger.info('Subscription attempt for runStartCentral')
-          return pubsub.asyncIterator(['RUN_START_CENTRAL'])
+          return pubsub.asyncIterableIterator(['RUN_START_CENTRAL'])
         },
-        (
-          payload: RunStartCentralPayload,
-          variables: unknown,
-          context: Context,
-        ) => context.roles.includes('central'),
+        (payload: RunStartCentralPayload, _variables, context) =>
+          context.roles.includes('central'),
       ),
     },
     runStartEdge: {
@@ -3635,28 +3651,24 @@ export default {
 
         return output
       },
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_START_EDGE']),
-        async (
-          payload: RunStartEdgePayload & { participantId: string; targetUserId: string; vaultId?: string | null },
-          variables: unknown,
-          context: Context,
-        ) => {
-          const { targetUserId } = payload
-          const { userId } = context
-          return userId === targetUserId
-        },
+      subscribe: withDefinedFilter(
+        () => pubsub.asyncIterableIterator(['RUN_START_EDGE']),
+        (
+          payload: RunStartEdgePayload & {
+            participantId: string
+            targetUserId: string
+            vaultId?: string | null
+          },
+          _variables,
+          context,
+        ) => payload.targetUserId === context.userId,
       ),
     },
     runEvent: {
       resolve: (payload: RunEventPayload): RunEventPayload => payload,
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_EVENT']),
-        async (
-          payload: RunEventPayload,
-          variables: unknown,
-          context: Context,
-        ) => {
+      subscribe: withDefinedFilter(
+        () => pubsub.asyncIterableIterator(['RUN_EVENT']),
+        async (payload: RunEventPayload, _variables, context) => {
           logger.info('Run event emitted', { payload, context })
 
           if (context.error) {
@@ -3686,36 +3698,30 @@ export default {
     },
     consortiumLatestRunChanged: {
       resolve: (): string => 'Consortium latest run changed',
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
-        async (
-          payload: ConsortiumEventPayload,
-          variables: unknown,
-          context: Context,
-        ) => isConsortiumEventRecipient(payload, context.userId),
+      subscribe: withDefinedFilter(
+        () => pubsub.asyncIterableIterator(['CONSORTIUM_LATEST_RUN_CHANGED']),
+        (payload: ConsortiumEventPayload, _variables, context) =>
+          isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
     consortiumDetailsChanged: {
       resolve: (): string => 'Consortium details changed',
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(['CONSORTIUM_DETAILS_CHANGED']),
-        async (
-          payload: ConsortiumEventPayload,
-          variables: unknown,
-          context: Context,
-        ) => isConsortiumEventRecipient(payload, context.userId),
+      subscribe: withDefinedFilter(
+        () => pubsub.asyncIterableIterator(['CONSORTIUM_DETAILS_CHANGED']),
+        (payload: ConsortiumEventPayload, _variables, context) =>
+          isConsortiumEventRecipient(payload, context.userId),
       ),
     },
 
     runDetailsChanged: {
       resolve: (payload: { runId: string }): string => 'Run details changed',
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(['RUN_DETAILS_CHANGED']),
+      subscribe: withDefinedFilter(
+        () => pubsub.asyncIterableIterator(['RUN_DETAILS_CHANGED']),
         async (
           payload: { runId: string; memberIds?: string[] },
-          variables: unknown,
-          context: Context,
+          _variables,
+          context,
         ) => {
           if (!context.userId) return false
           if (payload.memberIds) return payload.memberIds.includes(context.userId)

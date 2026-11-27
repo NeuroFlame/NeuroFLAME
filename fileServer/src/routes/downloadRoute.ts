@@ -4,6 +4,7 @@ import fs from 'fs'
 import decodeAndValidateJWT from '../middleware/decodeAndValidateJWT.js'
 import { requireObjectIdParams } from '../runKitIds.js'
 import { BASE_DIR } from '../config.js'
+import { ParticipantRunParams } from '../types.js'
 
 const router = Router()
 
@@ -11,7 +12,7 @@ router.post(
   '/download/:consortiumId/:runId/:participantId',
   requireObjectIdParams,
   decodeAndValidateJWT,
-  async (req: Request, res: Response) => {
+  async (req: Request<ParticipantRunParams>, res: Response) => {
     const { consortiumId, runId, participantId } = req.params
     const tokenPayload = res.locals.tokenPayload
 
@@ -32,14 +33,10 @@ router.post(
         .status(400)
         .send('Token payload data does not match requested resource')
     }
-    const filePath = path.join(
-      BASE_DIR,
-      consortiumId,
-      runId,
-      `${participantId}.zip`,
-    )
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath)
+    const relativePath = path.join(consortiumId, runId, `${participantId}.zip`)
+    if (fs.existsSync(path.join(BASE_DIR, relativePath))) {
+      // Pass root so a dot-folder in BASE_DIR isn't treated as a hidden file
+      res.sendFile(relativePath, { root: BASE_DIR })
     } else {
       res.status(404).send('File not found')
     }
