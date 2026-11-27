@@ -40,9 +40,10 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run generate-graphql-types && tsc --noEmit && vite build",
     "test": "node --test tests/*.test.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-graphql-types": "graphql-codegen --config codegen.yml"
   },
   "browserslist": {
     "production": [

@@ -1,19 +1,19 @@
-import { createClient } from 'graphql-ws'
+import { CloseCode, createClient, type Client } from 'graphql-ws'
 import { WebSocket } from 'ws'
 import { logger } from '../logger.js'
+import { onStaleSession } from '../auth/staleSessionHandler.js'
 import {
   runStartHandler,
   RUN_START_SUBSCRIPTION,
 } from './eventHandlers/runStart/runStart.js'
 
-// Interface for subscription event handlers
-interface EventHandlers {
-  next: Function
-  error: Function
-  complete: Function
-}
+let client: Client | undefined
 
-let client: any
+const isCloseEvent = (error: unknown): error is { code: number } =>
+  typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'number'
+
+const isSessionRejection = (error: unknown): boolean =>
+  isCloseEvent(error) && (error.code === CloseCode.Forbidden || error.code === CloseCode.Unauthorized)
 
 // Interface for subscription parameters
 interface SubscriptionParams {
@@ -31,25 +31,38 @@ export async function subscribeToCentralApi({
 
   logger.info('Subscribing to central API')
   // Create a new GraphQL WebSocket client
-  client = createClient({
+  const subscriptionClient = createClient({
     url: wsUrl,
     webSocketImpl: WebSocket,
     connectionParams: {
       accessToken,
     },
+    // Retrying an authentication rejection would resend the same token.
+    shouldRetry: (error) => isCloseEvent(error) && !isSessionRejection(error),
   })
 
-  subscribe(client, RUN_START_SUBSCRIPTION, runStartHandler)
+  client = subscriptionClient
+  subscriptionClient.subscribe({ query: RUN_START_SUBSCRIPTION }, {
+    next: guardEventHandler(runStartHandler.next),
+    error: (error) => {
+      // A late close from a replaced subscription says nothing about the new login.
+      if (client !== subscriptionClient) return
+      if (isSessionRejection(error)) {
+        onStaleSession('Central API rejected the run-start subscription session.')
+        return
+      }
+      runStartHandler.error(error)
+    },
+    complete: runStartHandler.complete,
+  })
 }
 
-function subscribe(
-  client: any,
-  subscriptionQuery: string,
-  eventHandlers: EventHandlers,
-): void {
-  const { next, error, complete } = eventHandlers
-  return client.subscribe(
-    { query: subscriptionQuery },
-    { next, error, complete },
-  )
+// graphql-ws ignores the promise a handler returns; a rejection would be unhandled
+// and would stop this service. Log handler failures instead.
+export const guardEventHandler = (next: Function) => (data: unknown): void => {
+  Promise.resolve()
+    .then(() => next(data))
+    .catch((handlerError: unknown) => {
+      logger.error('Subscription event handler failed', { error: handlerError })
+    })
 }

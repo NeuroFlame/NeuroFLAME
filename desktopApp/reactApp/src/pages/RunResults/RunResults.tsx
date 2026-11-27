@@ -42,7 +42,7 @@ function RunErrorsDisplay({
     <>
       {localComputationError && (
         <Grid size={{ sm: 12 }}>
-          <Alert severity='error'>
+          <Alert severity='error' sx={{ borderRadius: 2 }}>
             <AlertTitle>Local computation failed</AlertTitle>
             {localComputationError.scope && (
               <strong>[{localComputationError.scope}] </strong>
@@ -116,14 +116,20 @@ export default function RunResults() {
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'view-nifti' && typeof event.data.url === 'string') {
+      // Reports can post messages too; only show files from this machine's run results.
+      if (
+        event.data?.type === 'view-nifti' &&
+        typeof event.data.url === 'string' &&
+        edgeClientRunResultsUrl &&
+        event.data.url.startsWith(`${edgeClientRunResultsUrl}/`)
+      ) {
         setCurrentFile(event.data.url.split('/').pop()?.split('?')[0] ?? '')
         setFrameSrc(event.data.url)
       }
     }
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
-  }, [setFrameSrc])
+  }, [setFrameSrc, edgeClientRunResultsUrl])
 
   if (loading) {
     return (

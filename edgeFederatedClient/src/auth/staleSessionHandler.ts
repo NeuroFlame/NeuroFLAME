@@ -23,7 +23,6 @@ export function setStaleSessionHandler(newHandler: StaleSessionHandler): void {
   handler = newHandler
 }
 
-/** The only call site is reportRunError.ts — see its own comment for why. */
 export function onStaleSession(reason: string): void {
   handler(reason)
 }

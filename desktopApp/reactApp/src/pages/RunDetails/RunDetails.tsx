@@ -230,6 +230,9 @@ export function RunDetails() {
                           ? localErrorMessage(localComputationError)
                           : error.message
                       }
+                      onViewResults={error.user.id === userId
+                        ? () => navigate(`/run/results/${runDetails.consortium.id}/${runDetails.runId}`)
+                        : undefined}
                     />
                   ))}
                   {localComputationError &&
@@ -240,6 +243,7 @@ export function RunDetails() {
                     <RunErrorCard
                       source='Local computation'
                       message={localErrorMessage(localComputationError)}
+                      onViewResults={() => navigate(`/run/results/${runDetails.consortium.id}/${runDetails.runId}`)}
                     />
                   )}
                 </Box>

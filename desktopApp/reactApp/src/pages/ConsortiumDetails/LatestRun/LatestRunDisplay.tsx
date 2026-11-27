@@ -1,5 +1,23 @@
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
+import WarningIcon from '@mui/icons-material/Warning'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { useLatestRun } from './useLatestRun' // Import the custom hook
+
+function RunStatusIcon({ status }: { status: string }) {
+  if (status === 'Complete') {
+    return <CheckCircleIcon sx={{ color: 'var(--nf-success)', fontSize: 18, verticalAlign: 'middle' }} />
+  }
+  if (status === 'Error') {
+    return <WarningIcon color='warning' sx={{ fontSize: 18, verticalAlign: 'middle' }} />
+  }
+  return <CircularProgress size={14} sx={{ verticalAlign: 'middle' }} />
+}
+
+function runStatusColor(status: string) {
+  if (status === 'Complete') return 'var(--nf-success)'
+  if (status === 'Error') return 'var(--nf-error)'
+  return 'var(--nf-primary)'
+}
 
 export function LatestRunDisplay({
   latestRun,
@@ -37,9 +55,12 @@ export function LatestRunDisplay({
               </Typography>
               <Typography variant='body2' color='textSecondary' fontSize='11px'>
                 <strong>Status:</strong>{' '}
-                <strong style={{ color: 'var(--nf-success)' }}>
+                <strong style={{ color: runStatusColor(latestRun.status) }}>
                   {latestRun.status}
-                </strong><br />
+                </strong>{' '}
+                <Box component='span' aria-hidden='true'>
+                  <RunStatusIcon status={latestRun.status} />
+                </Box><br />
                 <strong>Created At:</strong>{' '}
                 {new Date(Number(latestRun.createdAt)).toLocaleString()}<br />
                 <strong>Last Updated:</strong>{' '}

@@ -10,10 +10,7 @@ interface GraphQLResponse<T> {
 }
 
 interface ReportRunReadyResponse {
-  reportRunReady: {
-    success: boolean
-    message?: string
-  }
+  reportRunReady: boolean
 }
 
 // GraphQL mutation
@@ -54,7 +51,8 @@ export default async function reportReady({
       throw new Error('Failed to report run ready due to GraphQL error')
     }
 
-    if (responseData.data && responseData.data.reportRunReady) {
+    // false means the central API ignored a report for a run in another state.
+    if (typeof responseData.data?.reportRunReady === 'boolean') {
       return responseData.data.reportRunReady
     } else {
       throw new Error('Invalid response data')

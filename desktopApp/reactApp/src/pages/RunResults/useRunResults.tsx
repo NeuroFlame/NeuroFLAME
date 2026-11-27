@@ -119,9 +119,14 @@ export function useRunResults() {
         }
 
         setFileList(files)
+        setError(null)
       } catch (err) {
-        setError('Failed to fetch results')
-        console.error('Error fetching results:', err)
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          setError('The artifact directory for this run isn’t available on this machine. Results and logs are stored on the machine that ran the computation and may have been deleted from disk.')
+        } else {
+          setError('Failed to fetch results')
+          console.error('Error fetching results:', err)
+        }
       } finally {
         setLoading(false)
       }

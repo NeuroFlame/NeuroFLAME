@@ -1,20 +1,26 @@
 import { validateAccessToken } from './authentication/authentication.js'
 import { IncomingHttpHeaders } from 'http'
 import User from './database/models/User.js'
+import { getClientAddress, ClientAddressRequest } from './authentication/clientAddress.js'
 
-interface ServerContext {
+const SERVICE_ROLES = ['vault', 'central']
+
+export interface ServerContext {
   userId?: string
   roles?: string[]
   error?: string
+  tokenVersion?: number
+  clientAddress?: string
 }
 
 interface WebSocketContext {
+  extra?: { request: ClientAddressRequest }
   connectionParams: {
     accessToken: string
   }
 }
 
-interface HttpRequest {
+interface HttpRequest extends ClientAddressRequest {
   headers: IncomingHttpHeaders
 }
 
@@ -25,7 +31,7 @@ interface HttpContext {
   res: HttpResponse
 }
 
-const validateServerAccessToken = async (accessToken: string): Promise<ServerContext> => {
+export const validateServerAccessToken = async (accessToken: string): Promise<ServerContext> => {
   const context = validateAccessToken(accessToken)
   if (!context.userId) {
     return { ...context }
@@ -38,6 +44,11 @@ const validateServerAccessToken = async (accessToken: string): Promise<ServerCon
   if (!user || (context.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
     throw new Error('Access token has been revoked')
   }
+  // Sign-in sessions must expire. Only service accounts hold long-lived tokens,
+  // so this also retires sign-in tokens issued before sessions expired.
+  if (context.exp === undefined && !user.roles?.some((role) => SERVICE_ROLES.includes(role))) {
+    throw new Error('Access token has expired')
+  }
 
   return { ...context, roles: user.roles }
 }
@@ -49,10 +60,11 @@ const wsServerContext = async (
 ): Promise<ServerContext> => {
   try {
     const { accessToken } = ctx.connectionParams
-    return await validateServerAccessToken(accessToken)
+    return { ...await validateServerAccessToken(accessToken), clientAddress: getClientAddress(ctx.extra?.request) }
   } catch (e) {
     return {
       error: (e as Error).message,
+      clientAddress: getClientAddress(ctx.extra?.request),
     }
   }
 }
@@ -67,10 +79,11 @@ const httpServerContext = async ({
         ? req.headers['x-access-token'][0]
         : req.headers['x-access-token']
       )?.replace(/^null$/, '') || ''
-    return await validateServerAccessToken(accessToken)
+    return { ...await validateServerAccessToken(accessToken), clientAddress: getClientAddress(req) }
   } catch (e) {
     return {
       error: (e as Error).message,
+      clientAddress: getClientAddress(req),
     }
   }
 }

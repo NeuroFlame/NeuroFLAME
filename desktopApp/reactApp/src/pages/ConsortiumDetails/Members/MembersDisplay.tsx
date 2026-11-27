@@ -12,6 +12,7 @@ import VaultUsersButton from './VaultUsersButton'
 import MembersListDisplay from './MembersListDisplay'
 import MembersListEdit from './MembersListEdit'
 import { useConsortiumDetailsContext } from '../ConsortiumDetailsContext'
+import LeaveConsortiumDialog from '../../../components/LeaveConsortiumDialog'
 
 interface MembersDisplayProps {
   memberList: {
@@ -31,7 +32,7 @@ interface MembersDisplayProps {
     isVaultUser: boolean,
   ) => void;
   leaderSetRemoveMember: (memberId: string, isVaultUser: boolean) => void;
-  handleLeave: () => void;
+  handleLeave: (newLeaderId?: string) => Promise<void>;
 }
 
 export function MembersDisplay({
@@ -43,8 +44,9 @@ export function MembersDisplay({
   leaderSetRemoveMember,
 }: MembersDisplayProps) {
   const itsMe = memberList.find((member) => member.isMe === true)
-  const { isLeader } = useConsortiumDetailsContext()
+  const { isLeader, data: { title } } = useConsortiumDetailsContext()
   const [editMembers, setEditMembers] = useState<boolean>(false)
+  const [leaveOpen, setLeaveOpen] = useState<boolean>(false)
 
   return (
     <>
@@ -148,9 +150,17 @@ export function MembersDisplay({
           }}
         >
           {isLeader && <VaultUsersButton />}
-          <MemberLeaveButton handleLeave={handleLeave} />
+          <MemberLeaveButton handleLeave={() => setLeaveOpen(true)} />
         </Box>
       </Box>
+      <LeaveConsortiumDialog
+        open={leaveOpen}
+        consortiumTitle={title}
+        isLeader={isLeader}
+        leaderCandidates={memberList.filter((member) => !member.isMe && !member.isVaultUser)}
+        onClose={() => setLeaveOpen(false)}
+        onLeave={handleLeave}
+      />
     </>
   )
 }
